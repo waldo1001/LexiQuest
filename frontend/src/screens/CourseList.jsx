@@ -254,6 +254,12 @@ export default function CourseList({
                   <span>{course.emoji}</span>
                   <span>{course.name}</span>
                   <Link
+                    to={`/courses/${course.id}/study`}
+                    state={{ courseName: course.name, mode: course.default_mode ?? "self_grade" }}
+                  >
+                    {t("courses.action.study")}
+                  </Link>
+                  <Link
                     to={`/courses/${course.id}/cards`}
                     state={{ courseName: course.name, ownerId: course.user_id }}
                   >

@@ -7,6 +7,7 @@ import AdminRoute from "./screens/AdminRoute.jsx";
 import AdminPanel from "./screens/AdminPanel.jsx";
 import CourseList from "./screens/CourseList.jsx";
 import CardManager from "./screens/CardManager.jsx";
+import StudySession from "./screens/StudySession.jsx";
 import { AppProvider } from "./context/AppContext.jsx";
 
 export default function App() {
@@ -20,6 +21,8 @@ export default function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/courses" element={<CourseList />} />
           <Route path="/courses/:courseId/cards" element={<CardManager />} />
+          <Route path="/courses/:courseId/study" element={<StudySession />} />
+          <Route path="/courses/:courseId/results" element={<div>Session Results (Phase 9)</div>} />
           <Route
             path="/admin"
             element={

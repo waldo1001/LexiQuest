@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 7 complete (all 3 slices shipped as one combined TDD cycle). Tag `phase-7-done` applied.
-- **Last tag**: `phase-7-done`
-- **Next up**: Phase 8 — SM-2 scheduling & self-grade session
+- **Current phase**: Phase 8 complete (all 5 slices done). Tag `phase-8-done` applied.
+- **Last tag**: `phase-8-done`
+- **Next up**: Phase 9 — Attempts & sessions logging + results screen
 
 ---
 
@@ -137,11 +137,19 @@ populates 4 users + current year. See
 
 ## Phase 8 — SM-2 scheduling & self-grade session
 
-- ⬜ Slice 1 — `applySm2` pure function + RED list
-- ⬜ Slice 2 — Session queue builder (`POST /api/sessions`)
-- ⬜ Slice 3 — `POST /api/attempts` batch
-- ⬜ Slice 4 — `PUT /api/sessions/:id` (close)
-- ⬜ Slice 5 — `StudySession` screen self-grade flow
+- ✅ Slice 1 — `applySm2` pure function + RED list
+- ✅ Slice 2 — Session queue builder (`POST /api/sessions`)
+- ✅ Slice 3 — `POST /api/attempts` batch
+- ✅ Slice 4 — `PUT /api/sessions/:id` (close)
+- ✅ Slice 5 — `StudySession` screen self-grade flow
+
+**Smoke test** (Design.md) — manual verification pending:
+- [ ] Lex starts a session with 10 cards
+- [ ] Can flip, self-grade each
+- [ ] Wrong cards appear again at the end
+- [ ] After session, card SM-2 fields updated in storage (verify in Storage Explorer)
+- [ ] Failed cards have `reps=0, interval=1, next_review_at = tomorrow`
+- [ ] Correct cards have `reps=1, interval=1` (on first success)
 
 ---
 

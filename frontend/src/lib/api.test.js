@@ -606,3 +606,56 @@ describe("deleteCard", () => {
     ).rejects.toThrow(/500/);
   });
 });
+
+import { startSession, postAttempts, closeSession } from "./api.js";
+
+describe("startSession", () => {
+  it("POSTs to /api/sessions and returns sessionId + cards", async () => {
+    const data = { sessionId: "s1", cards: [] };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    const result = await startSession({ courseId: "c1", mode: "self_grade" }, { fetchFn });
+    expect(fetchFn).toHaveBeenCalledWith("/api/sessions", expect.objectContaining({ method: "POST" }));
+    expect(result).toEqual(data);
+  });
+
+  it("throws on non-ok", async () => {
+    await expect(
+      startSession({ courseId: "c1", mode: "self_grade" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
+    ).rejects.toThrow(/500/);
+  });
+});
+
+describe("postAttempts", () => {
+  it("POSTs to /api/attempts and returns logged count", async () => {
+    const data = { logged: 3 };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    const result = await postAttempts({ sessionId: "s1", items: [] }, { fetchFn });
+    expect(fetchFn).toHaveBeenCalledWith("/api/attempts", expect.objectContaining({ method: "POST" }));
+    expect(result).toEqual(data);
+  });
+
+  it("throws on non-ok", async () => {
+    await expect(
+      postAttempts({ sessionId: "s1", items: [] }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
+    ).rejects.toThrow(/500/);
+  });
+});
+
+describe("closeSession", () => {
+  it("PUTs to /api/sessions/:id and returns the closed session", async () => {
+    const data = { ended_at: "2026-04-22T10:05:00Z" };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    const result = await closeSession("sess-1", { cards_studied: 5, cards_correct: 3 }, { fetchFn });
+    expect(fetchFn).toHaveBeenCalledWith(
+      "/api/sessions/sess-1",
+      expect.objectContaining({ method: "PUT" }),
+    );
+    expect(result).toEqual(data);
+  });
+
+  it("throws on non-ok", async () => {
+    await expect(
+      closeSession("sess-1", { cards_studied: 0, cards_correct: 0 }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
+    ).rejects.toThrow(/500/);
+  });
+});

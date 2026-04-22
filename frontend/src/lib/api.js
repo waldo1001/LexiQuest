@@ -430,6 +430,61 @@ export async function updateCard(id, courseId, patch, { fetchFn = fetch } = {}) 
  * @param {{ fetchFn?: typeof fetch }} [options]
  * @returns {Promise<void>}
  */
+/**
+ * @param {{ courseId: string, mode: string }} body
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<{ sessionId: string, cards: object[] }>}
+ */
+export async function startSession(body, { fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/sessions", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`POST /api/sessions failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * @param {{ sessionId: string, items: object[] }} body
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<object>}
+ */
+export async function postAttempts(body, { fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/attempts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`POST /api/attempts failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * @param {string} sessionId
+ * @param {{ cards_studied: number, cards_correct: number }} body
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<object>}
+ */
+export async function closeSession(sessionId, body, { fetchFn = fetch } = {}) {
+  const response = await fetchFn(`/api/sessions/${encodeURIComponent(sessionId)}`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`PUT /api/sessions/${sessionId} failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
 export async function deleteCard(id, courseId, { fetchFn = fetch } = {}) {
   const path = `/api/cards/${encodeURIComponent(id)}?courseId=${encodeURIComponent(courseId)}`;
   const response = await fetchFn(path, {
