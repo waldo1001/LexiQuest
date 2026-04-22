@@ -5,6 +5,18 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Added `PATCH /api/me` — authenticated users can update their own
+  `ui_language` and `settings` (shallow-merge). Validator rejects
+  unknown ui_language (400), bad settings shapes (400), and ignores
+  body attempts to mutate `userId` / `is_admin` / `name` /
+  `password_hash` / `color` / `avatar_emoji` / `created_at`
+  (invariant 1 regression guard). Method-dispatch on the `me`
+  handler also returns 405 for other verbs. `password_hash` never
+  leaves the handler. Frontend `patchMe()` wrapper + `AppProvider`
+  `setLang` is now server-first (awaits PATCH, only updates local
+  state on resolve). 51 frontend tests / 108 api tests / 100%
+  frontend + 98.72% api lines. Phase 4 Slice 2. See
+  [plan](plans/done/phase-4-slice-2-patch-me.md).
 - Added i18n foundation — `frontend/src/i18n/strings.js` (EN + NL
   dictionary, ~27 keys), `translate()` helper with `{name}`
   placeholder interpolation and EN-fallback, `useT()` hook, and

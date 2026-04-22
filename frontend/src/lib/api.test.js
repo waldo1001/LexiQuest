@@ -5,6 +5,7 @@ import {
   fetchPublicUsers,
   login,
   logout,
+  patchMe,
 } from "./api.js";
 
 function ok(body) {
@@ -102,6 +103,41 @@ describe("fetchMe", () => {
   it("throws a generic error on other non-ok", async () => {
     const fakeFetch = vi.fn().mockResolvedValue(fail(500));
     await expect(fetchMe({ fetchFn: fakeFetch })).rejects.toThrow(/500/);
+  });
+});
+
+describe("patchMe", () => {
+  it("PATCHes /api/me with JSON body and credentials, returns the parsed profile", async () => {
+    const updated = { id: "u1", name: "Alice", ui_language: "en" };
+    const fakeFetch = vi.fn().mockResolvedValue(ok(updated));
+    const res = await patchMe(
+      { ui_language: "en" },
+      { fetchFn: fakeFetch },
+    );
+    expect(res).toEqual(updated);
+    expect(fakeFetch).toHaveBeenCalledWith(
+      "/api/me",
+      expect.objectContaining({
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ ui_language: "en" }),
+      }),
+    );
+  });
+
+  it("throws 'unauthorized' on 401", async () => {
+    const fakeFetch = vi.fn().mockResolvedValue(fail(401));
+    await expect(
+      patchMe({ ui_language: "en" }, { fetchFn: fakeFetch }),
+    ).rejects.toThrow("unauthorized");
+  });
+
+  it("throws a generic error on 400", async () => {
+    const fakeFetch = vi.fn().mockResolvedValue(fail(400));
+    await expect(
+      patchMe({ ui_language: "fr" }, { fetchFn: fakeFetch }),
+    ).rejects.toThrow(/400/);
   });
 });
 

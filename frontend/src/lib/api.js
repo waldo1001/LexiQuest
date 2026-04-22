@@ -73,6 +73,26 @@ export async function fetchMe({ fetchFn = fetch } = {}) {
 }
 
 /**
+ * @param {{ ui_language?: "en"|"nl", settings?: object }} patch
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ */
+export async function patchMe(patch, { fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/me", {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(patch),
+  });
+  if (response.status === 401) {
+    throw new Error("unauthorized");
+  }
+  if (!response.ok) {
+    throw new Error(`PATCH /api/me failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
  * @param {{ fetchFn?: typeof fetch }} [options]
  */
 export async function logout({ fetchFn = fetch } = {}) {

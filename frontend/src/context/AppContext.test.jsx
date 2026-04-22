@@ -1,5 +1,5 @@
 import { render, screen, act } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { AppProvider, useAppContext } from "./AppContext.jsx";
 
 function Probe() {
@@ -45,17 +45,57 @@ describe("AppContext", () => {
     expect(screen.getByTestId("lang").textContent).toBe("nl");
   });
 
-  it("setLang updates the exposed lang value", () => {
+  it("setLang calls patchMe and updates lang on resolve", async () => {
+    const patchMe = vi.fn().mockResolvedValue({ ui_language: "nl" });
+    render(
+      <AppProvider initialLang="en" patchMe={patchMe}>
+        <Probe />
+      </AppProvider>,
+    );
+    await act(async () => {
+      screen.getByRole("button", { name: "to-nl" }).click();
+    });
+    expect(patchMe).toHaveBeenCalledWith({ ui_language: "nl" });
+    expect(screen.getByTestId("lang").textContent).toBe("nl");
+  });
+
+  it("does not update lang when patchMe rejects", async () => {
+    const patchMe = vi.fn().mockRejectedValue(new Error("offline"));
+    function Caller() {
+      const { lang, setLang } = useAppContext();
+      async function onClick() {
+        try {
+          await setLang("nl");
+        } catch {
+          /* swallow — UI-level handling is Slice 3 */
+        }
+      }
+      return (
+        <div>
+          <div data-testid="lang">{lang}</div>
+          <button type="button" onClick={onClick}>to-nl</button>
+        </div>
+      );
+    }
+    render(
+      <AppProvider initialLang="en" patchMe={patchMe}>
+        <Caller />
+      </AppProvider>,
+    );
+    await act(async () => {
+      screen.getByRole("button", { name: "to-nl" }).click();
+    });
+    expect(patchMe).toHaveBeenCalledWith({ ui_language: "nl" });
+    expect(screen.getByTestId("lang").textContent).toBe("en");
+  });
+
+  it("mounts without a patchMe prop (uses default binding)", () => {
     render(
       <AppProvider initialLang="en">
         <Probe />
       </AppProvider>,
     );
     expect(screen.getByTestId("lang").textContent).toBe("en");
-    act(() => {
-      screen.getByRole("button", { name: "to-nl" }).click();
-    });
-    expect(screen.getByTestId("lang").textContent).toBe("nl");
   });
 
   it("setUser updates the exposed user value", () => {
