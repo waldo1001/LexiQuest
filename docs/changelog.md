@@ -10,6 +10,9 @@ plain English. Link the most relevant doc or plan.
 - Added `POST /api/attempts`: validates a batch of `{ cardId, correct, mode, response_time_ms }` items + `sessionId`; logs each as an `AttemptRow` with `{iso}_{uuid}` row key; runs SM-2 and upserts each card; 403 on cross-user session. 11 tests.
 - Added `PUT /api/sessions/:id`: closes the session — sets `ended_at=now`, `duration_seconds`, `cards_studied`, `cards_correct`; 409 if already closed; 403 on cross-user. 9 tests.
 - Added `StudySession.jsx` screen: fetches queue, card-flip UI (question → Show answer → reveal + grade buttons), retry pile for wrong cards, batches all attempts on completion then closes session and navigates to `/courses/:id/results` placeholder. 11 frontend tests; 3 new `api.js` wrappers (`startSession`, `postAttempts`, `closeSession`); "Study" link added to CourseList; EN + NL `study.*` i18n strings. Phase 8 complete — tag `phase-8-done`. See [PROGRESS.md](../PROGRESS.md).
+- Fixed Azure Table Storage null→undefined round-trip bug: `ended_at=null` upserted to Table Storage is omitted on read-back as `undefined`; changed `sessions-id.ts` check from `!== null` to `!= null` (catches both) and added `?? null` in `sessionProfile` to normalise the returned shape.
+- Added `sessions-shared.test.ts` and `attempts-shared.test.ts` to cover previously-untested shared validators and row-key helpers; all coverage thresholds now met.
+- `/local-smoke` PASS (2026-04-22): Azurite + `func start` end-to-end; POST /api/sessions queue verified, POST /api/attempts SM-2 update verified (correct card reps=1/ease=2.60, wrong card reps=0/ease=1.70), PUT /api/sessions close verified.
 
 ## 2026-04-22 (Phase 7)
 
