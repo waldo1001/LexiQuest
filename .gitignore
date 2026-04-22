@@ -1,0 +1,36 @@
+# env + local settings
+.env
+.env.*
+!.env.example
+api/local.settings.json
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# secrets
+*.pem
+*.key
+*.pfx
+*.p12
+.azure/
+
+# build output
+node_modules/
+coverage/
+dist/
+api/dist/
+frontend/dist/
+api/bin/
+api/obj/
+.swa/
+
+# editor / OS
+.vscode/settings.json
+.DS_Store
+.idea/
+
+# Azurite (local Table Storage emulator) data
+__azurite*
+__blobstorage__
+__queuestorage__
+azurite-debug.log

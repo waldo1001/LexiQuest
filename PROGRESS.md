@@ -1,0 +1,208 @@
+# PROGRESS.md — LexiQuest
+
+Where we are in the 17-phase plan from [Design.md §6](Design.md).
+
+Each phase is independently shippable and ends with a tagged commit
+(`phase-N-done`). Slices within a phase are TDD cycles; each slice gets
+a plan file under [docs/plans/](docs/plans/) and is archived to
+[docs/plans/done/](docs/plans/done/) when complete.
+
+**Legend**: ⬜ not started · 🟡 in progress · ✅ done · ⏸ blocked
+
+---
+
+## Status summary
+
+- **Current phase**: Phase 0 — toolchain setup (pre-implementation)
+- **Last tag**: none yet
+- **Next up**: Phase 1 — project skeleton & deployment pipeline
+
+---
+
+## Phase 0 — Toolchain (this repo before Phase 1 starts)
+
+Not a Design.md phase. The TDD toolchain, skills, and drop-in configs
+are set up so the first real TDD cycle (Phase 1, slice 1) can run
+without inventing them from scratch.
+
+- ✅ [CLAUDE.md](CLAUDE.md)
+- ✅ [.github/copilot-instructions.md](.github/copilot-instructions.md)
+- ✅ [docs/tdd/](docs/tdd/) — methodology, testability-patterns, ai-maintainability, coverage-policy
+- ✅ [.claude/skills/](.claude/skills/) — tdd-cycle, security-scan, docs-update, local-smoke, deploy-swa
+- ✅ [testing/](testing/) — Vitest configs, dev-dep manifests, fake examples
+- ✅ [PROGRESS.md](PROGRESS.md) (this file)
+- ✅ [.gitignore](.gitignore)
+- ✅ [docs/changelog.md](docs/changelog.md) (empty header)
+- ✅ [docs/setup.md](docs/setup.md) (placeholder, grows per phase)
+- ✅ [docs/getting-started.md](docs/getting-started.md) (placeholder)
+- ✅ [docs/user-guide.md](docs/user-guide.md) (placeholder)
+
+---
+
+## Phase 1 — Project skeleton & deployment pipeline
+
+**Goal**: deployable empty shell. Visiting the URL shows "Hello from
+LexiQuest" served from Azure. See
+[Design.md Phase 1](Design.md#phase-1--project-skeleton--deployment-pipeline).
+
+- ⬜ Slice 1 — scaffold `frontend/` (Vite + React JS)
+- ⬜ Slice 2 — scaffold `api/` (Azure Functions TS) + `hello/` function
+- ⬜ Slice 3 — `staticwebapp.config.json` + GitHub Actions deploy workflow
+- ⬜ Slice 4 — wire `frontend` fetch of `/api/hello` + render the message
+- ⬜ Slice 5 — README, local-dev instructions, first `swa start` smoke
+
+**Smoke test** (Design.md):
+- [ ] Deployed URL shows "Hello from LexiQuest"
+- [ ] Devtools confirms `/api/hello` returned JSON
+- [ ] A commit to `main` auto-deploys within ~5 min
+- [ ] `npm run dev` works locally
+- [ ] `swa start` runs full stack locally
+
+---
+
+## Phase 2 — Storage layer & seed data
+
+**Goal**: Table Storage provisioned; schema defined in code; seed script
+populates 4 users + current year. See
+[Design.md Phase 2](Design.md#phase-2--storage-layer--seed-data).
+
+- ⬜ Slice 1 — `TableStorage` seam (interface + real + fake + contract test)
+- ⬜ Slice 2 — `PasswordHasher` seam (interface + real + fake + contract test)
+- ⬜ Slice 3 — `Clock`, `Random`, `Logger` seams
+- ⬜ Slice 4 — `scripts/seed.ts` with the 4 users + current year
+- ⬜ Slice 5 — Azurite-backed integration smoke
+
+---
+
+## Phase 3 — Authentication
+
+- ⬜ Slice 1 — `SessionSigner` seam
+- ⬜ Slice 2 — `POST /api/login`
+- ⬜ Slice 3 — `requireAuth` middleware, `POST /api/logout`, `GET /api/me`
+- ⬜ Slice 4 — `GET /api/users/public`
+- ⬜ Slice 5 — Frontend: UserPicker, Login, Home screens
+- ⬜ Slice 6 — `api/__meta__/auth-boundary.test.ts` (invariant 1)
+
+---
+
+## Phase 4 — i18n foundation
+
+- ⬜ Slice 1 — `strings.js` + `useT` hook + AppContext
+- ⬜ Slice 2 — `PATCH /api/me` for `ui_language` + `settings`
+- ⬜ Slice 3 — Settings screen language toggle, `<html lang>` sync
+
+---
+
+## Phase 5 — Users & admin panel
+
+- ⬜ Slice 1 — `GET /api/users` (full shape, no hashes)
+- ⬜ Slice 2 — `POST`, `PUT`, `DELETE /api/users/:id` (admin)
+- ⬜ Slice 3 — Cascade-delete of user's courses/cards/attempts/sessions
+- ⬜ Slice 4 — Admin Panel screen + route guard
+
+---
+
+## Phase 6 — Years & Courses
+
+- ⬜ Slice 1 — `/api/years` CRUD (admin)
+- ⬜ Slice 2 — `/api/courses` CRUD (owner or admin)
+- ⬜ Slice 3 — Frontend CourseList + modal
+
+---
+
+## Phase 7 — Manual cards
+
+- ⬜ Slice 1 — `/api/cards` CRUD with SM-2 defaults
+- ⬜ Slice 2 — `CardManager` screen
+- ⬜ Slice 3 — Read-only view for other users' cards
+
+---
+
+## Phase 8 — SM-2 scheduling & self-grade session
+
+- ⬜ Slice 1 — `applySm2` pure function + RED list
+- ⬜ Slice 2 — Session queue builder (`POST /api/sessions`)
+- ⬜ Slice 3 — `POST /api/attempts` batch
+- ⬜ Slice 4 — `PUT /api/sessions/:id` (close)
+- ⬜ Slice 5 — `StudySession` screen self-grade flow
+
+---
+
+## Phase 9 — Attempts & sessions logging + results
+
+- ⬜ Slice 1 — Row-key format `{iso}_{uuid}` meta-test
+- ⬜ Slice 2 — `SessionResults` screen
+- ⬜ Slice 3 — `GET /api/stats/session/:id`
+
+---
+
+## Phase 10 — XP, streaks, daily goals, badges
+
+- ⬜ Slice 1 — `computeSessionXp` pure function
+- ⬜ Slice 2 — Streak logic with `Europe/Brussels` rollover + freeze tokens
+- ⬜ Slice 3 — Badge engine
+- ⬜ Slice 4 — `Dashboard` screen with streak/XP/progress
+
+---
+
+## Phase 11 — speechSynthesis / TTS
+
+- ⬜ Slice 1 — `Tts` seam (interface + real wrapping speechSynthesis + fake)
+- ⬜ Slice 2 — 🔊 buttons in study + card manager
+- ⬜ Slice 3 — `auto_speak` setting
+
+---
+
+## Phase 12 — Claude import
+
+- ⬜ Slice 1 — `ClaudeClient` seam + markdown-fence stripping + JSON parse
+- ⬜ Slice 2 — `POST /api/cards/import` (candidates only — invariant 3)
+- ⬜ Slice 3 — `POST /api/cards/batch` (after review)
+- ⬜ Slice 4 — `PhotoImport` + `ImportReview` screens
+
+---
+
+## Phase 13 — MCQ mode & enrich
+
+- ⬜ Slice 1 — `POST /api/cards/enrich`
+- ⬜ Slice 2 — MCQ rendering + grading in `StudySession`
+- ⬜ Slice 3 — Mode picker, mixed-mode dispatch
+
+---
+
+## Phase 14 — Stats API aggregation engine
+
+- ⬜ Slice 1 — `aggregate.ts` helpers (fetchAttempts, groupByDay, masteryBucket, …)
+- ⬜ Slice 2 — `/api/stats/user/:userId`
+- ⬜ Slice 3 — `/api/stats/course/:courseId` + struggle list
+- ⬜ Slice 4 — `/api/stats/family` and `/api/stats/compare`
+- ⬜ Slice 5 — `/api/stats/heatmap/:userId`
+- ⬜ Slice 6 — `api/__meta__/stats-privacy.test.ts` (invariant 2)
+
+---
+
+## Phase 15 — Stats UI & Family Dashboard
+
+- ⬜ Slice 1 — Recharts wrappers (LineOverTime, DailyBars, HourHistogram, …)
+- ⬜ Slice 2 — `CalendarHeatmap`
+- ⬜ Slice 3 — `FamilyDashboard` screen
+- ⬜ Slice 4 — `UserStats` screen
+- ⬜ Slice 5 — `CourseStats` screen
+
+---
+
+## Phase 16 — Leaderboard & Compare view
+
+- ⬜ Slice 1 — `GET /api/leaderboard`
+- ⬜ Slice 2 — `Leaderboard` screen
+- ⬜ Slice 3 — `CompareView` screen
+
+---
+
+## Phase 17 — PWA polish, settings, backup/export
+
+- ⬜ Slice 1 — PWA manifest + service worker (shell-only caching)
+- ⬜ Slice 2 — Settings screen completion (daily_goal, preferred_mode, freezes)
+- ⬜ Slice 3 — `GET /api/export` + download button
+- ⬜ Slice 4 — Mobile UX polish (bottom nav, swipe gestures, tap targets, dark mode)
+- ⬜ Slice 5 — Final error-handling pass (banners, offline detection)
