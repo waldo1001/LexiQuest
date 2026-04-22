@@ -1,0 +1,123 @@
+import { describe, it, expect } from "vitest";
+import { SeedMissingPasswordError, seed, type UserRow, type YearRow } from "./seed.js";
+import { FakeTableStorage } from "../../testing/fake-table-storage.js";
+import { FakePasswordHasher } from "../../testing/fake-password-hasher.js";
+import { FakeClock } from "../../testing/fake-clock.js";
+import { FakeRandom } from "../../testing/fake-random.js";
+
+const passwords: Record<string, string> = {
+  Waldo: "wpw",
+  Lex: "lpw",
+  Mats: "mpw",
+  Ben: "bpw",
+};
+
+function make(partial: { random?: FakeRandom; clock?: FakeClock } = {}) {
+  return {
+    tables: new FakeTableStorage(),
+    hasher: new FakePasswordHasher(),
+    clock: partial.clock ?? new FakeClock("2026-04-22T09:00:00Z"),
+    random:
+      partial.random ??
+      new FakeRandom(["u-waldo", "u-lex", "u-mats", "u-ben", "y-2025-2026"]),
+    getPassword: (name: string) => passwords[name],
+  };
+}
+
+describe("seed", () => {
+  it("inserts 4 users when run against an empty store", async () => {
+    const deps = make();
+    const res = await seed(deps);
+    expect(res.users).toHaveLength(4);
+    expect(res.users.every((u) => u.created)).toBe(true);
+    const rows = await deps.tables.listByPartition<UserRow>("users", "users");
+    expect(rows.map((r) => r.name).sort()).toEqual(
+      ["Ben", "Lex", "Mats", "Waldo"],
+    );
+  });
+
+  it("inserts a current year row", async () => {
+    const deps = make();
+    const res = await seed(deps);
+    expect(res.year.created).toBe(true);
+    const years = await deps.tables.listByPartition<YearRow>("years", "years");
+    expect(years).toHaveLength(1);
+    expect(years[0]!.is_current).toBe(true);
+    expect(years[0]!.label).toBe("2025-2026");
+    expect(years[0]!.start_date).toBe("2025-09-01");
+    expect(years[0]!.end_date).toBe("2026-06-30");
+  });
+
+  it("computes a Sept-onwards label for a mid-October clock", async () => {
+    const deps = make({ clock: new FakeClock("2026-10-10T09:00:00Z") });
+    const res = await seed(deps);
+    expect(res.year.label).toBe("2026-2027");
+  });
+
+  it("hashes passwords (stored value is not the plaintext)", async () => {
+    const deps = make();
+    await seed(deps);
+    const rows = await deps.tables.listByPartition<UserRow>("users", "users");
+    // With FakePasswordHasher the hash is `fake$<salt>$<plaintext>`.
+    // Assertion: the stored value is the hasher's output, not the
+    // plaintext itself. Real bcrypt coverage lives in
+    // password-hasher.bcrypt.test.ts.
+    for (const r of rows) {
+      expect(r.password_hash).not.toBe(passwords[r.name]);
+      expect(r.password_hash.startsWith("fake$")).toBe(true);
+      expect(await deps.hasher.verify(passwords[r.name]!, r.password_hash))
+        .toBe(true);
+    }
+  });
+
+  it("exactly one admin after seed", async () => {
+    const deps = make();
+    await seed(deps);
+    const rows = await deps.tables.listByPartition<UserRow>("users", "users");
+    expect(rows.filter((r) => r.is_admin)).toHaveLength(1);
+    expect(rows.find((r) => r.is_admin)?.name).toBe("Waldo");
+  });
+
+  it("idempotent on re-run", async () => {
+    const tables = new FakeTableStorage();
+    const hasher = new FakePasswordHasher();
+    const clock = new FakeClock("2026-04-22T09:00:00Z");
+    const random = new FakeRandom([
+      "u-waldo",
+      "u-lex",
+      "u-mats",
+      "u-ben",
+      "y-1",
+      // nothing scripted for re-run; should NOT be consumed
+    ]);
+    const getPassword = (n: string) => passwords[n];
+
+    const first = await seed({ tables, hasher, clock, random, getPassword });
+    expect(first.users.every((u) => u.created)).toBe(true);
+    expect(first.year.created).toBe(true);
+
+    const before = await tables.listByPartition<UserRow>("users", "users");
+
+    const second = await seed({ tables, hasher, clock, random, getPassword });
+    expect(second.users.every((u) => !u.created)).toBe(true);
+    expect(second.year.created).toBe(false);
+
+    const after = await tables.listByPartition<UserRow>("users", "users");
+    expect(after).toEqual(before);
+  });
+
+  it("throws SeedMissingPasswordError with a redacted message", async () => {
+    const deps = {
+      tables: new FakeTableStorage(),
+      hasher: new FakePasswordHasher(),
+      clock: new FakeClock("2026-04-22T09:00:00Z"),
+      random: new FakeRandom(["u-waldo"]),
+      getPassword: () => undefined,
+    };
+    const err = await seed(deps).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SeedMissingPasswordError);
+    const e = err as SeedMissingPasswordError;
+    expect(e.message).not.toMatch(/waldo|lex|mats|ben/i);
+    expect(e.message).not.toMatch(/wpw|lpw|mpw|bpw/);
+  });
+});

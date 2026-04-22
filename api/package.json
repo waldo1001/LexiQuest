@@ -14,7 +14,8 @@
     "test:integration": "vitest run '**/__integration__/**'",
     "test:contract": "vitest run '**/__contract__/**'",
     "test:meta": "vitest run '**/__meta__/**'",
-    "typecheck": "tsc -p tsconfig.test.json"
+    "typecheck": "tsc -p tsconfig.test.json",
+    "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@azure/data-tables": "^13.3.2",

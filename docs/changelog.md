@@ -5,6 +5,12 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Added idempotent seed (`api/src/shared/seed.ts` + `api/scripts/seed.ts`):
+  creates 4 users (Waldo admin + Lex + Mats + Ben) with bcrypt hashes
+  and the current school-year row from `Clock`-derived month/year.
+  `SeedMissingPasswordError` with a redacted message. 7 tests / 100%
+  coverage. Added `.env.example` documenting env contract. Phase 2
+  Slice 4. See [plan](plans/done/phase-2-slice-4-seed.md).
 - Added `Clock`, `Random`, `Logger` seams (real + fakes + unit
   tests). Logger type-rejects banned secret keys
   (password/hash/token/…). Phase 2 Slice 3. See
