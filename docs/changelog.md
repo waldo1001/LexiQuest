@@ -5,6 +5,10 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Added `Clock`, `Random`, `Logger` seams (real + fakes + unit
+  tests). Logger type-rejects banned secret keys
+  (password/hash/token/…). Phase 2 Slice 3. See
+  [plan](plans/done/phase-2-slice-3-clock-random-logger.md).
 - Introduced `PasswordHasher` seam: interface, `BcryptPasswordHasher`
   (bcryptjs, v8-ignored, contract-tested), `FakePasswordHasher`
   (deterministic salted), shared 4-AC contract run against both. Phase
