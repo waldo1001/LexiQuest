@@ -9,6 +9,7 @@ import type { PasswordHasher } from "../shared/password-hasher.js";
 import type { SessionSigner } from "../shared/session-signer.js";
 import type { TableStorage } from "../shared/table-storage.js";
 import type { UserRow } from "../shared/seed.js";
+import { deleteUserAndCascade } from "./user-cascade.js";
 import {
   fullProfile,
   validateUserPatch,
@@ -50,7 +51,7 @@ export function makeUsersIdHandler(deps: UsersIdDeps): HttpHandler {
           jsonBody: { error: "cannot delete your own user" },
         };
       }
-      await deps.tables.remove("users", "users", id);
+      await deleteUserAndCascade(deps, id);
       return { status: 204 };
     }
 

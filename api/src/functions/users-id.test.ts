@@ -358,6 +358,65 @@ describe("DELETE /api/users/:id", () => {
     );
     expect(still).not.toBeNull();
   });
+
+  it("DELETE cascades the user's courses, cards, attempts, and sessions", async () => {
+    await deps.tables.upsert("courses", {
+      partitionKey: "u-target",
+      rowKey: "c-french",
+      name: "French",
+    });
+    await deps.tables.upsert("cards", {
+      partitionKey: "c-french",
+      rowKey: "card-1",
+      question: "q",
+    });
+    await deps.tables.upsert("attempts", {
+      partitionKey: "u-target",
+      rowKey: "2026-04-22T09:00:00Z_a",
+      correct: true,
+    });
+    await deps.tables.upsert("sessions", {
+      partitionKey: "u-target",
+      rowKey: "2026-04-22T09:00:00Z_s",
+      ended_at: null,
+    });
+
+    const res = (await makeUsersIdHandler(deps)(
+      makeReq(adminCookie(), { method: "DELETE" }),
+      ctx,
+    )) as HttpResponseInit;
+
+    expect(res.status).toBe(204);
+    expect(deps.tables.size("courses", "u-target")).toBe(0);
+    expect(deps.tables.size("cards", "c-french")).toBe(0);
+    expect(deps.tables.size("attempts", "u-target")).toBe(0);
+    expect(deps.tables.size("sessions", "u-target")).toBe(0);
+    const ghost = await deps.tables.getById<UserRow>(
+      "users",
+      "users",
+      "u-target",
+    );
+    expect(ghost).toBeNull();
+  });
+
+  it("DELETE 404 does not cascade", async () => {
+    await deps.tables.upsert("courses", {
+      partitionKey: "u-target",
+      rowKey: "c-still",
+      name: "Still here",
+    });
+
+    const res = (await makeUsersIdHandler(deps)(
+      makeReq(adminCookie(), {
+        method: "DELETE",
+        params: { id: "u-ghost" },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+
+    expect(res.status).toBe(404);
+    expect(deps.tables.size("courses", "u-target")).toBe(1);
+  });
 });
 
 describe("method and param guards on users/{id}", () => {
