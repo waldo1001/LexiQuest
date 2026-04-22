@@ -5,6 +5,11 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- `App` now fetches `/api/hello` on mount via `frontend/src/lib/api.js`
+  (injected `fetch` seam) and renders the returned `msg`; shows
+  "Loading…" during the request and falls back to "LexiQuest" on
+  failure. Tier A coverage 100%. Phase 1 Slice 4. See
+  [plan](plans/done/phase-1-slice-4-fetch-hello.md).
 - Added `staticwebapp.config.json` (SPA fallback + `/api/*` passthrough)
   and the Azure Static Web Apps GitHub Actions deploy workflow; added
   `frontend/src/lib/swaConfig.js` helper with Tier A coverage. Phase 1
