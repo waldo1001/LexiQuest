@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchMe, logout as logoutApi } from "../lib/api.js";
+import { useT } from "../i18n/useT.js";
 
 export default function Home({
   fetchMe: fetchMeInjected = fetchMe,
   logout: logoutInjected = logoutApi,
 } = {}) {
+  const t = useT();
   const navigate = useNavigate();
   const [me, setMe] = useState(null);
   const [failed, setFailed] = useState(false);
@@ -29,13 +31,13 @@ export default function Home({
     navigate("/");
   }
 
-  if (failed) return <p role="alert">Not signed in — go to the picker</p>;
-  if (!me) return <p>Loading…</p>;
+  if (failed) return <p role="alert">{t("home.notSignedIn")}</p>;
+  if (!me) return <p>{t("home.loading")}</p>;
   return (
     <main>
-      <h1>Hello, {me.name}</h1>
+      <h1>{t("home.greeting", { name: me.name })}</h1>
       <button type="button" onClick={onLogout}>
-        Log out
+        {t("home.logout")}
       </button>
     </main>
   );

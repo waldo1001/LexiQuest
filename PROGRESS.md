@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 3 complete; Phase 4 (i18n) next
+- **Current phase**: Phase 4 in progress (Slice 1 complete)
 - **Last tag**: none yet (`phase-1-done` applied after manual smoke)
-- **Next up**: Phase 4 Slice 1 — `strings.js` + `useT` hook + AppContext
+- **Next up**: Phase 4 Slice 2 — `PATCH /api/me` for `ui_language` + `settings`
 
 ---
 
@@ -87,7 +87,7 @@ populates 4 users + current year. See
 
 ## Phase 4 — i18n foundation
 
-- ⬜ Slice 1 — `strings.js` + `useT` hook + AppContext
+- ✅ Slice 1 — `strings.js` + `useT` hook + AppContext
 - ⬜ Slice 2 — `PATCH /api/me` for `ui_language` + `settings`
 - ⬜ Slice 3 — Settings screen language toggle, `<html lang>` sync
 

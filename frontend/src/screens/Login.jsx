@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { login as loginApi } from "../lib/api.js";
+import { useT } from "../i18n/useT.js";
 
 export default function Login({ login = loginApi } = {}) {
+  const t = useT();
   const { userId } = useParams();
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
@@ -16,18 +18,18 @@ export default function Login({ login = loginApi } = {}) {
     try {
       await login({ userId, password });
       navigate("/home");
-    } catch (err) {
-      setError(err.message || "invalid credentials");
+    } catch {
+      setError(t("login.invalid"));
       setSubmitting(false);
     }
   }
 
   return (
     <main>
-      <h1>Enter your password</h1>
+      <h1>{t("login.title")}</h1>
       <form onSubmit={onSubmit}>
         <label>
-          Password
+          {t("login.password")}
           <input
             type="password"
             value={password}
@@ -36,7 +38,7 @@ export default function Login({ login = loginApi } = {}) {
           />
         </label>
         <button type="submit" disabled={submitting}>
-          {submitting ? "Signing in…" : "Sign in"}
+          {submitting ? t("login.submitting") : t("login.submit")}
         </button>
       </form>
       {error ? <p role="alert">{error}</p> : null}

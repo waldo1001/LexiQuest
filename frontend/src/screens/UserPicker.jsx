@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchPublicUsers } from "../lib/api.js";
+import { useT } from "../i18n/useT.js";
 
 export default function UserPicker({ fetchUsers = fetchPublicUsers } = {}) {
+  const t = useT();
   const [users, setUsers] = useState(null);
   const [error, setError] = useState(null);
 
@@ -13,18 +15,18 @@ export default function UserPicker({ fetchUsers = fetchPublicUsers } = {}) {
         if (!cancelled) setUsers(u);
       })
       .catch(() => {
-        if (!cancelled) setError("Could not load users");
+        if (!cancelled) setError(t("picker.error"));
       });
     return () => {
       cancelled = true;
     };
-  }, [fetchUsers]);
+  }, [fetchUsers, t]);
 
   if (error) return <p role="alert">{error}</p>;
-  if (users === null) return <p>Loading…</p>;
+  if (users === null) return <p>{t("picker.loading")}</p>;
   return (
     <main>
-      <h1>Who are you?</h1>
+      <h1>{t("picker.title")}</h1>
       <ul>
         {users.map((u) => (
           <li key={u.id}>

@@ -5,6 +5,15 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Added i18n foundation — `frontend/src/i18n/strings.js` (EN + NL
+  dictionary, ~27 keys), `translate()` helper with `{name}`
+  placeholder interpolation and EN-fallback, `useT()` hook, and
+  `AppContext` (holds `{user, lang, setLang, setUser}`; defaults
+  `lang='en'`; no API call yet — Slice 2 wires PATCH /api/me).
+  Rewired `UserPicker`, `Login`, `Home` through `t()`; all Phase 3
+  screens render NL when wrapped in `<AppProvider initialLang="nl">`.
+  46 frontend tests / 100% lines & branches on touched files. Phase 4
+  Slice 1. See [plan](plans/done/phase-4-slice-1-i18n-foundation.md).
 - Added `auth-boundary.test.ts` meta-test enforcing LexiQuest
   Invariant 1: no production handler under `api/src/functions/`
   reads `userId` from the request body. login.ts is the documented
