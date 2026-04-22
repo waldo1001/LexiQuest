@@ -15,15 +15,26 @@ cd frontend
 npm install
 ```
 
-## Local dev loop (frontend only — Slice 1)
+## Local dev loop (Slices 1–2 — frontend + api as separate processes)
 
 ```sh
+# frontend
 cd frontend
 npm run dev         # Vite dev server at http://localhost:5173
-npm test            # Vitest + coverage (enforces Tier B / Tier A thresholds)
-npm run test:watch  # Vitest in watch mode
-npm run build       # Production build to frontend/dist
+npm test            # Vitest + coverage
+
+# api (separate shell)
+cd api
+npm install         # first-time only
+npm test            # Vitest + Tier-A coverage
+npm run typecheck   # tsc strict
+npm run build       # emits dist/
+# `npm start` (func start) requires Azure Functions Core Tools v4 and a
+#   local.settings.json (copy from local.settings.json.example).
 ```
+
+Full-stack via `swa start` (which runs both under one proxy + routes
+`/api/*` correctly) lands in Slice 3.
 
 Full-stack dev (`swa start`, Azurite, Anthropic, etc.) lands in later
 slices as those pieces are introduced.

@@ -5,6 +5,11 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Scaffolded `api/` (Azure Functions v4, Node 20, TypeScript) with Vitest
+  Tier A (90%) thresholds; `hello` HTTP trigger returns
+  `{msg:"Hello from LexiQuest"}`; coverage 100% on touched files. Phase 1
+  Slice 2. See
+  [plan](plans/done/phase-1-slice-2-api-scaffold.md).
 - Scaffolded `frontend/` (Vite + React JS) with Vitest + Testing Library; `App`
   renders a LexiQuest heading; coverage 100% on touched files. Phase 1 Slice 1.
   See [PROGRESS.md](../PROGRESS.md) and

@@ -1,0 +1,14 @@
+.git*
+.vscode
+local.settings.json
+test
+tsconfig*.json
+*.test.ts
+node_modules/.cache
+coverage
+__integration__
+__contract__
+__meta__
+__fixtures__
+testing
+vitest.config.ts
