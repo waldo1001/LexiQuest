@@ -33,4 +33,32 @@ describe("App", () => {
       await screen.findByRole("heading", { name: /settings/i }),
     ).toBeInTheDocument();
   });
+
+  it("mounts the AdminPanel at /admin for an admin session", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url) => {
+        if (String(url).endsWith("/api/me")) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ id: "u-admin", name: "Waldo", isAdmin: true }),
+          });
+        }
+        if (String(url).endsWith("/api/users")) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => [],
+          });
+        }
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
+      }),
+    );
+    window.history.pushState({}, "", "/admin");
+    render(<App />);
+    expect(
+      await screen.findByRole("heading", { name: /admin panel/i }),
+    ).toBeInTheDocument();
+  });
 });

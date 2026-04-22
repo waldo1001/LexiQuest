@@ -100,4 +100,31 @@ describe("Home", () => {
       await screen.findByRole("link", { name: /settings/i }),
     ).toBeInTheDocument();
   });
+
+  it("shows an Admin link when the user is admin", async () => {
+    setup({
+      fetchMe: vi.fn().mockResolvedValue({
+        id: "u1",
+        name: "Alice",
+        isAdmin: true,
+      }),
+      logout: vi.fn(),
+    });
+    expect(
+      await screen.findByRole("link", { name: /admin/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the Admin link when the user is not admin", async () => {
+    setup({
+      fetchMe: vi.fn().mockResolvedValue({
+        id: "u1",
+        name: "Alice",
+        isAdmin: false,
+      }),
+      logout: vi.fn(),
+    });
+    await screen.findByRole("heading", { name: /hello, alice/i });
+    expect(screen.queryByRole("link", { name: /admin/i })).toBeNull();
+  });
 });
