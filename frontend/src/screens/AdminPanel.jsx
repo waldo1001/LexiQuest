@@ -5,8 +5,18 @@ import {
   deleteUser as deleteUserApi,
   fetchUsers as fetchUsersApi,
   updateUser as updateUserApi,
+  fetchYears as fetchYearsApi,
+  createYear as createYearApi,
+  updateYear as updateYearApi,
 } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
+
+const EMPTY_NEW_YEAR = {
+  label: "",
+  start_date: "",
+  end_date: "",
+  is_current: false,
+};
 
 const EMPTY_NEW = {
   name: "",
@@ -24,6 +34,9 @@ const EMPTY_NEW = {
  *   createUser?: typeof createUserApi,
  *   updateUser?: typeof updateUserApi,
  *   deleteUser?: typeof deleteUserApi,
+ *   fetchYears?: typeof fetchYearsApi,
+ *   createYear?: typeof createYearApi,
+ *   updateYear?: typeof updateYearApi,
  *   promptFn?: (msg: string) => string | null,
  *   confirmFn?: (msg: string) => boolean,
  * }} props
@@ -34,6 +47,9 @@ export default function AdminPanel({
   createUser = createUserApi,
   updateUser = updateUserApi,
   deleteUser = deleteUserApi,
+  fetchYears = fetchYearsApi,
+  createYear = createYearApi,
+  updateYear = updateYearApi,
   promptFn = typeof window !== "undefined"
     ? window.prompt.bind(window)
     : () => null,
@@ -50,6 +66,11 @@ export default function AdminPanel({
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState(null);
 
+  const [years, setYears] = useState(null);
+  const [newYearForm, setNewYearForm] = useState(EMPTY_NEW_YEAR);
+  const [editYearId, setEditYearId] = useState(null);
+  const [editYearForm, setEditYearForm] = useState(null);
+
   useEffect(() => {
     let cancelled = false;
     fetchUsers()
@@ -63,6 +84,19 @@ export default function AdminPanel({
       cancelled = true;
     };
   }, [fetchUsers]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchYears()
+      .then((list) => {
+        if (!cancelled)
+          setYears([...list].sort((a, b) => b.start_date.localeCompare(a.start_date)));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchYears]);
 
   function sortByName(list) {
     return [...list].sort((a, b) =>
@@ -138,6 +172,69 @@ export default function AdminPanel({
       await deleteUser(user.id);
       setUsers((prev) => (prev ?? []).filter((u) => u.id !== user.id));
       setStatus(t("admin.status.deleted", { name: user.name }));
+    } catch {
+      setError(t("errors.generic"));
+    }
+  }
+
+  async function onCreateYear(e) {
+    e.preventDefault();
+    resetStatus();
+    try {
+      const created = await createYear({ ...newYearForm });
+      setYears((prev) =>
+        [...(prev ?? []), created].sort((a, b) =>
+          b.start_date.localeCompare(a.start_date),
+        ),
+      );
+      setNewYearForm(EMPTY_NEW_YEAR);
+      setStatus(t("admin.years.status.created", { label: created.label }));
+    } catch {
+      setError(t("errors.generic"));
+    }
+  }
+
+  function startEditYear(year) {
+    setEditYearId(year.id);
+    setEditYearForm({
+      label: year.label,
+      start_date: year.start_date,
+      end_date: year.end_date,
+    });
+  }
+
+  function cancelEditYear() {
+    setEditYearId(null);
+    setEditYearForm(null);
+  }
+
+  async function onSaveEditYear(year) {
+    resetStatus();
+    try {
+      const updated = await updateYear(year.id, editYearForm);
+      setYears((prev) =>
+        [...(prev ?? []).map((y) => (y.id === year.id ? updated : y))].sort(
+          (a, b) => b.start_date.localeCompare(a.start_date),
+        ),
+      );
+      setEditYearId(null);
+      setEditYearForm(null);
+      setStatus(t("admin.years.status.updated", { label: updated.label }));
+    } catch {
+      setError(t("errors.generic"));
+    }
+  }
+
+  async function onSetCurrentYear(year) {
+    resetStatus();
+    try {
+      const updated = await updateYear(year.id, { is_current: true });
+      setYears((prev) =>
+        (prev ?? []).map((y) =>
+          y.id === year.id ? updated : { ...y, is_current: false },
+        ),
+      );
+      setStatus(t("admin.years.status.setCurrent", { label: year.label }));
     } catch {
       setError(t("errors.generic"));
     }
@@ -337,6 +434,146 @@ export default function AdminPanel({
           </select>
         </label>
         <button type="submit">{t("admin.action.create")}</button>
+      </form>
+
+      <h2>{t("admin.years.section")}</h2>
+      {years === null ? (
+        <p>{t("admin.years.loading")}</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>{t("admin.years.field.label")}</th>
+              <th>{t("admin.years.field.start")}</th>
+              <th>{t("admin.years.field.end")}</th>
+              <th>{t("admin.years.field.current")}</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {years.map((y) => {
+              const isEditing = editYearId === y.id;
+              return (
+                <tr key={y.id}>
+                  {isEditing && editYearForm ? (
+                    <>
+                      <td>
+                        <input
+                          aria-label={t("admin.years.field.label")}
+                          value={editYearForm.label}
+                          onChange={(e) =>
+                            setEditYearForm({
+                              ...editYearForm,
+                              label: e.target.value,
+                            })
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          aria-label={t("admin.years.field.start")}
+                          value={editYearForm.start_date}
+                          onChange={(e) =>
+                            setEditYearForm({
+                              ...editYearForm,
+                              start_date: e.target.value,
+                            })
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          aria-label={t("admin.years.field.end")}
+                          value={editYearForm.end_date}
+                          onChange={(e) =>
+                            setEditYearForm({
+                              ...editYearForm,
+                              end_date: e.target.value,
+                            })
+                          }
+                        />
+                      </td>
+                      <td>{y.is_current ? t("common.yes") : t("common.no")}</td>
+                      <td>
+                        <button type="button" onClick={() => onSaveEditYear(y)}>
+                          {t("admin.years.action.save")}
+                        </button>
+                        <button type="button" onClick={cancelEditYear}>
+                          {t("admin.action.cancel")}
+                        </button>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td>{y.label}</td>
+                      <td>{y.start_date}</td>
+                      <td>{y.end_date}</td>
+                      <td>{y.is_current ? t("common.yes") : t("common.no")}</td>
+                      <td>
+                        <button type="button" onClick={() => startEditYear(y)}>
+                          {t("admin.years.action.edit")}
+                        </button>
+                        {!y.is_current && (
+                          <button
+                            type="button"
+                            onClick={() => onSetCurrentYear(y)}
+                          >
+                            {t("admin.years.action.setCurrent")}
+                          </button>
+                        )}
+                      </td>
+                    </>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+
+      <h3>{t("admin.years.new")}</h3>
+      <form onSubmit={onCreateYear}>
+        <label>
+          {t("admin.years.field.label")}
+          <input
+            required
+            value={newYearForm.label}
+            onChange={(e) =>
+              setNewYearForm({ ...newYearForm, label: e.target.value })
+            }
+          />
+        </label>
+        <label>
+          {t("admin.years.field.start")}
+          <input
+            required
+            value={newYearForm.start_date}
+            onChange={(e) =>
+              setNewYearForm({ ...newYearForm, start_date: e.target.value })
+            }
+          />
+        </label>
+        <label>
+          {t("admin.years.field.end")}
+          <input
+            required
+            value={newYearForm.end_date}
+            onChange={(e) =>
+              setNewYearForm({ ...newYearForm, end_date: e.target.value })
+            }
+          />
+        </label>
+        <label>
+          {t("admin.years.field.current")}
+          <input
+            type="checkbox"
+            checked={newYearForm.is_current}
+            onChange={(e) =>
+              setNewYearForm({ ...newYearForm, is_current: e.target.checked })
+            }
+          />
+        </label>
+        <button type="submit">{t("admin.years.action.create")}</button>
       </form>
 
       <Link to="/home">{t("common.back")}</Link>

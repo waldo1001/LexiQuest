@@ -5,6 +5,23 @@ import { describe, it, expect, vi } from "vitest";
 import AdminPanel from "./AdminPanel.jsx";
 import { AppProvider } from "../context/AppContext.jsx";
 
+const SEED_YEARS = [
+  {
+    id: "y-2025",
+    label: "2025-2026",
+    is_current: true,
+    start_date: "2025-09-01",
+    end_date: "2026-06-30",
+  },
+  {
+    id: "y-2024",
+    label: "2024-2025",
+    is_current: false,
+    start_date: "2024-09-01",
+    end_date: "2025-06-30",
+  },
+];
+
 const SEED_USERS = [
   {
     id: "u-alice",
@@ -33,6 +50,9 @@ function setup({
   createUser,
   updateUser,
   deleteUser,
+  fetchYears,
+  createYear,
+  updateYear,
   promptFn,
   confirmFn,
   lang = "en",
@@ -51,6 +71,9 @@ function setup({
                 createUser={createUser ?? vi.fn()}
                 updateUser={updateUser ?? vi.fn()}
                 deleteUser={deleteUser ?? vi.fn()}
+                fetchYears={fetchYears ?? vi.fn().mockResolvedValue(SEED_YEARS)}
+                createYear={createYear ?? vi.fn()}
+                updateYear={updateYear ?? vi.fn()}
                 promptFn={promptFn ?? vi.fn(() => null)}
                 confirmFn={confirmFn ?? vi.fn(() => false)}
               />
@@ -396,5 +419,95 @@ describe("AdminPanel", () => {
     expect(
       await screen.findByRole("heading", { name: /home/i }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("AdminPanel — Years", () => {
+  it("AP-Y1: renders the School years section listing years", async () => {
+    setup();
+    expect(
+      await screen.findByRole("heading", { name: /school years/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("2025-2026")).toBeInTheDocument();
+    expect(screen.getByText("2024-2025")).toBeInTheDocument();
+  });
+
+  it("AP-Y2: creates a new year via the form", async () => {
+    const createYear = vi.fn().mockResolvedValue({
+      id: "y-2026",
+      label: "2026-2027",
+      is_current: false,
+      start_date: "2026-09-01",
+      end_date: "2027-06-30",
+    });
+    const user = userEvent.setup();
+    setup({ createYear });
+
+    await screen.findByRole("heading", { name: /school years/i });
+    await user.type(screen.getByLabelText(/^label$/i), "2026-2027");
+    await user.type(screen.getByLabelText(/^start$/i), "2026-09-01");
+    await user.type(screen.getByLabelText(/^end$/i), "2027-06-30");
+    await user.click(screen.getByRole("button", { name: /create year/i }));
+
+    expect(createYear).toHaveBeenCalledWith(
+      expect.objectContaining({ label: "2026-2027" }),
+    );
+    expect(await screen.findByText("2026-2027")).toBeInTheDocument();
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      /year 2026-2027 created/i,
+    );
+  });
+
+  it("AP-Y3: Set current calls updateYear with is_current:true", async () => {
+    const updateYear = vi.fn().mockResolvedValue({
+      ...SEED_YEARS[1],
+      is_current: true,
+    });
+    const user = userEvent.setup();
+    setup({ updateYear });
+
+    await screen.findByRole("heading", { name: /school years/i });
+
+    const cell = screen.getByText("2024-2025");
+    const row = cell.closest("tr");
+    await user.click(
+      within(row).getByRole("button", { name: /set current/i }),
+    );
+
+    expect(updateYear).toHaveBeenCalledWith(
+      "y-2024",
+      expect.objectContaining({ is_current: true }),
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      /2024-2025 is now the current year/i,
+    );
+  });
+
+  it("AP-Y4: edits a year label inline and calls updateYear", async () => {
+    const updateYear = vi.fn().mockResolvedValue({
+      ...SEED_YEARS[0],
+      label: "2025-2026 (edited)",
+    });
+    const user = userEvent.setup();
+    setup({ updateYear });
+
+    await screen.findByRole("heading", { name: /school years/i });
+    const cell = screen.getByText("2025-2026");
+    const row = cell.closest("tr");
+    await user.click(within(row).getByRole("button", { name: /edit/i }));
+
+    const labelInput = within(row).getByLabelText(/^label$/i);
+    await user.clear(labelInput);
+    await user.type(labelInput, "2025-2026 (edited)");
+    await user.click(within(row).getByRole("button", { name: /^save$/i }));
+
+    expect(updateYear).toHaveBeenCalledWith(
+      "y-2025",
+      expect.objectContaining({ label: "2025-2026 (edited)" }),
+    );
+    expect(await screen.findByText("2025-2026 (edited)")).toBeInTheDocument();
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      /year 2025-2026 \(edited\) updated/i,
+    );
   });
 });

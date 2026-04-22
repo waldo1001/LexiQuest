@@ -127,4 +127,18 @@ describe("Home", () => {
     await screen.findByRole("heading", { name: /hello, alice/i });
     expect(screen.queryByRole("link", { name: /admin/i })).toBeNull();
   });
+
+  it("renders a My courses link for any authenticated user", async () => {
+    setup({
+      fetchMe: vi.fn().mockResolvedValue({
+        id: "u1",
+        name: "Lex",
+        isAdmin: false,
+      }),
+      logout: vi.fn(),
+    });
+    expect(
+      await screen.findByRole("link", { name: /my courses/i }),
+    ).toBeInTheDocument();
+  });
 });

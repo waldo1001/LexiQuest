@@ -1,5 +1,6 @@
 import type { Entity, TableStorage } from "../shared/table-storage.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
+import { deleteCourseAndCascadeCards } from "./courses-shared.js";
 
 export interface CascadeDeps {
   tables: TableStorage;
@@ -21,32 +22,20 @@ export async function deleteUserAndCascade(
 ): Promise<void> {
   const { tables } = deps;
 
-  // 1 + 2 — courses owned by user, and their cards.
   const courses = await tables.listByPartition<Entity>("courses", userId);
   for (const course of courses) {
-    const cards = await tables.listByPartition<Entity>("cards", course.rowKey);
-    for (const card of cards) {
-      await tables.remove("cards", card.partitionKey, card.rowKey);
-    }
+    await deleteCourseAndCascadeCards(tables, userId, course.rowKey);
   }
 
-  // 3 — the course rows themselves.
-  for (const course of courses) {
-    await tables.remove("courses", course.partitionKey, course.rowKey);
-  }
-
-  // 4 — attempts owned by user.
   const attempts = await tables.listByPartition<Entity>("attempts", userId);
   for (const row of attempts) {
     await tables.remove("attempts", row.partitionKey, row.rowKey);
   }
 
-  // 5 — sessions owned by user.
   const sessions = await tables.listByPartition<Entity>("sessions", userId);
   for (const row of sessions) {
     await tables.remove("sessions", row.partitionKey, row.rowKey);
   }
 
-  // 6 — the user row itself.
   await tables.remove("users", PARTITIONS.users, userId);
 }

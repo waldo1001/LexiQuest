@@ -1,15 +1,22 @@
 import { describe, it, expect, vi } from "vitest";
 import {
+  createCourse,
   createUser,
+  createYear,
+  deleteCourse,
   deleteUser,
+  fetchCourses,
   fetchHelloMessage,
   fetchMe,
   fetchPublicUsers,
   fetchUsers,
+  fetchYears,
   login,
   logout,
   patchMe,
+  updateCourse,
   updateUser,
+  updateYear,
 } from "./api.js";
 
 function ok(body) {
@@ -298,6 +305,208 @@ describe("deleteUser", () => {
     const fakeFetch = vi.fn().mockResolvedValue(fail(500));
     await expect(
       deleteUser("u1", { fetchFn: fakeFetch }),
+    ).rejects.toThrow(/500/);
+  });
+});
+
+describe("fetchYears", () => {
+  it("GETs /api/years with credentials and returns the list", async () => {
+    const years = [{ id: "y1", label: "2026-2027", is_current: true }];
+    const fakeFetch = vi.fn().mockResolvedValue(ok(years));
+    expect(await fetchYears({ fetchFn: fakeFetch })).toEqual(years);
+    expect(fakeFetch).toHaveBeenCalledWith(
+      "/api/years",
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("throws on non-ok", async () => {
+    await expect(
+      fetchYears({ fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
+    ).rejects.toThrow(/500/);
+  });
+});
+
+describe("createYear", () => {
+  it("POSTs JSON and returns the created year", async () => {
+    const body = {
+      label: "2027-2028",
+      start_date: "2027-09-01",
+      end_date: "2028-06-30",
+      is_current: false,
+    };
+    const fakeFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ id: "y-new", ...body }),
+    });
+    const res = await createYear(body, { fetchFn: fakeFetch });
+    expect(res.id).toBe("y-new");
+    expect(fakeFetch).toHaveBeenCalledWith(
+      "/api/years",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify(body),
+      }),
+    );
+  });
+
+  it("throws 'forbidden' on 403", async () => {
+    await expect(
+      createYear({}, { fetchFn: vi.fn().mockResolvedValue(fail(403)) }),
+    ).rejects.toThrow("forbidden");
+  });
+});
+
+describe("updateYear", () => {
+  it("PUTs /api/years/:id and returns the updated year", async () => {
+    const fakeFetch = vi
+      .fn()
+      .mockResolvedValue(ok({ id: "y1", is_current: true }));
+    const res = await updateYear(
+      "y1",
+      { is_current: true },
+      { fetchFn: fakeFetch },
+    );
+    expect(res.is_current).toBe(true);
+    expect(fakeFetch).toHaveBeenCalledWith(
+      "/api/years/y1",
+      expect.objectContaining({
+        method: "PUT",
+        credentials: "include",
+        body: JSON.stringify({ is_current: true }),
+      }),
+    );
+  });
+
+  it("throws 'forbidden' on 403, 'not_found' on 404", async () => {
+    await expect(
+      updateYear("y1", {}, { fetchFn: vi.fn().mockResolvedValue(fail(403)) }),
+    ).rejects.toThrow("forbidden");
+    await expect(
+      updateYear("y1", {}, { fetchFn: vi.fn().mockResolvedValue(fail(404)) }),
+    ).rejects.toThrow("not_found");
+  });
+});
+
+describe("fetchCourses", () => {
+  it("without userId GETs /api/courses", async () => {
+    const fakeFetch = vi.fn().mockResolvedValue(ok([]));
+    await fetchCourses(undefined, { fetchFn: fakeFetch });
+    expect(fakeFetch).toHaveBeenCalledWith(
+      "/api/courses",
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("with userId appends ?userId=<id>", async () => {
+    const fakeFetch = vi.fn().mockResolvedValue(ok([]));
+    await fetchCourses("u-bob", { fetchFn: fakeFetch });
+    expect(fakeFetch).toHaveBeenCalledWith(
+      "/api/courses?userId=u-bob",
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("throws on non-ok", async () => {
+    await expect(
+      fetchCourses(undefined, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
+    ).rejects.toThrow(/500/);
+  });
+});
+
+describe("createCourse", () => {
+  it("POSTs JSON and returns the created course", async () => {
+    const body = {
+      name: "French",
+      emoji: "🇫🇷",
+      color: "#ff0000",
+      language: "fr-FR",
+      default_mode: "ask",
+      year_id: "y1",
+    };
+    const fakeFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ id: "c-new", ...body }),
+    });
+    const res = await createCourse(body, { fetchFn: fakeFetch });
+    expect(res.id).toBe("c-new");
+    expect(fakeFetch).toHaveBeenCalledWith(
+      "/api/courses",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify(body),
+      }),
+    );
+  });
+
+  it("throws on non-ok", async () => {
+    await expect(
+      createCourse({}, { fetchFn: vi.fn().mockResolvedValue(fail(400)) }),
+    ).rejects.toThrow(/400/);
+  });
+});
+
+describe("updateCourse", () => {
+  it("PUTs JSON to /api/courses/:id and returns the updated course", async () => {
+    const fakeFetch = vi.fn().mockResolvedValue(ok({ id: "c1", name: "Renamed" }));
+    const res = await updateCourse(
+      "c1",
+      { name: "Renamed" },
+      { fetchFn: fakeFetch },
+    );
+    expect(res.name).toBe("Renamed");
+    expect(fakeFetch).toHaveBeenCalledWith(
+      "/api/courses/c1",
+      expect.objectContaining({
+        method: "PUT",
+        credentials: "include",
+        body: JSON.stringify({ name: "Renamed" }),
+      }),
+    );
+  });
+
+  it("throws 'forbidden' on 403, 'not_found' on 404", async () => {
+    await expect(
+      updateCourse("c1", {}, {
+        fetchFn: vi.fn().mockResolvedValue(fail(403)),
+      }),
+    ).rejects.toThrow("forbidden");
+    await expect(
+      updateCourse("c1", {}, {
+        fetchFn: vi.fn().mockResolvedValue(fail(404)),
+      }),
+    ).rejects.toThrow("not_found");
+  });
+});
+
+describe("deleteCourse", () => {
+  it("DELETEs /api/courses/:id and resolves on 204", async () => {
+    const fakeFetch = vi.fn().mockResolvedValue({ ok: true, status: 204 });
+    await expect(
+      deleteCourse("c1", { fetchFn: fakeFetch }),
+    ).resolves.toBeUndefined();
+    expect(fakeFetch).toHaveBeenCalledWith(
+      "/api/courses/c1",
+      expect.objectContaining({ method: "DELETE", credentials: "include" }),
+    );
+  });
+
+  it("throws 'forbidden' on 403, 'not_found' on 404", async () => {
+    await expect(
+      deleteCourse("c1", { fetchFn: vi.fn().mockResolvedValue(fail(403)) }),
+    ).rejects.toThrow("forbidden");
+    await expect(
+      deleteCourse("c1", { fetchFn: vi.fn().mockResolvedValue(fail(404)) }),
+    ).rejects.toThrow("not_found");
+  });
+
+  it("throws on other non-ok", async () => {
+    await expect(
+      deleteCourse("c1", { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
     ).rejects.toThrow(/500/);
   });
 });

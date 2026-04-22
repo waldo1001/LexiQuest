@@ -6,9 +6,7 @@ repetition, gamification, and AI-assisted card creation from photos. The app
 name is dynamic: LexiQuest / MatsQuest / BenQuest / WaldoQuest, based on who
 is logged in.
 
-**Status**: Phase 1 complete (pending manual `swa start` smoke) —
-frontend, API, routing config, deploy workflow, and docs all in place.
-Next: Phase 2 — storage layer & seed data.
+**Status**: Phase 6 complete — users can view and manage their courses per school year; admins manage school years. Next: Phase 7 — manual card management.
 
 ## What it is
 

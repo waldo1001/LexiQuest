@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 5 complete (all 4 slices shipped). Tag `phase-5-done` applied.
-- **Last tag**: `phase-5-done`
-- **Next up**: Phase 6 Slice 1 — `/api/years` CRUD (admin)
+- **Current phase**: Phase 6 complete (all 3 slices shipped as one consolidated cycle). Tag `phase-6-done` applied.
+- **Last tag**: `phase-6-done`
+- **Next up**: Phase 7 — Manual cards
 
 ---
 
@@ -104,9 +104,16 @@ populates 4 users + current year. See
 
 ## Phase 6 — Years & Courses
 
-- ⬜ Slice 1 — `/api/years` CRUD (admin)
-- ⬜ Slice 2 — `/api/courses` CRUD (owner or admin)
-- ⬜ Slice 3 — Frontend CourseList + modal
+- ✅ Slice 1 — `/api/years` CRUD (admin)
+- ✅ Slice 2 — `/api/courses` CRUD (owner or admin)
+- ✅ Slice 3 — Frontend CourseList + modal
+
+**Smoke test** (Design.md):
+- [ ] Lex can create "French 🇫🇷" with language `fr-FR`
+- [ ] Lex can edit/delete own course
+- [ ] Lex cannot PUT/DELETE a course owned by Mats (403)
+- [ ] Waldo CAN edit anyone's course (admin override)
+- [ ] Current year propagates correctly (new courses linked to is_current year)
 
 ---
 

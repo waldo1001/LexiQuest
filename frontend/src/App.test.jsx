@@ -34,6 +34,34 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders the CourseList at /courses for an authenticated session", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url) => {
+        if (String(url).includes("/api/years")) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => [],
+          });
+        }
+        if (String(url).includes("/api/courses")) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => [],
+          });
+        }
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
+      }),
+    );
+    window.history.pushState({}, "", "/courses");
+    render(<App />);
+    expect(
+      await screen.findByRole("heading", { name: /my courses/i }),
+    ).toBeInTheDocument();
+  });
+
   it("mounts the AdminPanel at /admin for an admin session", async () => {
     vi.stubGlobal(
       "fetch",

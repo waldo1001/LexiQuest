@@ -40,6 +40,7 @@ export default function Home({
         {t("home.logout")}
       </button>
       <Link to="/settings">{t("settings.title")}</Link>
+      <Link to="/courses">{t("courses.link")}</Link>
       {me.isAdmin === true && <Link to="/admin">{t("admin.link")}</Link>}
     </main>
   );

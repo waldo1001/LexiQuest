@@ -198,3 +198,165 @@ export async function deleteUser(id, { fetchFn = fetch } = {}) {
     throw new Error(`DELETE /api/users/${id} failed with status ${response.status}`);
   }
 }
+
+/**
+ * @typedef {Object} Year
+ * @property {string} id
+ * @property {string} label
+ * @property {boolean} is_current
+ * @property {string} start_date
+ * @property {string} end_date
+ */
+
+/**
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<Year[]>}
+ */
+export async function fetchYears({ fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/years", { credentials: "include" });
+  if (!response.ok) {
+    throw new Error(`GET /api/years failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * @param {object} body
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<Year>}
+ */
+export async function createYear(body, { fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/years", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (response.status === 403) {
+    throw new Error("forbidden");
+  }
+  if (!response.ok) {
+    throw new Error(`POST /api/years failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * @param {string} id
+ * @param {object} patch
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<Year>}
+ */
+export async function updateYear(id, patch, { fetchFn = fetch } = {}) {
+  const response = await fetchFn(`/api/years/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(patch),
+  });
+  if (response.status === 403) {
+    throw new Error("forbidden");
+  }
+  if (response.status === 404) {
+    throw new Error("not_found");
+  }
+  if (!response.ok) {
+    throw new Error(`PUT /api/years/${id} failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * @typedef {Object} Course
+ * @property {string} id
+ * @property {string} user_id
+ * @property {string} year_id
+ * @property {string} name
+ * @property {string} emoji
+ * @property {string} color
+ * @property {string|null} language
+ * @property {"self_grade"|"mcq"|"mixed"|"ask"} default_mode
+ * @property {string} created_at
+ */
+
+/**
+ * @param {string} [userId]
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<Course[]>}
+ */
+export async function fetchCourses(userId, { fetchFn = fetch } = {}) {
+  const path = userId
+    ? `/api/courses?userId=${encodeURIComponent(userId)}`
+    : "/api/courses";
+  const response = await fetchFn(path, { credentials: "include" });
+  if (!response.ok) {
+    throw new Error(`GET ${path} failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * @param {object} body
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<Course>}
+ */
+export async function createCourse(body, { fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/courses", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`POST /api/courses failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * @param {string} id
+ * @param {object} patch
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<Course>}
+ */
+export async function updateCourse(id, patch, { fetchFn = fetch } = {}) {
+  const response = await fetchFn(`/api/courses/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(patch),
+  });
+  if (response.status === 403) {
+    throw new Error("forbidden");
+  }
+  if (response.status === 404) {
+    throw new Error("not_found");
+  }
+  if (!response.ok) {
+    throw new Error(`PUT /api/courses/${id} failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * @param {string} id
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<void>}
+ */
+export async function deleteCourse(id, { fetchFn = fetch } = {}) {
+  const response = await fetchFn(`/api/courses/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (response.status === 403) {
+    throw new Error("forbidden");
+  }
+  if (response.status === 404) {
+    throw new Error("not_found");
+  }
+  if (!response.ok) {
+    throw new Error(
+      `DELETE /api/courses/${id} failed with status ${response.status}`,
+    );
+  }
+}
