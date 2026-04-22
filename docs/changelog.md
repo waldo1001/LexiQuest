@@ -5,6 +5,7 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Added `GET /api/users` — authenticated endpoint returning all users as `{id, name, isAdmin, color, avatar_emoji, ui_language, settings, created_at}` sorted by name; `password_hash` never exposed; 401 for unauthenticated, 405 for non-GET. 10 tests, 100% lines / 100% branches on `users.ts`. Phase 5 Slice 1. See [plan](plans/done/phase-5-slice-1-get-users.md).
 - Added Settings screen (`/settings`) with language toggle (EN/NL), `/settings` route in `App.jsx`, Settings link on Home screen, and `<html lang>` sync via `useEffect` in `AppProvider`. 100% frontend coverage, 9 new tests. Phase 4 Slice 3. See [plan](plans/done/phase-4-slice-3-settings-lang-toggle.md).
 - Added `PATCH /api/me` — authenticated users can update their own
   `ui_language` and `settings` (shallow-merge). Validator rejects
