@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 5 in progress (Slice 1 done)
+- **Current phase**: Phase 5 in progress (Slices 1–2 done)
 - **Last tag**: none yet (`phase-1-done` applied after manual smoke)
-- **Next up**: Phase 5 Slice 2 — `POST`, `PUT`, `DELETE /api/users/:id` (admin)
+- **Next up**: Phase 5 Slice 3 — cascade-delete of user's courses/cards/attempts/sessions
 
 ---
 
@@ -96,7 +96,7 @@ populates 4 users + current year. See
 ## Phase 5 — Users & admin panel
 
 - ✅ Slice 1 — `GET /api/users` (full shape, no hashes)
-- ⬜ Slice 2 — `POST`, `PUT`, `DELETE /api/users/:id` (admin)
+- ✅ Slice 2 — `POST`, `PUT`, `DELETE /api/users/:id` (admin)
 - ⬜ Slice 3 — Cascade-delete of user's courses/cards/attempts/sessions
 - ⬜ Slice 4 — Admin Panel screen + route guard
 
