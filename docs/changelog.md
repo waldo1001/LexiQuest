@@ -5,6 +5,13 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Added `requireAuth` middleware, `POST /api/logout`, `GET /api/me`:
+  `requireAuth` reads the cookie header (case-insensitive), verifies
+  via the signer, returns `{userId, isAdmin}` or a 401 response.
+  `/api/logout` always returns 204 with a cleared cookie. `/api/me`
+  returns the full profile excluding `password_hash`, 404 on a stale
+  session. 93 tests / 98% coverage. Phase 3 Slice 3. See
+  [plan](plans/done/phase-3-slice-3-requireauth-me-logout.md).
 - Added `POST /api/login` handler factory (DI'd over tables / hasher /
   signer / clock / logger). Returns 200 + user shape + HttpOnly
   session cookie on success; generic 401 on unknown-user or
