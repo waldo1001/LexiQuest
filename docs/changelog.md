@@ -5,6 +5,10 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Introduced `PasswordHasher` seam: interface, `BcryptPasswordHasher`
+  (bcryptjs, v8-ignored, contract-tested), `FakePasswordHasher`
+  (deterministic salted), shared 4-AC contract run against both. Phase
+  2 Slice 2. See [plan](plans/done/phase-2-slice-2-password-hasher.md).
 - Introduced `TableStorage` seam: interface (`api/src/shared/table-storage.ts`),
   Map-backed fake (`api/testing/fake-table-storage.ts`), real Azure
   client (`azure-table-storage.ts`, integration-tested via Azurite in
