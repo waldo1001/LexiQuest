@@ -44,6 +44,35 @@ Before writing any implementation code, **post the PLAN (and get approval),
 then the FRAME, then the RED test list** in chat. Before calling a task
 done, **cite the test names that cover each requirement**.
 
+## Autonomous mode (batch-slice runs)
+
+When the user initiates a batch run ("go", "do it", "implement all slices",
+"step by step no stopping"), switch to this abbreviated cycle for every slice
+until the phase is done or a blocker appears. See
+[docs/tdd/methodology.md §10](docs/tdd/methodology.md) for rationale.
+
+**Per-slice loop** — no approval gate, no stopping between slices:
+
+1. Keep the plan in-context — no plan file written to disk.
+2. Post a single line: `Slice N — <name>` and proceed immediately.
+3. **RED** — write failing tests encoding the requirements.
+4. **PROVE RED** — run only the new test file; confirm meaningful failure.
+5. **SCAFFOLD** — minimum shape so the failure is an assertion error, not a structural error.
+6. **GREEN** — smallest implementation that turns the tests green.
+7. **REFACTOR** — clean up under green tests.
+8. **COVER** — verify tier-appropriate thresholds on every touched file.
+9. **Security scan** — only when the slice touches `SessionSigner`,
+   `PasswordHasher`, `requireAuth`, or `ClaudeClient`. Skip for pure UI
+   and non-auth API slices.
+10. Update PROGRESS.md inline (mark the slice ✅). Do not run `/docs-update`.
+11. Commit and push — one commit per slice, message: `Phase N Slice M — <name>`.
+
+**End of phase**: run `/docs-update` once to sync changelog, setup,
+getting-started, and user-guide.
+
+**Stop and ask** only for: a missing Azure/Anthropic credential, a destructive
+operation, or an architectural ambiguity that Design.md does not resolve.
+
 ## Supporting documents
 
 - [Design.md](Design.md) — authoritative design. Sections 1–5 are

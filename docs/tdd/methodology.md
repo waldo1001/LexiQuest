@@ -339,5 +339,43 @@ that made the test hard".
 
 ---
 
+---
+
+## 10. Autonomous mode — abbreviated cycle for batch runs
+
+When the user initiates a batch run ("go", "do it", "implement all slices",
+"step by step no stopping"), the full 10-step cycle is collapsed per-slice:
+
+| Step | Normal cycle | Autonomous mode |
+|------|-------------|-----------------|
+| PLAN | Write plan file, stop, wait for approval | Plan kept in-context; no file, no stop |
+| FRAME | ≤150-word context post | Replaced by a single `Slice N — <name>` line |
+| RED | Same | Same |
+| PROVE RED | Same | Same |
+| SCAFFOLD | Same | Same |
+| GREEN | Same | Same |
+| REFACTOR | Same | Same |
+| COVER | Same | Same |
+| SECURITY SCAN | Every slice | Only when slice touches `SessionSigner`, `PasswordHasher`, `requireAuth`, or `ClaudeClient` |
+| UPDATE DOCS | `/docs-update` every slice | PROGRESS.md inline edit only; `/docs-update` once per phase |
+| REVIEW | Full checklist | Omitted — coverage thresholds + invariant tests are the guard |
+
+**What never changes in autonomous mode:**
+
+- Coverage thresholds (Tier A 90%, Tier B 70%) are enforced before every commit.
+- Every new test must be observed to fail with a *meaningful* error before going green.
+- The four LexiQuest invariants (§6 of [testability-patterns.md](testability-patterns.md)) are enforced in code.
+- A security scan finding **blocks** the cycle even in autonomous mode.
+
+**When to stop and ask** (even mid-batch):
+
+- A missing Azure / Anthropic credential is needed.
+- A destructive operation (drop table, force-push, rotate secret) would be required.
+- An architectural ambiguity that [../../Design.md](../../Design.md) does not resolve.
+
+Silence is not approval — but "go" is.
+
+---
+
 *This methodology is enforced by the repo-local `/tdd-cycle` skill. Run it at
 the start of any coding task.*
