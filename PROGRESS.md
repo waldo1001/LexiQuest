@@ -143,15 +143,15 @@ populates 4 users + current year. See
 - ✅ Slice 4 — `PUT /api/sessions/:id` (close)
 - ✅ Slice 5 — `StudySession` screen self-grade flow
 
-**Smoke test** (Design.md) — manual verification pending (post-deploy):
-- [ ] Lex starts a session with 10 cards
-- [ ] Can flip, self-grade each
-- [ ] Wrong cards appear again at the end
-- [ ] After session, card SM-2 fields updated in storage (verify in Storage Explorer)
-- [ ] Failed cards have `reps=0, interval=1, next_review_at = tomorrow`
-- [ ] Correct cards have `reps=1, interval=1` (on first success)
+**Smoke test** (Design.md) — post-deploy UI verification pending:
+- [ ] Lex starts a session with 10 cards (UI)
+- [ ] Can flip, self-grade each (UI)
+- [ ] Wrong cards appear again at the end (UI)
+- [ ] After session, card SM-2 fields updated in storage (Storage Explorer)
+- ✅ Failed cards have `reps=0, interval=1, next_review_at = tomorrow` — verified via `/local-smoke` 2026-04-22
+- ✅ Correct cards have `reps=1, interval=1` (on first success) — verified via `/local-smoke` 2026-04-22
 
-**`/local-smoke`** — verified 2026-04-22 against Azurite + `func start`: POST /api/sessions queue built correctly, POST /api/attempts SM-2 fields updated (correct reps=1/ease=2.60, wrong reps=0/ease=1.70), PUT /api/sessions close returns full profile. Azure Table Storage null→undefined bug identified and fixed during smoke.
+**`/local-smoke`** — PASS 2026-04-22 against Azurite + `func start`: queue built, attempts logged + SM-2 updated (correct reps=1/ease=2.60, wrong reps=0/ease=1.70), session closed with correct duration/counts. Azure Table Storage null→undefined bug found and fixed during smoke.
 
 ---
 
