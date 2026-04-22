@@ -2,7 +2,7 @@
 
 For family members using the running app.
 
-Current state: **Phase 6 complete.** This guide fills in from Phase 3
+Current state: **Phase 7 complete.** This guide fills in from Phase 3
 onward (first login + dashboard) and gets sections added per phase:
 
 - **Logging in** (Phase 3): tap your avatar, enter password, you land on
@@ -18,8 +18,16 @@ onward (first login + dashboard) and gets sections added per phase:
   confirmation) to remove it and all its cards. Admins can manage school
   years from the Admin Panel (School years section: create, rename, and
   mark a year as current).
-- **Adding cards** (Phase 7): manually, one at a time — supports
-  `alt1|alt2` syntax for alternative answers.
+- **Adding cards** (Phase 7): from the Courses screen click "Manage cards"
+  next to any of your courses (or any course you want to browse). You land
+  on the Card Manager. If you own the course (or are an admin), you'll see
+  "New card" and Edit / Delete buttons on every row; otherwise the table is
+  read-only. Add a card: enter the Question, the Answer (use `|` to list
+  alternatives, e.g. `le chien|le chiot`), and an optional Hint. New cards
+  get SM-2 defaults (`ease=2.5, interval=0, reps=0`) and are immediately
+  due. Edit a card inline by clicking "Edit" and Save. Delete with
+  confirmation. You can browse any family member's cards — a great way to
+  see what Lex is studying in French.
 - **Studying** (Phase 8+): pick a course, start a session, flip /
   self-grade. MCQ mode (Phase 13) once cards have distractors.
 - **Photo import** (Phase 12): take a photo of a vocab sheet, review the

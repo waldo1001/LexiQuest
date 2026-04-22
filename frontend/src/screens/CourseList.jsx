@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAppContext } from "../context/AppContext.jsx";
 import {
   fetchYears as fetchYearsApi,
   fetchCourses as fetchCoursesApi,
@@ -53,6 +54,7 @@ export default function CourseList({
     : () => false,
 }) {
   const t = useT();
+  const { user } = useAppContext();
   const [years, setYears] = useState(null);
   const [courses, setCourses] = useState(null);
   const [status, setStatus] = useState(null);
@@ -251,6 +253,12 @@ export default function CourseList({
                 <>
                   <span>{course.emoji}</span>
                   <span>{course.name}</span>
+                  <Link
+                    to={`/courses/${course.id}/cards`}
+                    state={{ courseName: course.name, ownerId: course.user_id }}
+                  >
+                    {t("courses.action.manageCards")}
+                  </Link>
                   <button type="button" onClick={() => startEdit(course)}>
                     {t("courses.action.edit")}
                   </button>

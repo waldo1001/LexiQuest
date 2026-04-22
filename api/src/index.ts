@@ -16,6 +16,8 @@ import { registerYears } from "./functions/years.js";
 import { registerYearsId } from "./functions/years-id.js";
 import { registerCourses } from "./functions/courses.js";
 import { registerCoursesId } from "./functions/courses-id.js";
+import { registerCards } from "./functions/cards.js";
+import { registerCardsId } from "./functions/cards-id.js";
 
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING ?? "";
 const sessionSecret = process.env.SESSION_SECRET ?? "";
@@ -37,3 +39,5 @@ registerYears({ tables, signer, random });
 registerYearsId({ tables, signer });
 registerCourses({ tables, signer, clock, random });
 registerCoursesId({ tables, signer });
+registerCards({ tables, signer, clock, random });
+registerCardsId({ tables, signer, clock });

@@ -360,3 +360,89 @@ export async function deleteCourse(id, { fetchFn = fetch } = {}) {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Cards
+// ---------------------------------------------------------------------------
+
+/**
+ * @param {string} courseId
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<object[]>}
+ */
+export async function fetchCards(courseId, { fetchFn = fetch } = {}) {
+  const path = `/api/cards?courseId=${encodeURIComponent(courseId)}`;
+  const response = await fetchFn(path, { credentials: "include" });
+  if (!response.ok) {
+    throw new Error(`GET ${path} failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * @param {object} body  Must include course_id, question, answer
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<object>}
+ */
+export async function createCard(body, { fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/cards", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`POST /api/cards failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * @param {string} id
+ * @param {string} courseId
+ * @param {object} patch
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<object>}
+ */
+export async function updateCard(id, courseId, patch, { fetchFn = fetch } = {}) {
+  const path = `/api/cards/${encodeURIComponent(id)}?courseId=${encodeURIComponent(courseId)}`;
+  const response = await fetchFn(path, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(patch),
+  });
+  if (response.status === 403) {
+    throw new Error("forbidden");
+  }
+  if (response.status === 404) {
+    throw new Error("not_found");
+  }
+  if (!response.ok) {
+    throw new Error(`PUT /api/cards/${id} failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * @param {string} id
+ * @param {string} courseId
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<void>}
+ */
+export async function deleteCard(id, courseId, { fetchFn = fetch } = {}) {
+  const path = `/api/cards/${encodeURIComponent(id)}?courseId=${encodeURIComponent(courseId)}`;
+  const response = await fetchFn(path, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (response.status === 403) {
+    throw new Error("forbidden");
+  }
+  if (response.status === 404) {
+    throw new Error("not_found");
+  }
+  if (!response.ok) {
+    throw new Error(`DELETE /api/cards/${id} failed with status ${response.status}`);
+  }
+}

@@ -1,10 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
 import {
+  createCard,
   createCourse,
   createUser,
   createYear,
+  deleteCard,
   deleteCourse,
   deleteUser,
+  fetchCards,
   fetchCourses,
   fetchHelloMessage,
   fetchMe,
@@ -14,6 +17,7 @@ import {
   login,
   logout,
   patchMe,
+  updateCard,
   updateCourse,
   updateUser,
   updateYear,
@@ -507,6 +511,98 @@ describe("deleteCourse", () => {
   it("throws on other non-ok", async () => {
     await expect(
       deleteCourse("c1", { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
+    ).rejects.toThrow(/500/);
+  });
+});
+
+describe("fetchCards", () => {
+  it("GETs /api/cards?courseId=<id> and returns the list", async () => {
+    const cards = [{ id: "card-1", question: "Q?", answer: "A" }];
+    const fakeFetch = vi.fn().mockResolvedValue(ok(cards));
+    const res = await fetchCards("c1", { fetchFn: fakeFetch });
+    expect(res).toEqual(cards);
+    expect(fakeFetch).toHaveBeenCalledWith(
+      "/api/cards?courseId=c1",
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("throws on non-ok", async () => {
+    await expect(
+      fetchCards("c1", { fetchFn: vi.fn().mockResolvedValue(fail(401)) }),
+    ).rejects.toThrow(/401/);
+  });
+});
+
+describe("createCard", () => {
+  it("POSTs JSON to /api/cards and returns the created card", async () => {
+    const body = { course_id: "c1", question: "Q?", answer: "A" };
+    const created = { id: "card-new", ...body };
+    const fakeFetch = vi.fn().mockResolvedValue({ ok: true, status: 201, json: async () => created });
+    const res = await createCard(body, { fetchFn: fakeFetch });
+    expect(res.id).toBe("card-new");
+    expect(fakeFetch).toHaveBeenCalledWith(
+      "/api/cards",
+      expect.objectContaining({ method: "POST", body: JSON.stringify(body) }),
+    );
+  });
+
+  it("throws on non-ok", async () => {
+    await expect(
+      createCard({}, { fetchFn: vi.fn().mockResolvedValue(fail(400)) }),
+    ).rejects.toThrow(/400/);
+  });
+});
+
+describe("updateCard", () => {
+  it("PUTs JSON to /api/cards/:id?courseId= and returns updated card", async () => {
+    const fakeFetch = vi.fn().mockResolvedValue(ok({ id: "card-1", question: "Updated?" }));
+    const res = await updateCard("card-1", "c1", { question: "Updated?" }, { fetchFn: fakeFetch });
+    expect(res.question).toBe("Updated?");
+    expect(fakeFetch).toHaveBeenCalledWith(
+      "/api/cards/card-1?courseId=c1",
+      expect.objectContaining({ method: "PUT", credentials: "include" }),
+    );
+  });
+
+  it("throws 'forbidden' on 403, 'not_found' on 404", async () => {
+    await expect(
+      updateCard("card-1", "c1", {}, { fetchFn: vi.fn().mockResolvedValue(fail(403)) }),
+    ).rejects.toThrow("forbidden");
+    await expect(
+      updateCard("card-1", "c1", {}, { fetchFn: vi.fn().mockResolvedValue(fail(404)) }),
+    ).rejects.toThrow("not_found");
+  });
+
+  it("throws on other non-ok", async () => {
+    await expect(
+      updateCard("card-1", "c1", {}, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
+    ).rejects.toThrow(/500/);
+  });
+});
+
+describe("deleteCard", () => {
+  it("DELETEs /api/cards/:id?courseId= on success", async () => {
+    const fakeFetch = vi.fn().mockResolvedValue({ ok: true, status: 204, json: async () => {} });
+    await deleteCard("card-1", "c1", { fetchFn: fakeFetch });
+    expect(fakeFetch).toHaveBeenCalledWith(
+      "/api/cards/card-1?courseId=c1",
+      expect.objectContaining({ method: "DELETE", credentials: "include" }),
+    );
+  });
+
+  it("throws 'forbidden' on 403, 'not_found' on 404", async () => {
+    await expect(
+      deleteCard("card-1", "c1", { fetchFn: vi.fn().mockResolvedValue(fail(403)) }),
+    ).rejects.toThrow("forbidden");
+    await expect(
+      deleteCard("card-1", "c1", { fetchFn: vi.fn().mockResolvedValue(fail(404)) }),
+    ).rejects.toThrow("not_found");
+  });
+
+  it("throws on other non-ok", async () => {
+    await expect(
+      deleteCard("card-1", "c1", { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
     ).rejects.toThrow(/500/);
   });
 });

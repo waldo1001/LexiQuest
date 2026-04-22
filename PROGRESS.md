@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 6 complete (all 3 slices shipped as one consolidated cycle). Tag `phase-6-done` applied.
-- **Last tag**: `phase-6-done`
-- **Next up**: Phase 7 — Manual cards
+- **Current phase**: Phase 7 complete (all 3 slices shipped as one combined TDD cycle). Tag `phase-7-done` applied.
+- **Last tag**: `phase-7-done`
+- **Next up**: Phase 8 — SM-2 scheduling & self-grade session
 
 ---
 
@@ -122,9 +122,16 @@ populates 4 users + current year. See
 
 ## Phase 7 — Manual cards
 
-- ⬜ Slice 1 — `/api/cards` CRUD with SM-2 defaults
-- ⬜ Slice 2 — `CardManager` screen
-- ⬜ Slice 3 — Read-only view for other users' cards
+- ✅ Slice 1 — `/api/cards` CRUD with SM-2 defaults
+- ✅ Slice 2 — `CardManager` screen
+- ✅ Slice 3 — Read-only view for other users' cards
+
+**Smoke test** (Design.md) — manual verification pending (run after push):
+- [ ] Lex can add 10 cards to her French course
+- [ ] Lex can edit/delete her own cards
+- [ ] Lex viewing Mats's course cards: read-only (edit buttons hidden or 403 on attempt)
+- [ ] Alternative-answer syntax stored verbatim (`le chien|le chiot`)
+- [ ] New cards have correct SM-2 defaults and `next_review_at <= now`
 
 ---
 

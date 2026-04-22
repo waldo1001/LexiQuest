@@ -3,6 +3,10 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-04-22 (Phase 7)
+
+- Implemented Phase 7 — Manual cards (all 3 slices combined): `GET /api/cards?courseId=` (any authed user), `POST /api/cards` (course owner or admin, SM-2 defaults `ease=2.5, interval=0, reps=0, next_review_at=now`), `PUT /api/cards/:id?courseId=` and `DELETE /api/cards/:id?courseId=` (owner or admin); `CardManager` screen with card table, inline edit, add form (pipe-separated answer hint), delete with confirm, and read-only enforcement for non-owners (edit/delete buttons hidden + API 403 guard); "Manage cards" link added to CourseList; 4 new `api.js` wrappers + tests; EN + NL `cards.*` i18n strings; route `/courses/:courseId/cards` in `App.jsx`; 59 new tests; api 99.1% lines / 96.4% branches; frontend all thresholds met. Phase 7 complete — tag `phase-7-done`. See [plan](plans/done/phase-7-all-manual-cards.md).
+
 ## 2026-04-22
 
 - Verified Phase 6 smoke: Lex creates/edits/deletes own course, Mats 403 on Lex's course, Waldo admin override, year `is_current` propagates. All five Design.md smoke items green against Azurite + `func start`. `/local-smoke` PASS (login, `/api/me`, wrong-password 401, SPA fallback). See [PROGRESS.md Phase 6](../PROGRESS.md).
