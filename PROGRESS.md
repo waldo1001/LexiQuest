@@ -15,7 +15,7 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 - **Current phase**: Phase 3 in progress (Slice 1 done)
 - **Last tag**: none yet (`phase-1-done` applied after manual smoke)
-- **Next up**: Phase 3 Slice 5 — Frontend UserPicker + Login + Home screens
+- **Next up**: Phase 3 Slice 6 — `api/__meta__/auth-boundary.test.ts` (invariant 1)
 
 ---
 
@@ -80,7 +80,7 @@ populates 4 users + current year. See
 - ✅ Slice 2 — `POST /api/login`
 - ✅ Slice 3 — `requireAuth` middleware, `POST /api/logout`, `GET /api/me`
 - ✅ Slice 4 — `GET /api/users/public`
-- ⬜ Slice 5 — Frontend: UserPicker, Login, Home screens
+- ✅ Slice 5 — Frontend: UserPicker, Login, Home screens
 - ⬜ Slice 6 — `api/__meta__/auth-boundary.test.ts` (invariant 1)
 
 ---

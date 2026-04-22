@@ -5,6 +5,12 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Frontend auth screens: `UserPicker`, `Login`, `Home` connected via
+  `react-router-dom`. `src/lib/api.js` extended with
+  `fetchPublicUsers`, `login`, `fetchMe`, `logout` (all fetch-DI'd,
+  `credentials: include`). 22 frontend tests. 100% lines / 97.77%
+  branches on touched files. Phase 3 Slice 5. See
+  [plan](plans/done/phase-3-slice-5-frontend-auth.md).
 - Added `GET /api/users/public` — anonymous picker endpoint returning
   `[{id, name, avatar_emoji, color}]` sorted by name; never leaks
   `password_hash` / `is_admin` / `settings` / `ui_language`. Phase 3
