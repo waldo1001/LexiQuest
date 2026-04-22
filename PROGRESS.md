@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 0 — toolchain setup (pre-implementation)
+- **Current phase**: Phase 1 — project skeleton & deployment pipeline (in progress)
 - **Last tag**: none yet
-- **Next up**: Phase 1 — project skeleton & deployment pipeline
+- **Next up**: Phase 1 Slice 2 — scaffold `api/` (Azure Functions TS) + `hello/` function
 
 ---
 
@@ -45,7 +45,7 @@ without inventing them from scratch.
 LexiQuest" served from Azure. See
 [Design.md Phase 1](Design.md#phase-1--project-skeleton--deployment-pipeline).
 
-- ⬜ Slice 1 — scaffold `frontend/` (Vite + React JS)
+- ✅ Slice 1 — scaffold `frontend/` (Vite + React JS)
 - ⬜ Slice 2 — scaffold `api/` (Azure Functions TS) + `hello/` function
 - ⬜ Slice 3 — `staticwebapp.config.json` + GitHub Actions deploy workflow
 - ⬜ Slice 4 — wire `frontend` fetch of `/api/hello` + render the message

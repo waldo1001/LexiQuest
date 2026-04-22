@@ -6,8 +6,8 @@ repetition, gamification, and AI-assisted card creation from photos. The app
 name is dynamic: LexiQuest / MatsQuest / BenQuest / WaldoQuest, based on who
 is logged in.
 
-**Status**: Phase 0 — toolchain set up, no application code yet. Phase 1
-(project skeleton + deploy pipeline) is next.
+**Status**: Phase 1 in progress — `frontend/` scaffolded (Vite + React JS
++ Vitest). Next: scaffold `api/` (Azure Functions TS + `hello/`).
 
 ## What it is
 

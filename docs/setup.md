@@ -1,25 +1,41 @@
 # Setup — LexiQuest
 
 How to stand up LexiQuest locally and in Azure. This doc grows per phase.
-Current state: **Phase 0 — toolchain only, no application code yet.**
+Current state: **Phase 1 in progress — `frontend/` scaffolded, `api/` next.**
 
-The first real setup steps land in [Phase 1](../Design.md#phase-1--project-skeleton--deployment-pipeline):
+## Prerequisites
 
-1. Create GitHub repo `waldo1001/lexiquest`.
-2. Scaffold `frontend/` (Vite + React JS) and `api/` (Azure Functions TS
-   + `hello/` function).
-3. Add `staticwebapp.config.json`.
-4. Provision Azure Static Web App (Free tier); link to `main`.
-5. Confirm the auto-generated GitHub Actions workflow deploys.
+- Node.js 20 or newer (tested on Node 24 locally).
+- npm 10+.
 
-Once Phase 1 is done, this doc will be filled with:
+## Install
 
-- Prerequisites (Node 20, SWA CLI, Azurite, Anthropic API key).
-- `.env` / `local.settings.json` templates.
-- `scripts/seed.ts` run instructions (Phase 2).
-- Azure provisioning steps (Storage account, app settings).
-- Local dev loop: `swa start`.
-- Troubleshooting.
+```sh
+cd frontend
+npm install
+```
 
-Until then, the only setup needed is this toolchain — which is ready as
-soon as this repo is cloned and [CLAUDE.md](../CLAUDE.md) is read.
+## Local dev loop (frontend only — Slice 1)
+
+```sh
+cd frontend
+npm run dev         # Vite dev server at http://localhost:5173
+npm test            # Vitest + coverage (enforces Tier B / Tier A thresholds)
+npm run test:watch  # Vitest in watch mode
+npm run build       # Production build to frontend/dist
+```
+
+Full-stack dev (`swa start`, Azurite, Anthropic, etc.) lands in later
+slices as those pieces are introduced.
+
+## Coming in later slices
+
+- Slice 2: scaffold `api/` (Azure Functions TS) + `hello/` function, add
+  `npm install` and `npm test` commands for it.
+- Slice 3: `staticwebapp.config.json` + GitHub Actions deploy workflow +
+  Azure Static Web App provisioning.
+- Slice 4: wire `frontend` fetch of `/api/hello`.
+- Slice 5: root `README.md` with full local dev instructions
+  (`swa start` for the whole stack).
+- Phase 2+: `.env` / `local.settings.json` templates, seed script, Azure
+  Storage account, Anthropic key, `SESSION_SECRET`.
