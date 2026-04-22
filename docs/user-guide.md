@@ -2,11 +2,14 @@
 
 For family members using the running app.
 
-Current state: **Phase 0 — no app yet.** This guide fills in from Phase 3
+Current state: **Phase 4 complete.** This guide fills in from Phase 3
 onward (first login + dashboard) and gets sections added per phase:
 
 - **Logging in** (Phase 3): tap your avatar, enter password, you land on
   your dashboard.
+- **Settings** (Phase 4): click the "Settings" link on the Home screen.
+  Pick your UI language (English or Dutch). The change takes effect
+  immediately and is remembered across sessions.
 - **Courses** (Phase 6): create a course for the current year, pick an
   emoji + color + optional BCP-47 language for pronunciation.
 - **Adding cards** (Phase 7): manually, one at a time — supports

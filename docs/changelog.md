@@ -5,6 +5,7 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Added Settings screen (`/settings`) with language toggle (EN/NL), `/settings` route in `App.jsx`, Settings link on Home screen, and `<html lang>` sync via `useEffect` in `AppProvider`. 100% frontend coverage, 9 new tests. Phase 4 Slice 3. See [plan](plans/done/phase-4-slice-3-settings-lang-toggle.md).
 - Added `PATCH /api/me` — authenticated users can update their own
   `ui_language` and `settings` (shallow-merge). Validator rejects
   unknown ui_language (400), bad settings shapes (400), and ignores

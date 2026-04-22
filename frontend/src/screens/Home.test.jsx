@@ -90,4 +90,14 @@ describe("Home", () => {
       /niet aangemeld/i,
     );
   });
+
+  it("renders a link to the settings screen", async () => {
+    setup({
+      fetchMe: vi.fn().mockResolvedValue({ id: "u1", name: "Alice" }),
+      logout: vi.fn(),
+    });
+    expect(
+      await screen.findByRole("link", { name: /settings/i }),
+    ).toBeInTheDocument();
+  });
 });

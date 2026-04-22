@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { fetchMe, logout as logoutApi } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
 
@@ -39,6 +39,7 @@ export default function Home({
       <button type="button" onClick={onLogout}>
         {t("home.logout")}
       </button>
+      <Link to="/settings">{t("settings.title")}</Link>
     </main>
   );
 }

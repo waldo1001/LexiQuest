@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 4 in progress (Slices 1–2 complete)
+- **Current phase**: Phase 4 complete (all slices done)
 - **Last tag**: none yet (`phase-1-done` applied after manual smoke)
-- **Next up**: Phase 4 Slice 3 — Settings screen language toggle + `<html lang>` sync
+- **Next up**: Phase 5 Slice 1 — `GET /api/users` (full shape, no hashes)
 
 ---
 
@@ -89,7 +89,7 @@ populates 4 users + current year. See
 
 - ✅ Slice 1 — `strings.js` + `useT` hook + AppContext
 - ✅ Slice 2 — `PATCH /api/me` for `ui_language` + `settings`
-- ⬜ Slice 3 — Settings screen language toggle, `<html lang>` sync
+- ✅ Slice 3 — Settings screen language toggle, `<html lang>` sync
 
 ---
 

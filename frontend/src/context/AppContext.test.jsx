@@ -1,5 +1,5 @@
 import { render, screen, act } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { AppProvider, useAppContext } from "./AppContext.jsx";
 
 function Probe() {
@@ -109,5 +109,33 @@ describe("AppContext", () => {
       screen.getByRole("button", { name: "set-user" }).click();
     });
     expect(screen.getByTestId("user-name").textContent).toBe("Lex");
+  });
+
+  describe("<html lang> sync", () => {
+    afterEach(() => {
+      document.documentElement.lang = "";
+    });
+
+    it("sets document.documentElement.lang to initialLang on mount", () => {
+      render(
+        <AppProvider initialLang="en">
+          <Probe />
+        </AppProvider>,
+      );
+      expect(document.documentElement.lang).toBe("en");
+    });
+
+    it("updates document.documentElement.lang when lang changes", async () => {
+      const patchMe = vi.fn().mockResolvedValue({ ui_language: "nl" });
+      render(
+        <AppProvider initialLang="en" patchMe={patchMe}>
+          <Probe />
+        </AppProvider>,
+      );
+      await act(async () => {
+        screen.getByRole("button", { name: "to-nl" }).click();
+      });
+      expect(document.documentElement.lang).toBe("nl");
+    });
   });
 });

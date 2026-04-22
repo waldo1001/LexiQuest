@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { patchMe as patchMeApi } from "../lib/api.js";
 
 const AppContext = createContext(null);
@@ -34,6 +34,10 @@ export function AppProvider({
     },
     [patchMe],
   );
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const value = useMemo(
     () => ({ user, setUser, lang, setLang }),

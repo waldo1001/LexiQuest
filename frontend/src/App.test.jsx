@@ -24,4 +24,13 @@ describe("App", () => {
       await screen.findByRole("heading", { name: /who are you/i }),
     ).toBeInTheDocument();
   });
+
+  it("renders the Settings screen at /settings", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    window.history.pushState({}, "", "/settings");
+    render(<App />);
+    expect(
+      await screen.findByRole("heading", { name: /settings/i }),
+    ).toBeInTheDocument();
+  });
 });
