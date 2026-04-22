@@ -11,7 +11,7 @@
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "test:unit": "vitest run --coverage --exclude '**/__integration__/**' --exclude '**/__contract__/**'",
-    "test:integration": "vitest run '**/__integration__/**'",
+    "test:integration": "vitest run src/**/__integration__",
     "test:contract": "vitest run '**/__contract__/**'",
     "test:meta": "vitest run '**/__meta__/**'",
     "typecheck": "tsc -p tsconfig.test.json",

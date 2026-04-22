@@ -67,6 +67,30 @@ reads "Hello from LexiQuest" (proving the `/api/hello` round-trip).
       `AZURE_STATIC_WEB_APPS_API_TOKEN` is set, a push to `main`
       auto-deploys within ~5 minutes.
 
+## Azurite (local Table Storage emulator)
+
+Seed + the Azurite-backed `TableStorage` integration test require
+Azurite running locally. Install + boot:
+
+```sh
+npm install -g azurite
+# Storage emulator that LexiQuest's api/ talks to:
+azurite-table --silent --location /tmp/azurite --debug azurite-debug.log
+# runs on localhost:10002 (Table). Default connection string:
+#   UseDevelopmentStorage=true
+```
+
+Opt the integration test into running by setting the env var:
+
+```sh
+export AZURITE_CONNECTION_STRING="UseDevelopmentStorage=true"
+cd api && npm run test:integration
+```
+
+The seed script (Phase 2 Slice 4) uses
+`AZURE_STORAGE_CONNECTION_STRING` (same value works against Azurite
+locally).
+
 ## Coming in later phases
 
 - Phase 2: `.env` / `local.settings.json` (real values, **never** committed),

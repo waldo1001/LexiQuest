@@ -5,6 +5,13 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Added Azurite-backed integration test
+  (`api/src/shared/__integration__/azure-table-storage.integration.test.ts`):
+  runs the shared TableStorage contract against real `@azure/data-tables`
+  when `AZURITE_CONNECTION_STRING` is set, skips cleanly otherwise.
+  docs/setup.md: added the Azurite boot guide. Phase 2 Slice 5. See
+  [plan](plans/done/phase-2-slice-5-azurite.md). Phase 2 complete
+  (pending Waldo's manual Azurite smoke + phase-2-done tag).
 - Added idempotent seed (`api/src/shared/seed.ts` + `api/scripts/seed.ts`):
   creates 4 users (Waldo admin + Lex + Mats + Ben) with bcrypt hashes
   and the current school-year row from `Clock`-derived month/year.

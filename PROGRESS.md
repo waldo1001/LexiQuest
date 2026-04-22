@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 2 in progress (Slice 1 done)
+- **Current phase**: Phase 2 complete (pending manual Azurite smoke); Phase 3 next
 - **Last tag**: none yet (`phase-1-done` applied after manual smoke)
-- **Next up**: Phase 2 Slice 5 — Azurite-backed integration smoke
+- **Next up**: Phase 3 Slice 1 — `SessionSigner` seam
 
 ---
 
@@ -70,7 +70,7 @@ populates 4 users + current year. See
 - ✅ Slice 2 — `PasswordHasher` seam (interface + real + fake + contract test)
 - ✅ Slice 3 — `Clock`, `Random`, `Logger` seams
 - ✅ Slice 4 — `scripts/seed.ts` with the 4 users + current year
-- ⬜ Slice 5 — Azurite-backed integration smoke
+- ✅ Slice 5 — Azurite-backed integration smoke
 
 ---
 
