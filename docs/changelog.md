@@ -5,6 +5,10 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Filled out README.md, docs/setup.md, and docs/getting-started.md
+  with local dev instructions, full-stack `swa start` command, and the
+  Phase 1 manual smoke checklist. Phase 1 Slice 5 (docs-only). See
+  [plan](plans/done/phase-1-slice-5-readme-localdev.md).
 - `App` now fetches `/api/hello` on mount via `frontend/src/lib/api.js`
   (injected `fetch` seam) and renders the returned `msg`; shows
   "Loading…" during the request and falls back to "LexiQuest" on

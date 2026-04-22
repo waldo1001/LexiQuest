@@ -1,52 +1,76 @@
 # Setup — LexiQuest
 
 How to stand up LexiQuest locally and in Azure. This doc grows per phase.
-Current state: **Phase 1 in progress — `frontend/` scaffolded, `api/` next.**
+Current state: **Phase 1 complete (pending manual `swa start` smoke).**
 
 ## Prerequisites
 
-- Node.js 20 or newer (tested on Node 24 locally).
+- Node.js 20 or newer (tested on Node 24).
 - npm 10+.
+- For full-stack local runs: the Azure Static Web Apps CLI —
+  `npm install -g @azure/static-web-apps-cli`.
+- For running the api under `func start` directly: Azure Functions
+  Core Tools v4 —
+  `npm install -g azure-functions-core-tools@4 --unsafe-perm true`.
 
 ## Install
 
 ```sh
-cd frontend
-npm install
+cd frontend && npm install
+cd ../api && npm install
 ```
 
-## Local dev loop (Slices 1–2 — frontend + api as separate processes)
+## Frontend-only dev loop
 
 ```sh
-# frontend
 cd frontend
-npm run dev         # Vite dev server at http://localhost:5173
-npm test            # Vitest + coverage
-
-# api (separate shell)
-cd api
-npm install         # first-time only
-npm test            # Vitest + Tier-A coverage
-npm run typecheck   # tsc strict
-npm run build       # emits dist/
-# `npm start` (func start) requires Azure Functions Core Tools v4 and a
-#   local.settings.json (copy from local.settings.json.example).
+npm run dev         # Vite at http://localhost:5173
+npm test            # Vitest + coverage (Tier B global, Tier A for src/lib/)
+npm run test:watch
+npm run build       # -> frontend/dist
 ```
 
-Full-stack via `swa start` (which runs both under one proxy + routes
-`/api/*` correctly) lands in Slice 3.
+## API-only dev loop (tests + build; no Functions host)
 
-Full-stack dev (`swa start`, Azurite, Anthropic, etc.) lands in later
-slices as those pieces are introduced.
+```sh
+cd api
+npm test            # Vitest Tier A 90%
+npm run typecheck
+npm run build       # -> api/dist
+```
 
-## Coming in later slices
+## Full-stack local run
 
-- Slice 2: scaffold `api/` (Azure Functions TS) + `hello/` function, add
-  `npm install` and `npm test` commands for it.
-- Slice 3: `staticwebapp.config.json` + GitHub Actions deploy workflow +
-  Azure Static Web App provisioning.
-- Slice 4: wire `frontend` fetch of `/api/hello`.
-- Slice 5: root `README.md` with full local dev instructions
-  (`swa start` for the whole stack).
-- Phase 2+: `.env` / `local.settings.json` templates, seed script, Azure
-  Storage account, Anthropic key, `SESSION_SECRET`.
+```sh
+# Shell 1 — Vite dev server
+cd frontend && npm run dev
+
+# Shell 2 — SWA emulator proxies Vite + starts the Functions host
+cd <repo-root>
+swa start http://localhost:5173 --api-location api
+# -> http://localhost:4280
+#    /       serves the Vite SPA
+#    /api/*  routes to the Azure Functions host (port 7071 internally)
+```
+
+A manual smoke: visit `http://localhost:4280`, confirm the `<h1>`
+reads "Hello from LexiQuest" (proving the `/api/hello` round-trip).
+
+## Phase 1 smoke checklist (run once before tagging phase-1-done)
+
+- [ ] `cd frontend && npm test` — all green.
+- [ ] `cd api && npm test` — all green.
+- [ ] `swa start ... --api-location api` shows `<h1>Hello from LexiQuest</h1>`.
+- [ ] Devtools Network tab shows `/api/hello` returned
+      `{"msg":"Hello from LexiQuest"}`.
+- [ ] After Azure SWA is provisioned and
+      `AZURE_STATIC_WEB_APPS_API_TOKEN` is set, a push to `main`
+      auto-deploys within ~5 minutes.
+
+## Coming in later phases
+
+- Phase 2: `.env` / `local.settings.json` (real values, **never** committed),
+  Azurite for local Table Storage, `scripts/seed.ts` to create the four
+  family users.
+- Phase 3: `SESSION_SECRET` env var, cookie flags.
+- Phase 12: `ANTHROPIC_API_KEY` env var, rate-limit and retry posture.

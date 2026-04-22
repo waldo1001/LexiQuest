@@ -2,29 +2,32 @@
 
 Five-minute happy path for a developer (human or AI) new to this repo.
 
-Current state: **Phase 1 in progress.** `frontend/` is scaffolded and
-testable; `api/` and full-stack `swa start` land in later slices.
+Current state: **Phase 1 complete (pending manual `swa start` smoke).**
 
 1. Clone the repo.
-2. Read [CLAUDE.md](../CLAUDE.md) — especially the 10-step TDD cycle and
-   the four LexiQuest invariants.
-3. Skim [Design.md](../Design.md) §§ 1–5 (overview, data model,
-   architecture, cross-cutting concerns).
-4. Read [PROGRESS.md](../PROGRESS.md) to see where we are.
-5. Boot the frontend:
-
+2. Skim [CLAUDE.md](../CLAUDE.md) (TDD cycle + four invariants) and
+   [Design.md](../Design.md) §§ 1–5. Then [PROGRESS.md](../PROGRESS.md)
+   to see where we are.
+3. Install per-project deps:
    ```sh
-   cd frontend
-   npm install
-   npm run dev   # http://localhost:5173 — the LexiQuest shell
-   npm test      # Vitest + coverage
+   cd frontend && npm install && cd ..
+   cd api && npm install && cd ..
    ```
+4. Run tests in each subproject:
+   ```sh
+   cd frontend && npm test && cd ..
+   cd api && npm test && cd ..
+   ```
+5. Boot the full stack via the Azure SWA emulator:
+   ```sh
+   npm install -g @azure/static-web-apps-cli     # one-time
+   (cd frontend && npm run dev) &                # Shell 1
+   swa start http://localhost:5173 --api-location api  # Shell 2
+   # -> http://localhost:4280 -> "<h1>Hello from LexiQuest</h1>"
+   ```
+6. Start the next coding task by invoking
+   [`/tdd-cycle`](../.claude/skills/tdd-cycle/SKILL.md). The skill
+   writes a plan file under [plans/](plans/) before any production
+   code is touched.
 
-6. Invoke [`/tdd-cycle`](../.claude/skills/tdd-cycle/SKILL.md) to start
-   the next slice. The skill writes a plan file under
-   [plans/](plans/) before any code is written.
-
-Full-stack boot (`swa start` with the API and Azurite) lands in Phase 1
-Slices 2–5.
-
-**Don't start coding without running `/tdd-cycle` first.**
+**Rule**: don't start coding without running `/tdd-cycle` first.

@@ -6,9 +6,9 @@ repetition, gamification, and AI-assisted card creation from photos. The app
 name is dynamic: LexiQuest / MatsQuest / BenQuest / WaldoQuest, based on who
 is logged in.
 
-**Status**: Phase 1 in progress — `frontend/` (Vite + React JS + Vitest)
-and `api/` (Azure Functions v4 TS + `hello/`) scaffolded. Next:
-`staticwebapp.config.json` + GitHub Actions deploy workflow.
+**Status**: Phase 1 complete (pending manual `swa start` smoke) —
+frontend, API, routing config, deploy workflow, and docs all in place.
+Next: Phase 2 — storage layer & seed data.
 
 ## What it is
 
@@ -64,6 +64,40 @@ Target cost: ~€2 / month.
   `/security-scan`, `/docs-update`, `/local-smoke`, `/deploy-swa`.
 - [testing/](testing/) — drop-in Vitest configs + example seam fakes to
   copy into `api/` and `frontend/` at Phase 1.
+
+## Local development
+
+Prerequisites: Node 20+ (tested on 24), npm 10+, and — for the full
+stack — the Azure Static Web Apps CLI
+(`npm install -g @azure/static-web-apps-cli`).
+
+```sh
+# Frontend only (Vite dev server at http://localhost:5173)
+cd frontend
+npm install
+npm run dev
+npm test           # Vitest + coverage
+
+# API only (unit tests, typecheck, build — no Functions host needed)
+cd api
+npm install
+npm test
+npm run typecheck
+npm run build      # emits api/dist
+
+# Full stack (Azure SWA emulator; needs swa CLI + Azure Functions Core
+# Tools v4 for the api side). First shell:
+cd frontend && npm run dev
+# Second shell:
+cd <repo-root>
+swa start http://localhost:5173 --api-location api
+# visit http://localhost:4280 — the SPA plus /api/hello routed through
+# the SWA proxy.
+```
+
+See [docs/setup.md](docs/setup.md) for the authoritative setup
+instructions and [docs/getting-started.md](docs/getting-started.md)
+for the five-minute happy path.
 
 ## Working in this repo
 

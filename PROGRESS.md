@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 1 — project skeleton & deployment pipeline (in progress)
-- **Last tag**: none yet
-- **Next up**: Phase 1 Slice 5 — README, local-dev instructions, first `swa start` smoke
+- **Current phase**: Phase 1 complete (pending manual `swa start` smoke); Phase 2 next
+- **Last tag**: none yet (`phase-1-done` applied after manual smoke)
+- **Next up**: Phase 2 Slice 1 — `TableStorage` seam (interface + real + fake + contract test)
 
 ---
 
@@ -49,7 +49,7 @@ LexiQuest" served from Azure. See
 - ✅ Slice 2 — scaffold `api/` (Azure Functions TS) + `hello/` function
 - ✅ Slice 3 — `staticwebapp.config.json` + GitHub Actions deploy workflow
 - ✅ Slice 4 — wire `frontend` fetch of `/api/hello` + render the message
-- ⬜ Slice 5 — README, local-dev instructions, first `swa start` smoke
+- ✅ Slice 5 — README, local-dev instructions, first `swa start` smoke
 
 **Smoke test** (Design.md):
 - [ ] Deployed URL shows "Hello from LexiQuest"
