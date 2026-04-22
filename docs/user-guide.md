@@ -2,7 +2,7 @@
 
 For family members using the running app.
 
-Current state: **Phase 7 complete.** This guide fills in from Phase 3
+Current state: **Phase 8 complete.** This guide fills in from Phase 3
 onward (first login + dashboard) and gets sections added per phase:
 
 - **Logging in** (Phase 3): tap your avatar, enter password, you land on
@@ -28,8 +28,19 @@ onward (first login + dashboard) and gets sections added per phase:
   due. Edit a card inline by clicking "Edit" and Save. Delete with
   confirmation. You can browse any family member's cards — a great way to
   see what Lex is studying in French.
-- **Studying** (Phase 8+): pick a course, start a session, flip /
-  self-grade. MCQ mode (Phase 13) once cards have distractors.
+- **Studying** (Phase 8): from the Courses screen click "Study" next to any
+  course. LexiQuest builds a queue of cards that are due today (their
+  scheduled review date has passed) plus up to 20 new cards you haven't seen
+  yet. For each card:
+  1. Read the **question**.
+  2. Click **Show answer** to reveal the answer.
+  3. Tap **Knew it** (correct) or **Didn't know** (wrong).
+  Wrong cards go into a retry pile and appear again at the end of the session.
+  When all cards (including retries) are done, the session is saved
+  automatically — SM-2 scheduling on every card updates so the next due date
+  reflects how well you knew it. Correct cards on the first attempt are
+  counted toward your daily goal (Phase 10). MCQ mode (Phase 13) adds once
+  cards have distractors.
 - **Photo import** (Phase 12): take a photo of a vocab sheet, review the
   extracted cards, confirm. Never auto-saved — always reviewed.
 - **Stats** (Phase 14+): your own, and any family member's. Graphs, date

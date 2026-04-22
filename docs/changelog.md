@@ -3,6 +3,14 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-04-22 (Phase 8)
+
+- Implemented `applySm2(card, quality, now)` pure function in `api/src/shared/sm2.ts` and mirrored to `frontend/src/lib/sm2.js`; covers quality-0 reset, rep-0→1 day, rep-1→6 day, rep-2+ × ease, ease floor 1.3, 13 API tests + 5 frontend tests.
+- Added `POST /api/sessions`: builds a due+new card queue (due = `next_review_at <= now`; new = `reps==0` not yet due, capped at 20), shuffles via `Random.shuffle`, inserts session row with `ended_at=null`, returns `{ sessionId, cards }`. 12 tests.
+- Added `POST /api/attempts`: validates a batch of `{ cardId, correct, mode, response_time_ms }` items + `sessionId`; logs each as an `AttemptRow` with `{iso}_{uuid}` row key; runs SM-2 and upserts each card; 403 on cross-user session. 11 tests.
+- Added `PUT /api/sessions/:id`: closes the session — sets `ended_at=now`, `duration_seconds`, `cards_studied`, `cards_correct`; 409 if already closed; 403 on cross-user. 9 tests.
+- Added `StudySession.jsx` screen: fetches queue, card-flip UI (question → Show answer → reveal + grade buttons), retry pile for wrong cards, batches all attempts on completion then closes session and navigates to `/courses/:id/results` placeholder. 11 frontend tests; 3 new `api.js` wrappers (`startSession`, `postAttempts`, `closeSession`); "Study" link added to CourseList; EN + NL `study.*` i18n strings. Phase 8 complete — tag `phase-8-done`. See [PROGRESS.md](../PROGRESS.md).
+
 ## 2026-04-22 (Phase 7)
 
 - Implemented Phase 7 — Manual cards (all 3 slices combined): `GET /api/cards?courseId=` (any authed user), `POST /api/cards` (course owner or admin, SM-2 defaults `ease=2.5, interval=0, reps=0, next_review_at=now`), `PUT /api/cards/:id?courseId=` and `DELETE /api/cards/:id?courseId=` (owner or admin); `CardManager` screen with card table, inline edit, add form (pipe-separated answer hint), delete with confirm, and read-only enforcement for non-owners (edit/delete buttons hidden + API 403 guard); "Manage cards" link added to CourseList; 4 new `api.js` wrappers + tests; EN + NL `cards.*` i18n strings; route `/courses/:courseId/cards` in `App.jsx`; 59 new tests; api 99.1% lines / 96.4% branches; frontend all thresholds met. Phase 7 complete — tag `phase-7-done`. See [plan](plans/done/phase-7-all-manual-cards.md).

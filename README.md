@@ -6,7 +6,7 @@ repetition, gamification, and AI-assisted card creation from photos. The app
 name is dynamic: LexiQuest / MatsQuest / BenQuest / WaldoQuest, based on who
 is logged in.
 
-**Status**: Phase 7 complete — users can create, edit, and delete flashcards per course; CardManager screen is live with owner-only write controls and read-only browsing for others. Next: Phase 8 — SM-2 scheduling & self-grade study session.
+**Status**: Phase 8 complete — SM-2 spaced repetition is live. Students can start a study session, flip cards, self-grade (Knew it / Didn't know), retry wrong cards, and have their schedules updated automatically. Next: Phase 9 — session results screen + attempt/session row-key format.
 
 ## What it is
 
