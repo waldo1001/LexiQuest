@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 3 in progress (Slice 1 done)
+- **Current phase**: Phase 3 complete; Phase 4 (i18n) next
 - **Last tag**: none yet (`phase-1-done` applied after manual smoke)
-- **Next up**: Phase 3 Slice 6 — `api/__meta__/auth-boundary.test.ts` (invariant 1)
+- **Next up**: Phase 4 Slice 1 — `strings.js` + `useT` hook + AppContext
 
 ---
 
@@ -81,7 +81,7 @@ populates 4 users + current year. See
 - ✅ Slice 3 — `requireAuth` middleware, `POST /api/logout`, `GET /api/me`
 - ✅ Slice 4 — `GET /api/users/public`
 - ✅ Slice 5 — Frontend: UserPicker, Login, Home screens
-- ⬜ Slice 6 — `api/__meta__/auth-boundary.test.ts` (invariant 1)
+- ✅ Slice 6 — `api/__meta__/auth-boundary.test.ts` (invariant 1)
 
 ---
 

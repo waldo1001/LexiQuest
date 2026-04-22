@@ -5,6 +5,11 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Added `auth-boundary.test.ts` meta-test enforcing LexiQuest
+  Invariant 1: no production handler under `api/src/functions/`
+  reads `userId` from the request body. login.ts is the documented
+  exemption (pre-session). Phase 3 complete. See
+  [plan](plans/done/phase-3-slice-6-auth-boundary-meta.md).
 - Frontend auth screens: `UserPicker`, `Login`, `Home` connected via
   `react-router-dom`. `src/lib/api.js` extended with
   `fetchPublicUsers`, `login`, `fetchMe`, `logout` (all fetch-DI'd,
