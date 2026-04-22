@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 2 complete (pending manual Azurite smoke); Phase 3 next
+- **Current phase**: Phase 3 in progress (Slice 1 done)
 - **Last tag**: none yet (`phase-1-done` applied after manual smoke)
-- **Next up**: Phase 3 Slice 1 — `SessionSigner` seam
+- **Next up**: Phase 3 Slice 2 — `POST /api/login`
 
 ---
 
@@ -76,7 +76,7 @@ populates 4 users + current year. See
 
 ## Phase 3 — Authentication
 
-- ⬜ Slice 1 — `SessionSigner` seam
+- ✅ Slice 1 — `SessionSigner` seam
 - ⬜ Slice 2 — `POST /api/login`
 - ⬜ Slice 3 — `requireAuth` middleware, `POST /api/logout`, `GET /api/me`
 - ⬜ Slice 4 — `GET /api/users/public`

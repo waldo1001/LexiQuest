@@ -5,6 +5,11 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Added `SessionSigner` seam: `HmacSessionSigner` (HMAC-SHA256 +
+  URL-safe base64, timingSafeEqual), `FakeSessionSigner`, shared
+  contract suite (4 ACs: round-trip, tamper-rejection, malformed,
+  expired). Refuses secrets <16 bytes. Phase 3 Slice 1. See
+  [plan](plans/done/phase-3-slice-1-session-signer.md).
 - Added Azurite-backed integration test
   (`api/src/shared/__integration__/azure-table-storage.integration.test.ts`):
   runs the shared TableStorage contract against real `@azure/data-tables`
