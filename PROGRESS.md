@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 1 complete (pending manual `swa start` smoke); Phase 2 next
+- **Current phase**: Phase 2 in progress (Slice 1 done)
 - **Last tag**: none yet (`phase-1-done` applied after manual smoke)
-- **Next up**: Phase 2 Slice 1 — `TableStorage` seam (interface + real + fake + contract test)
+- **Next up**: Phase 2 Slice 2 — `PasswordHasher` seam (interface + real + fake + contract test)
 
 ---
 
@@ -66,7 +66,7 @@ LexiQuest" served from Azure. See
 populates 4 users + current year. See
 [Design.md Phase 2](Design.md#phase-2--storage-layer--seed-data).
 
-- ⬜ Slice 1 — `TableStorage` seam (interface + real + fake + contract test)
+- ✅ Slice 1 — `TableStorage` seam (interface + real + fake + contract test)
 - ⬜ Slice 2 — `PasswordHasher` seam (interface + real + fake + contract test)
 - ⬜ Slice 3 — `Clock`, `Random`, `Logger` seams
 - ⬜ Slice 4 — `scripts/seed.ts` with the 4 users + current year

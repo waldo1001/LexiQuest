@@ -5,6 +5,13 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Introduced `TableStorage` seam: interface (`api/src/shared/table-storage.ts`),
+  Map-backed fake (`api/testing/fake-table-storage.ts`), real Azure
+  client (`azure-table-storage.ts`, integration-tested via Azurite in
+  Phase 2 Slice 5), shared contract suite (`__contract__/`) with 8
+  assertions run against the fake, and JSON-field helpers with 8 unit
+  tests. Phase 2 Slice 1. See
+  [plan](plans/done/phase-2-slice-1-table-storage.md).
 - Filled out README.md, docs/setup.md, and docs/getting-started.md
   with local dev instructions, full-stack `swa start` command, and the
   Phase 1 manual smoke checklist. Phase 1 Slice 5 (docs-only). See
