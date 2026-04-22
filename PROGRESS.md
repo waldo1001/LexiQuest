@@ -109,12 +109,14 @@ populates 4 users + current year. See
 - ✅ Slice 3 — Frontend CourseList + modal
 - ✅ Slice 4 — Composition root wired (`api/src/index.ts`): all 10 functions registered with real deps; TS `exactOptionalPropertyTypes` fix in `users-shared.ts`
 
-**Smoke test** (Design.md):
-- [ ] Lex can create "French 🇫🇷" with language `fr-FR`
-- [ ] Lex can edit/delete own course
-- [ ] Lex cannot PUT/DELETE a course owned by Mats (403)
-- [ ] Waldo CAN edit anyone's course (admin override)
-- [ ] Current year propagates correctly (new courses linked to is_current year)
+**Smoke test** (Design.md) — verified 2026-04-22 via `func start` + Azurite:
+- ✅ Lex can create "French 🇫🇷" with language `fr-FR`
+- ✅ Lex can edit/delete own course
+- ✅ Lex cannot PUT/DELETE a course owned by Mats (403)
+- ✅ Waldo CAN edit anyone's course (admin override)
+- ✅ Current year propagates correctly (new courses linked to is_current year)
+
+**`/local-smoke`** — verified 2026-04-22: Azurite boot, seed, login + HttpOnly cookie, `/api/me`, wrong-password 401, SPA fallback all PASS.
 
 ---
 
