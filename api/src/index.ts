@@ -20,6 +20,7 @@ import { registerCards } from "./functions/cards.js";
 import { registerCardsId } from "./functions/cards-id.js";
 import { registerSessions } from "./functions/sessions.js";
 import { registerAttempts } from "./functions/attempts.js";
+import { registerSessionsId } from "./functions/sessions-id.js";
 
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING ?? "";
 const sessionSecret = process.env.SESSION_SECRET ?? "";
@@ -45,3 +46,4 @@ registerCards({ tables, signer, clock, random });
 registerCardsId({ tables, signer, clock });
 registerSessions({ tables, signer, clock, random });
 registerAttempts({ tables, signer, clock, random });
+registerSessionsId({ tables, signer, clock });
