@@ -46,7 +46,7 @@ export function makeSessionsIdHandler(deps: SessionsIdDeps): HttpHandler {
     if (ownerUserId !== auth.auth.userId) {
       return { status: 403, jsonBody: { error: "forbidden" } };
     }
-    if (session.ended_at !== null) {
+    if (session.ended_at != null) {
       return { status: 409, jsonBody: { error: "session already closed" } };
     }
 

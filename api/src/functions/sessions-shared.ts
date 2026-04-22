@@ -60,7 +60,7 @@ export function sessionProfile(row: SessionRow): SessionProfile {
     course_id: row.course_id,
     mode: row.mode,
     started_at: row.started_at,
-    ended_at: row.ended_at,
+    ended_at: row.ended_at ?? null,
     cards_studied: row.cards_studied,
     cards_correct: row.cards_correct,
     xp_earned: row.xp_earned,
