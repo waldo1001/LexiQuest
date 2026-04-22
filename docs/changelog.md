@@ -5,6 +5,10 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Added `GET /api/users/public` — anonymous picker endpoint returning
+  `[{id, name, avatar_emoji, color}]` sorted by name; never leaks
+  `password_hash` / `is_admin` / `settings` / `ui_language`. Phase 3
+  Slice 4. See [plan](plans/done/phase-3-slice-4-users-public.md).
 - Added `requireAuth` middleware, `POST /api/logout`, `GET /api/me`:
   `requireAuth` reads the cookie header (case-insensitive), verifies
   via the signer, returns `{userId, isAdmin}` or a 401 response.
