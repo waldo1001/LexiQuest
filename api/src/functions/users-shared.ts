@@ -82,7 +82,7 @@ export function validateUserCreate(
       color: src.color,
       avatar_emoji: src.avatar_emoji,
       ui_language: src.ui_language as UiLanguage,
-      settings,
+      ...(settings !== undefined && { settings }),
     },
   };
 }

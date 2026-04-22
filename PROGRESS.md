@@ -107,6 +107,7 @@ populates 4 users + current year. See
 - ✅ Slice 1 — `/api/years` CRUD (admin)
 - ✅ Slice 2 — `/api/courses` CRUD (owner or admin)
 - ✅ Slice 3 — Frontend CourseList + modal
+- ✅ Slice 4 — Composition root wired (`api/src/index.ts`): all 10 functions registered with real deps; TS `exactOptionalPropertyTypes` fix in `users-shared.ts`
 
 **Smoke test** (Design.md):
 - [ ] Lex can create "French 🇫🇷" with language `fr-FR`
