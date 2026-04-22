@@ -37,6 +37,12 @@ export default defineConfig({
         lines: 70,
         functions: 70,
         statements: 70,
+        "src/lib/swaConfig.js": {
+          lines: 90,
+          branches: 90,
+          functions: 90,
+          statements: 90,
+        },
       },
     },
   },
