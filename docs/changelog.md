@@ -5,6 +5,13 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-22
 
+- Added `POST /api/login` handler factory (DI'd over tables / hasher /
+  signer / clock / logger). Returns 200 + user shape + HttpOnly
+  session cookie on success; generic 401 on unknown-user or
+  wrong-password (no which-one-was-wrong leak); 400 on missing body.
+  Logs `login_success` / `login_failed` with `userId` only — never
+  password or hash. Tier A 98% coverage. Phase 3 Slice 2. See
+  [plan](plans/done/phase-3-slice-2-login.md).
 - Added `SessionSigner` seam: `HmacSessionSigner` (HMAC-SHA256 +
   URL-safe base64, timingSafeEqual), `FakeSessionSigner`, shared
   contract suite (4 ACs: round-trip, tamper-rejection, malformed,
