@@ -503,6 +503,24 @@ export async function deleteCard(id, courseId, { fetchFn = fetch } = {}) {
 }
 
 /**
+ * @param {{ courseId: string }} body
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<{ enriched: number }>}
+ */
+export async function enrichCards(body, { fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/cards/enrich", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (response.status === 403) throw new Error("forbidden");
+  if (response.status === 502) throw new Error("claude_error");
+  if (!response.ok) throw new Error(`POST /api/cards/enrich failed: ${response.status}`);
+  return response.json();
+}
+
+/**
  * @param {{ courseId: string, imageBase64: string, mimeType: string }} body
  * @param {{ fetchFn?: typeof fetch }} [options]
  * @returns {Promise<{ candidates: object[] }>}
