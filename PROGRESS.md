@@ -210,8 +210,8 @@ populates 4 users + current year. See
 
 ## Phase 15 — Stats UI & Family Dashboard
 
-- ⬜ Slice 1 — Recharts wrappers (LineOverTime, DailyBars, HourHistogram, …)
-- ⬜ Slice 2 — `CalendarHeatmap`
+- ✅ Slice 1 — Recharts wrappers (LineOverTime, DailyBars, HourHistogram, …)
+- ✅ Slice 2 — `CalendarHeatmap`
 - ⬜ Slice 3 — `FamilyDashboard` screen
 - ⬜ Slice 4 — `UserStats` screen
 - ⬜ Slice 5 — `CourseStats` screen
