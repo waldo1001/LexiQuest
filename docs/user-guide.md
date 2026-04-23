@@ -2,7 +2,7 @@
 
 For family members using the running app.
 
-Current state: **Phase 8 complete.** This guide fills in from Phase 3
+Current state: **Phase 12 complete.** This guide fills in from Phase 3
 onward (first login + dashboard) and gets sections added per phase:
 
 - **Logging in** (Phase 3): tap your avatar, enter password, you land on
@@ -41,8 +41,16 @@ onward (first login + dashboard) and gets sections added per phase:
   reflects how well you knew it. Correct cards on the first attempt are
   counted toward your daily goal (Phase 10). MCQ mode (Phase 13) adds once
   cards have distractors.
-- **Photo import** (Phase 12): take a photo of a vocab sheet, review the
-  extracted cards, confirm. Never auto-saved — always reviewed.
+- **Photo import** (Phase 12): from the Card Manager, click "Import cards
+  from photo". Choose a photo of a vocab sheet (or take one with the
+  camera). Click "Extract cards" — Claude reads the photo and returns a
+  list of question/answer/distractor candidates (this takes 5–15 seconds).
+  On the Review screen, every extracted card is shown with a checkbox
+  (all ticked by default). Untick cards you don't want, edit any field
+  inline, then click "Save selected". Only the ticked cards are saved to
+  your course — extraction results are never auto-saved. If Claude can't
+  read the photo (blank page, bad lighting), a friendly error message is
+  shown instead of a crash.
 - **Stats** (Phase 14+): your own, and any family member's. Graphs, date
   ranges, mastery buckets, heatmaps. Compare 2+ users side-by-side.
 - **Leaderboard** (Phase 16): XP ranking plus "most accurate", "longest

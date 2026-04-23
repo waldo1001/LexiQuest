@@ -91,10 +91,27 @@ The seed script (Phase 2 Slice 4) uses
 `AZURE_STORAGE_CONNECTION_STRING` (same value works against Azurite
 locally).
 
+## Anthropic API key (Phase 12+)
+
+The AI card import feature requires an Anthropic API key. Add it to
+`api/local.settings.json` (never committed — already in `.gitignore`):
+
+```json
+{
+  "Values": {
+    "ANTHROPIC_API_KEY": "sk-ant-REPLACE_WITH_REAL_KEY"
+  }
+}
+```
+
+For Azure production, set `ANTHROPIC_API_KEY` in the SWA app settings
+(Azure portal → Static Web App → Configuration → Application settings).
+
+See `api/local.settings.json.example` for the full local settings template.
+
 ## Coming in later phases
 
 - Phase 2: `.env` / `local.settings.json` (real values, **never** committed),
   Azurite for local Table Storage, `scripts/seed.ts` to create the four
   family users.
 - Phase 3: `SESSION_SECRET` env var, cookie flags.
-- Phase 12: `ANTHROPIC_API_KEY` env var, rate-limit and retry posture.

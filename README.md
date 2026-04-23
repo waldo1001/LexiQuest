@@ -6,7 +6,7 @@ repetition, gamification, and AI-assisted card creation from photos. The app
 name is dynamic: LexiQuest / MatsQuest / BenQuest / WaldoQuest, based on who
 is logged in.
 
-**Status**: Phase 8 complete — SM-2 spaced repetition is live. Students can start a study session, flip cards, self-grade (Knew it / Didn't know), retry wrong cards, and have their schedules updated automatically. Next: Phase 9 — session results screen + attempt/session row-key format.
+**Status**: Phase 12 complete — AI card import is live. Students can photograph a vocab sheet, have Claude extract question/answer/distractor candidates, review and edit them, then batch-save the selected cards. Also live: SM-2 spaced repetition (Phase 8), XP/streaks/badges/dashboard (Phase 10), TTS pronunciation buttons (Phase 11). Next: Phase 13 — MCQ mode & distractor enrichment for existing cards.
 
 ## What it is
 

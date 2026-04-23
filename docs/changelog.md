@@ -3,6 +3,13 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-04-23 (Phase 12 complete)
+
+- Added `ClaudeClient` seam (`api/src/shared/claude.ts`): `extractCards(input)` + `enrichDistractors(input)` interface; `stripFences` + `parseCards` pure helpers (10 tests, 100% coverage); `createClaudeClient(apiKey)` real implementation using `claude-sonnet-4-6` (v8-ignored). `FakeClaudeClient` in `api/testing/`. Fixed pre-existing branch gaps in `streak.ts`, `stats-session.ts`, `sessions-id.ts`. Phase 12 Slice 1.
+- Added `POST /api/cards/import`: auth-guarded (course owner or admin), calls `claude.extractCards`, returns candidates array — never persists (invariant 3). 17 tests, 100% coverage. Registered in composition root. Phase 12 Slice 2.
+- Added `POST /api/cards/batch`: batch-creates cards with `source=ai_import` and SM-2 defaults; course owner or admin only. 17 tests, 100% coverage. Registered in composition root. Phase 12 Slice 3.
+- Added `PhotoImport` screen (`/courses/:id/import`): file picker → FileReader → base64 → `POST /api/cards/import` → navigate to review on success; parse_error / claude_error / generic error messages. Added `ImportReview` screen (`/courses/:id/import/review`): per-card checkboxes (default checked), editable, "Save selected" → `POST /api/cards/batch` → navigate to CardManager. Import link added to CardManager for owners/admins. `importCards` + `batchCreateCards` API wrappers + 8 new api.test.js tests. EN + NL `import.*` + `review.*` i18n strings. 27 screen tests. Phase 12 Slice 4 — **Phase 12 complete**. See [PROGRESS.md](../PROGRESS.md).
+
 ## 2026-04-23 (Phase 11 complete)
 
 - Added 🔊 buttons to StudySession (next to question; next to answer after reveal) and CardManager card rows, visible only when `course.language` is set and `tts.isAvailable(lang)` is true. `CourseList` now passes `courseLang` in link state to both screens. 9 new tests; Tier B thresholds met. Phase 11 Slice 2.
