@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 16 complete (all 3 slices done). Tagged `phase-16-done`.
-- **Last tag**: `phase-16-done`
-- **Next up**: Phase 17 — PWA polish, settings, backup/export
+- **Current phase**: Phase 17 complete (all 5 slices done). Tagged `phase-17-done`.
+- **Last tag**: `phase-17-done`
+- **Next up**: All 17 phases complete — see Design.md §7 for deferred v2 items.
 
 ---
 
@@ -232,4 +232,4 @@ populates 4 users + current year. See
 - ✅ Slice 2 — Settings screen completion (daily_goal, preferred_mode, freezes)
 - ✅ Slice 3 — `GET /api/export` + download button
 - ✅ Slice 4 — Mobile UX polish (bottom nav, swipe gestures, tap targets, dark mode)
-- ⬜ Slice 5 — Final error-handling pass (banners, offline detection)
+- ✅ Slice 5 — Final error-handling pass (banners, offline detection)
