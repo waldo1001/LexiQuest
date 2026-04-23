@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 11 complete (all 3 slices done).
+- **Current phase**: Phase 12 complete (all 4 slices done).
 - **Last tag**: `phase-8-done`
-- **Next up**: Phase 12 — Claude import
+- **Next up**: Phase 13 — MCQ mode & enrich
 
 ---
 
@@ -185,7 +185,7 @@ populates 4 users + current year. See
 - ✅ Slice 1 — `ClaudeClient` seam + markdown-fence stripping + JSON parse
 - ✅ Slice 2 — `POST /api/cards/import` (candidates only — invariant 3)
 - ✅ Slice 3 — `POST /api/cards/batch` (after review)
-- ⬜ Slice 4 — `PhotoImport` + `ImportReview` screens
+- ✅ Slice 4 — `PhotoImport` + `ImportReview` screens
 
 ---
 

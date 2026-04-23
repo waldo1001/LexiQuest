@@ -501,3 +501,39 @@ export async function deleteCard(id, courseId, { fetchFn = fetch } = {}) {
     throw new Error(`DELETE /api/cards/${id} failed with status ${response.status}`);
   }
 }
+
+/**
+ * @param {{ courseId: string, imageBase64: string, mimeType: string }} body
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<{ candidates: object[] }>}
+ */
+export async function importCards(body, { fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/cards/import", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (response.status === 403) throw new Error("forbidden");
+  if (response.status === 422) throw new Error("parse_error");
+  if (response.status === 502) throw new Error("claude_error");
+  if (!response.ok) throw new Error(`POST /api/cards/import failed: ${response.status}`);
+  return response.json();
+}
+
+/**
+ * @param {{ courseId: string, cards: object[] }} body
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<{ cards: object[] }>}
+ */
+export async function batchCreateCards(body, { fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/cards/batch", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (response.status === 403) throw new Error("forbidden");
+  if (!response.ok) throw new Error(`POST /api/cards/batch failed: ${response.status}`);
+  return response.json();
+}

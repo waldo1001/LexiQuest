@@ -251,6 +251,15 @@ export default function CardManager({
         </button>
       )}
 
+      {canEdit && (
+        <Link
+          to={`/courses/${courseId}/import`}
+          state={{ courseId, courseName, ownerId, courseLang }}
+        >
+          {t("import.title")}
+        </Link>
+      )}
+
       {canEdit && showNew && (
         <form onSubmit={onAdd}>
           <label>

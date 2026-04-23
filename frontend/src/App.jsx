@@ -10,6 +10,8 @@ import CardManager from "./screens/CardManager.jsx";
 import StudySession from "./screens/StudySession.jsx";
 import SessionResults from "./screens/SessionResults.jsx";
 import Dashboard from "./screens/Dashboard.jsx";
+import PhotoImport from "./screens/PhotoImport.jsx";
+import ImportReview from "./screens/ImportReview.jsx";
 import { AppProvider } from "./context/AppContext.jsx";
 import { createTts } from "./lib/tts.js";
 
@@ -30,6 +32,8 @@ export default function App({ tts = _tts }) {
           <Route path="/settings" element={<Settings />} />
           <Route path="/courses" element={<CourseList />} />
           <Route path="/courses/:courseId/cards" element={<CardManager />} />
+          <Route path="/courses/:courseId/import" element={<PhotoImport />} />
+          <Route path="/courses/:courseId/import/review" element={<ImportReview />} />
           <Route path="/courses/:courseId/study" element={<StudySession />} />
           <Route path="/courses/:courseId/results" element={<SessionResults />} />
           <Route

@@ -21,6 +21,8 @@ import {
   updateCourse,
   updateUser,
   updateYear,
+  importCards,
+  batchCreateCards,
 } from "./api.js";
 
 function ok(body) {
@@ -656,6 +658,62 @@ describe("closeSession", () => {
   it("throws on non-ok", async () => {
     await expect(
       closeSession("sess-1", { cards_studied: 0, cards_correct: 0 }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
+    ).rejects.toThrow(/500/);
+  });
+});
+
+describe("importCards", () => {
+  it("POSTs to /api/cards/import and returns candidates", async () => {
+    const data = { candidates: [{ question: "Q", answer: "A", distractors: [] }] };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    const result = await importCards({ courseId: "c1", imageBase64: "b64", mimeType: "image/jpeg" }, { fetchFn });
+    expect(fetchFn).toHaveBeenCalledWith("/api/cards/import", expect.objectContaining({ method: "POST" }));
+    expect(result).toEqual(data);
+  });
+
+  it("throws 'forbidden' on 403", async () => {
+    await expect(
+      importCards({ courseId: "c1", imageBase64: "b64", mimeType: "image/jpeg" }, { fetchFn: vi.fn().mockResolvedValue(fail(403)) }),
+    ).rejects.toThrow("forbidden");
+  });
+
+  it("throws 'parse_error' on 422", async () => {
+    await expect(
+      importCards({ courseId: "c1", imageBase64: "b64", mimeType: "image/jpeg" }, { fetchFn: vi.fn().mockResolvedValue(fail(422)) }),
+    ).rejects.toThrow("parse_error");
+  });
+
+  it("throws 'claude_error' on 502", async () => {
+    await expect(
+      importCards({ courseId: "c1", imageBase64: "b64", mimeType: "image/jpeg" }, { fetchFn: vi.fn().mockResolvedValue(fail(502)) }),
+    ).rejects.toThrow("claude_error");
+  });
+
+  it("throws on generic non-ok", async () => {
+    await expect(
+      importCards({ courseId: "c1", imageBase64: "b64", mimeType: "image/jpeg" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
+    ).rejects.toThrow(/500/);
+  });
+});
+
+describe("batchCreateCards", () => {
+  it("POSTs to /api/cards/batch and returns created cards", async () => {
+    const data = { cards: [{ id: "id-1", question: "Q", answer: "A" }] };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    const result = await batchCreateCards({ courseId: "c1", cards: [{ question: "Q", answer: "A" }] }, { fetchFn });
+    expect(fetchFn).toHaveBeenCalledWith("/api/cards/batch", expect.objectContaining({ method: "POST" }));
+    expect(result).toEqual(data);
+  });
+
+  it("throws 'forbidden' on 403", async () => {
+    await expect(
+      batchCreateCards({ courseId: "c1", cards: [] }, { fetchFn: vi.fn().mockResolvedValue(fail(403)) }),
+    ).rejects.toThrow("forbidden");
+  });
+
+  it("throws on non-ok", async () => {
+    await expect(
+      batchCreateCards({ courseId: "c1", cards: [] }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
     ).rejects.toThrow(/500/);
   });
 });
