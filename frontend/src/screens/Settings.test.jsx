@@ -6,16 +6,17 @@ import Settings from "./Settings.jsx";
 import { AppProvider } from "../context/AppContext.jsx";
 
 /**
- * @param {{ lang?: "en"|"nl", patchMe?: Function }} [opts]
+ * @param {{ lang?: "en"|"nl", patchMe?: Function, initialUser?: object|null }} [opts]
  */
-function setup({ lang = "en", patchMe } = {}) {
-  const providerProps = { initialLang: lang };
+function setup({ lang = "en", patchMe, initialUser = null } = {}) {
+  const providerProps = { initialLang: lang, initialUser };
   if (patchMe) providerProps.patchMe = patchMe;
+  const settingsPatchMe = patchMe ?? vi.fn().mockResolvedValue({});
   return render(
     <AppProvider {...providerProps}>
       <MemoryRouter initialEntries={["/settings"]}>
         <Routes>
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/settings" element={<Settings patchMe={settingsPatchMe} />} />
           <Route path="/home" element={<h1>Home</h1>} />
         </Routes>
       </MemoryRouter>
@@ -71,5 +72,27 @@ describe("Settings", () => {
     expect(link).toBeInTheDocument();
     await user.click(link);
     expect(await screen.findByRole("heading", { name: /home/i })).toBeInTheDocument();
+  });
+
+  it("renders the auto-speak checkbox (AC1)", () => {
+    setup();
+    expect(screen.getByRole("checkbox", { name: /auto-speak/i })).toBeInTheDocument();
+  });
+
+  it("checkbox reflects user.settings.auto_speak = true (AC2)", () => {
+    setup({ initialUser: { id: "u1", name: "Lex", settings: { auto_speak: true } } });
+    expect(screen.getByRole("checkbox", { name: /auto-speak/i })).toBeChecked();
+  });
+
+  it("checkbox is unchecked when auto_speak not set (AC2)", () => {
+    setup({ initialUser: { id: "u1", name: "Lex", settings: {} } });
+    expect(screen.getByRole("checkbox", { name: /auto-speak/i })).not.toBeChecked();
+  });
+
+  it("toggling checkbox calls patchMe with settings.auto_speak (AC3)", async () => {
+    const patchMe = vi.fn().mockResolvedValue({});
+    setup({ patchMe, initialUser: { id: "u1", name: "Lex", settings: { auto_speak: false } } });
+    await userEvent.click(screen.getByRole("checkbox", { name: /auto-speak/i }));
+    expect(patchMe).toHaveBeenCalledWith({ settings: { auto_speak: true } });
   });
 });

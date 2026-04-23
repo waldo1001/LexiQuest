@@ -6,7 +6,7 @@ import {
   closeSession as closeSessionApi,
 } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
-import { useTts } from "../context/AppContext.jsx";
+import { useTts, useAppContext } from "../context/AppContext.jsx";
 
 /**
  * @typedef {{ id: string, question: string, answer: string }} Card
@@ -125,11 +125,13 @@ export default function StudySession({
 }) {
   const t = useT();
   const tts = useTts();
+  const { user } = useAppContext();
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { courseName = "", mode = "self_grade", courseLang = null } = location.state ?? {};
   const canSpeak = Boolean(courseLang && tts.isAvailable(courseLang));
+  const autoSpeak = canSpeak && Boolean(user?.settings?.auto_speak);
 
   const [state, dispatch] = useReducer(reducer, undefined, init);
 
@@ -166,6 +168,15 @@ export default function StudySession({
   useEffect(() => {
     if (state.phase === PHASE.FINISHING) finishSession();
   }, [state.phase, finishSession]);
+
+  // Auto-speak question on new card, answer on reveal
+  useEffect(() => {
+    if (!autoSpeak) return;
+    const card = state.queue[state.cardIndex];
+    if (!card) return;
+    if (state.phase === PHASE.QUESTION) tts.speak(card.question, courseLang);
+    if (state.phase === PHASE.ANSWER) tts.speak(card.answer, courseLang);
+  }, [state.phase, state.cardIndex, autoSpeak]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleShowAnswer = useCallback(() => dispatch({ type: "SHOW_ANSWER" }), []);
 

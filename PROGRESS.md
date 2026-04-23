@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 11 in progress (Slice 1 done). Phases 9 + 10 complete.
+- **Current phase**: Phase 11 complete (all 3 slices done).
 - **Last tag**: `phase-8-done`
-- **Next up**: Phase 11 Slice 2 — 🔊 buttons in study + card manager
+- **Next up**: Phase 12 — Claude import
 
 ---
 
@@ -175,8 +175,8 @@ populates 4 users + current year. See
 ## Phase 11 — speechSynthesis / TTS
 
 - ✅ Slice 1 — `Tts` seam (interface + real wrapping speechSynthesis + fake)
-- ⬜ Slice 2 — 🔊 buttons in study + card manager
-- ⬜ Slice 3 — `auto_speak` setting
+- ✅ Slice 2 — 🔊 buttons in study + card manager
+- ✅ Slice 3 — `auto_speak` setting
 
 ---
 

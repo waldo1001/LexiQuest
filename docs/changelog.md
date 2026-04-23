@@ -3,6 +3,11 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-04-23 (Phase 11 complete)
+
+- Added 🔊 buttons to StudySession (next to question; next to answer after reveal) and CardManager card rows, visible only when `course.language` is set and `tts.isAvailable(lang)` is true. `CourseList` now passes `courseLang` in link state to both screens. 9 new tests; Tier B thresholds met. Phase 11 Slice 2.
+- Added `auto_speak` toggle to Settings screen (checkbox wired to `user.settings.auto_speak` via `patchMe({ settings: { auto_speak } })`). StudySession auto-speaks question on card show and answer on reveal when enabled. 7 new tests (3 Settings, 3 StudySession); all 248 tests pass. Phase 11 Slice 3 — Phase 11 complete.
+
 ## 2026-04-23 (Phase 11 Slice 1)
 
 - Added `Tts` seam: `frontend/src/lib/tts.js` (`createTts(speechSynthesis, UtteranceCtor)`) wraps `window.speechSynthesis` with `isAvailable(lang)` (prefix-match, assumes available when voices not yet loaded) and `speak(text, lang, rate=0.9)` (cancels, defers via `onvoiceschanged` when needed); no-op when speechSynthesis null. `frontend/src/testing/fake-tts.js` (`createFakeTts`) records calls for test assertions. `useTts()` hook added to `AppContext`; `App.jsx` wires real `createTts(window.speechSynthesis)`. 19 new tts tests + 3 AppContext tests; `tts.js` 100% lines/branches/functions; all 232 frontend tests pass. See [plan](plans/done/phase-11-slice-1-tts-seam.md).

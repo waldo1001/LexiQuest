@@ -2,26 +2,36 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useT } from "../i18n/useT.js";
 import { useAppContext } from "../context/AppContext.jsx";
+import { patchMe as patchMeApi } from "../lib/api.js";
 
 /** @type {ReadonlyArray<"en"|"nl">} */
 const SUPPORTED_LANGS = ["en", "nl"];
 
 /**
- * Settings screen — language toggle.
+ * @param {{ patchMe?: typeof patchMeApi }} props
  */
-export default function Settings() {
+export default function Settings({ patchMe = patchMeApi }) {
   const t = useT();
-  const { lang, setLang } = useAppContext();
+  const { lang, setLang, user, setUser } = useAppContext();
   const [error, setError] = useState(null);
+  const autoSpeak = user?.settings?.auto_speak ?? false;
 
-  /**
-   * @param {React.ChangeEvent<HTMLSelectElement>} e
-   */
   async function onLangChange(e) {
     const next = /** @type {"en"|"nl"} */ (e.target.value);
     setError(null);
     try {
       await setLang(next);
+    } catch {
+      setError(t("errors.generic"));
+    }
+  }
+
+  async function onAutoSpeakChange(e) {
+    const next = e.target.checked;
+    setError(null);
+    try {
+      await patchMe({ settings: { auto_speak: next } });
+      setUser((u) => u ? { ...u, settings: { ...u.settings, auto_speak: next } } : u);
     } catch {
       setError(t("errors.generic"));
     }
@@ -39,6 +49,16 @@ export default function Settings() {
           </option>
         ))}
       </select>
+
+      <label>
+        <input
+          type="checkbox"
+          id="auto-speak"
+          checked={autoSpeak}
+          onChange={onAutoSpeakChange}
+        />
+        {t("settings.autoSpeak")}
+      </label>
 
       {error && <p role="alert">{error}</p>}
 

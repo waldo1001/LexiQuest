@@ -251,3 +251,30 @@ describe("StudySession — TTS speak buttons", () => {
     expect(tts.lastSpoken).toMatchObject({ text: "le chien", lang: "fr-FR" });
   });
 });
+
+describe("StudySession — auto_speak", () => {
+  it("auto-speaks question when auto_speak true and canSpeak (AC4)", async () => {
+    const tts = createFakeTts({ available: true });
+    const user = { id: "u-lex", name: "Lex", is_admin: false, settings: { auto_speak: true } };
+    setup({ courseLang: "fr-FR", tts, currentUser: user });
+    await screen.findByText("What is a dog?");
+    expect(tts.spokenItems.some((s) => s.text === "What is a dog?" && s.lang === "fr-FR")).toBe(true);
+  });
+
+  it("auto-speaks answer on reveal when auto_speak true (AC5)", async () => {
+    const tts = createFakeTts({ available: true });
+    const user = { id: "u-lex", name: "Lex", is_admin: false, settings: { auto_speak: true } };
+    setup({ courseLang: "fr-FR", tts, currentUser: user });
+    await screen.findByText("What is a dog?");
+    await userEvent.click(screen.getByRole("button", { name: /Show answer/i }));
+    expect(tts.spokenItems.some((s) => s.text === "le chien")).toBe(true);
+  });
+
+  it("does not auto-speak when auto_speak false (AC6)", async () => {
+    const tts = createFakeTts({ available: true });
+    const user = { id: "u-lex", name: "Lex", is_admin: false, settings: { auto_speak: false } };
+    setup({ courseLang: "fr-FR", tts, currentUser: user });
+    await screen.findByText("What is a dog?");
+    expect(tts.spokenItems).toHaveLength(0);
+  });
+});
