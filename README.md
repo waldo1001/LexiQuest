@@ -6,7 +6,7 @@ repetition, gamification, and AI-assisted card creation from photos. The app
 name is dynamic: LexiQuest / MatsQuest / BenQuest / WaldoQuest, based on who
 is logged in.
 
-**Status**: Phase 12 complete — AI card import is live. Students can photograph a vocab sheet, have Claude extract question/answer/distractor candidates, review and edit them, then batch-save the selected cards. Also live: SM-2 spaced repetition (Phase 8), XP/streaks/badges/dashboard (Phase 10), TTS pronunciation buttons (Phase 11). Next: Phase 13 — MCQ mode & distractor enrichment for existing cards.
+**Status**: Phase 15 complete — Stats UI is live. Family Dashboard (`/family`) shows all users side-by-side with XP and accuracy charts. User Stats (`/stats/user/:id`) gives a full deep dive: heatmap, trends, hour histogram, response time. Course Stats (`/stats/course/:id`) shows mastery distribution and the card struggle list. Also live: AI card import (Phase 12), MCQ mode + distractor enrichment (Phase 13), full stats API (Phase 14), TTS pronunciation (Phase 11), XP/streaks/badges (Phase 10), SM-2 spaced repetition (Phase 8). Next: Phase 16 — Leaderboard & Compare view.
 
 ## What it is
 

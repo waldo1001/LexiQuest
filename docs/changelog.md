@@ -3,6 +3,25 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-04-23 (Phase 15 complete)
+
+- Added 7 Recharts chart wrapper components (`frontend/src/charts/`): `LineOverTime`, `DailyBars`, `HourHistogram`, `MasteryStack`, `TopNBars`, `ResponseTimeHistogram`, `CalendarHeatmap` (GitHub-contrib style custom SVG). 18 tests, 94.59% branch coverage. Phase 15 Slice 1+2.
+- Added `FamilyDashboard` screen (`/family`): per-user cards (avatar, streak, XP, accuracy), range selector (7d/30d/90d/1y/all), XP-over-time + accuracy-trend charts. Added `fetchFamilyStats`, `fetchCompareStats`, `fetchUserStats`, `fetchCourseStats`, `fetchHeatmap` to `frontend/src/lib/api.js`. Phase 15 Slice 3.
+- Added `UserStats` screen (`/stats/user/:userId`): header (name/level/XP/streak), range selector, tabs (Overview/Per Course/Badges), activity heatmap, XP + accuracy charts, hour histogram, response-time chart. Phase 15 Slice 4.
+- Added `CourseStats` screen (`/stats/course/:courseId`): mastery distribution (MasteryStack), sessions over time (DailyBars), card struggle list (TopNBars). Phase 15 Slice 5 — **Phase 15 complete**. See [PROGRESS.md](../PROGRESS.md).
+
+## 2026-04-23 (Phase 13 + 14 complete)
+
+- Added `POST /api/cards/enrich`: Claude enriches MCQ distractors for all cards in a course (owner or admin only); `enrichCards` API wrapper; EN+NL strings. Phase 13 Slice 1.
+- MCQ study mode in `StudySession`: renders 4-option radio grid, grades by exact match, shows correct option on wrong answer. `startSession` now accepts `mode` param. Phase 13 Slice 2.
+- Mode picker on `CourseList` for `default_mode === 'ask'` courses: toggleable inline section with self-grade / MCQ / mixed buttons, `useNavigate`-driven. Phase 13 Slice 3 — Phase 13 complete.
+- Added `aggregate.ts` helpers: `masteryBucket`, `groupByDay`, `rollingAverage`, `parseRange`, `fetchAttempts`, `fetchSessions`, `fetchCards`. Upper-bound row-key range uses `to.toISOString() + "~"`. 19 tests, 100% coverage. Phase 14 Slice 1.
+- Added `GET /api/stats/user/:userId`: totalXp, level, streaks, trends, hourOfDay, responseTimeBuckets, masteryDistribution, badgesEarned. Family visibility (any authenticated user). Cache-Control: private, max-age=60. Phase 14 Slice 2.
+- Added `GET /api/stats/course/:courseId` + struggle list (top 20 by fail count). Phase 14 Slice 3.
+- Added `GET /api/stats/family` (per-user summary) and `GET /api/stats/compare` (metric time-series overlay). Phase 14 Slice 4.
+- Added `GET /api/stats/heatmap/:userId` (daily attempt counts). Phase 14 Slice 5.
+- Added `api/__meta__/stats-privacy.test.ts` (invariant 2): static scan + behavioral check that no raw rowKey/partitionKey/password_hash leaks from stats endpoints. Phase 14 Slice 6 — Phase 14 complete.
+
 ## 2026-04-23 (Phase 12 complete)
 
 - Added `ClaudeClient` seam (`api/src/shared/claude.ts`): `extractCards(input)` + `enrichDistractors(input)` interface; `stripFences` + `parseCards` pure helpers (10 tests, 100% coverage); `createClaudeClient(apiKey)` real implementation using `claude-sonnet-4-6` (v8-ignored). `FakeClaudeClient` in `api/testing/`. Fixed pre-existing branch gaps in `streak.ts`, `stats-session.ts`, `sessions-id.ts`. Phase 12 Slice 1.

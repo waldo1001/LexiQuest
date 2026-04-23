@@ -2,7 +2,7 @@
 
 For family members using the running app.
 
-Current state: **Phase 12 complete.** This guide fills in from Phase 3
+Current state: **Phase 15 complete.** This guide fills in from Phase 3
 onward (first login + dashboard) and gets sections added per phase:
 
 - **Logging in** (Phase 3): tap your avatar, enter password, you land on
@@ -51,8 +51,26 @@ onward (first login + dashboard) and gets sections added per phase:
   your course — extraction results are never auto-saved. If Claude can't
   read the photo (blank page, bad lighting), a friendly error message is
   shown instead of a crash.
-- **Stats** (Phase 14+): your own, and any family member's. Graphs, date
-  ranges, mastery buckets, heatmaps. Compare 2+ users side-by-side.
+- **Stats** (Phase 15): three stats screens, all accessible to every family
+  member:
+  - **Family Dashboard** (`/family`): one-page overview of all users. Each
+    person gets a card showing their avatar, current streak, XP, and
+    accuracy. Below the cards: XP over time and accuracy trend charts for
+    all users overlaid. Use the range selector (7d / 30d / 90d / 1y / All)
+    to zoom in or out. Click any user card to open their personal stats.
+  - **User Stats** (`/stats/user/:userId`): deep dive for one person.
+    Header shows name, level, total XP, and current streak. Tabs:
+    - *Overview* — activity heatmap (GitHub-contrib style, last 52 weeks),
+      XP over time, accuracy trend, hour-of-day histogram (when they study),
+      response-time distribution.
+    - *Per Course* — list of courses (click through to Course Stats).
+    - *Badges* — all earned badges listed.
+    Use the range selector to filter all charts to a time window.
+  - **Course Stats** (`/stats/course/:courseId`): per-course drill-down.
+    Mastery distribution (new / learning / young / mature / mastered bar
+    chart), sessions over time, and the card struggle list — the top 20
+    cards ranked by fail count. This tells you which cards to spend extra
+    time on.
 - **Leaderboard** (Phase 16): XP ranking plus "most accurate", "longest
   streak", "most sessions".
 - **Install as an app** (Phase 17): add to home screen on iOS or
