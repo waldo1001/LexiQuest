@@ -14,6 +14,7 @@ import { type SessionRow, rowKeyToId, sessionProfile } from "./sessions-shared.j
 import type { AttemptRow } from "./attempts-shared.js";
 import { computeSessionXp } from "../shared/xp.js";
 import { computeNewStreak } from "../shared/streak.js";
+import { checkBadges } from "../shared/badges.js";
 
 const BRUSSELS_TZ = "Europe/Brussels";
 
@@ -79,8 +80,9 @@ export function makeSessionsIdHandler(deps: SessionsIdDeps): HttpHandler {
     };
     await deps.tables.upsert<SessionRow>("sessions", updated);
 
-    // Update user streak
+    // Update user streak + badges
     const userRow = await deps.tables.getById<UserRow>("users", PARTITIONS.users, auth.auth.userId);
+    let badgesEarned: string[] = [];
     if (userRow) {
       const existingSettings = typeof userRow.settings === "string"
         ? JSON.parse(userRow.settings as unknown as string)
@@ -94,6 +96,20 @@ export function makeSessionsIdHandler(deps: SessionsIdDeps): HttpHandler {
         nowIso,
         BRUSSELS_TZ,
       );
+
+      const isPerfect =
+        closeBody.value.cards_studied > 0 &&
+        closeBody.value.cards_studied === closeBody.value.cards_correct;
+      badgesEarned = checkBadges({
+        streak: streakResult.streak,
+        totalCardsStudied: closeBody.value.cards_studied,
+        perfectSession: isPerfect,
+        firstPhotoImport: false,
+        bossRoundComplete: false,
+        cardsAtHighMastery: 0,
+        existingBadges: existingSettings.badges ?? [],
+      });
+
       const updatedUser: UserRow = {
         ...userRow,
         settings: {
@@ -101,12 +117,16 @@ export function makeSessionsIdHandler(deps: SessionsIdDeps): HttpHandler {
           streak: streakResult.streak,
           last_session_date: streakResult.last_session_date,
           freeze_tokens: streakResult.freeze_tokens,
+          badges: [...(existingSettings.badges ?? []), ...badgesEarned],
         },
       };
       await deps.tables.upsert<UserRow>("users", updatedUser);
     }
 
-    return { status: 200, jsonBody: { ...sessionProfile(updated), xp_earned: xpEarned } };
+    return {
+      status: 200,
+      jsonBody: { ...sessionProfile(updated), xp_earned: xpEarned, badges_earned: badgesEarned },
+    };
   };
 }
 
