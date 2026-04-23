@@ -23,6 +23,7 @@ import { registerAttempts } from "./functions/attempts.js";
 import { registerSessionsId } from "./functions/sessions-id.js";
 import { registerStatsSession } from "./functions/stats-session.js";
 import { registerCardsImport } from "./functions/cards-import.js";
+import { registerCardsBatch } from "./functions/cards-batch.js";
 import { createClaudeClient } from "./shared/claude.js";
 
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING ?? "";
@@ -54,3 +55,4 @@ registerSessionsId({ tables, signer, clock });
 registerStatsSession({ tables, signer });
 const claude = createClaudeClient(anthropicApiKey);
 registerCardsImport({ tables, signer, clock, claude });
+registerCardsBatch({ tables, signer, clock, random });
