@@ -22,8 +22,11 @@ import { registerSessions } from "./functions/sessions.js";
 import { registerAttempts } from "./functions/attempts.js";
 import { registerSessionsId } from "./functions/sessions-id.js";
 import { registerStatsSession } from "./functions/stats-session.js";
+import { registerCardsImport } from "./functions/cards-import.js";
+import { createClaudeClient } from "./shared/claude.js";
 
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING ?? "";
+const anthropicApiKey = process.env.ANTHROPIC_API_KEY ?? "";
 const sessionSecret = process.env.SESSION_SECRET ?? "";
 
 const tables = new AzureTableStorage({ connectionString });
@@ -49,3 +52,5 @@ registerSessions({ tables, signer, clock, random });
 registerAttempts({ tables, signer, clock, random });
 registerSessionsId({ tables, signer, clock });
 registerStatsSession({ tables, signer });
+const claude = createClaudeClient(anthropicApiKey);
+registerCardsImport({ tables, signer, clock, claude });

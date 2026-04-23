@@ -183,7 +183,7 @@ populates 4 users + current year. See
 ## Phase 12 — Claude import
 
 - ✅ Slice 1 — `ClaudeClient` seam + markdown-fence stripping + JSON parse
-- ⬜ Slice 2 — `POST /api/cards/import` (candidates only — invariant 3)
+- ✅ Slice 2 — `POST /api/cards/import` (candidates only — invariant 3)
 - ⬜ Slice 3 — `POST /api/cards/batch` (after review)
 - ⬜ Slice 4 — `PhotoImport` + `ImportReview` screens
 
