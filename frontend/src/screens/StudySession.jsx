@@ -9,14 +9,31 @@ import { useT } from "../i18n/useT.js";
 import { useTts, useAppContext } from "../context/AppContext.jsx";
 
 /**
- * @typedef {{ id: string, question: string, answer: string }} Card
+ * @typedef {{ id: string, question: string, answer: string, distractors?: string[] }} Card
  * @typedef {{ cardId: string, correct: boolean, mode: string, response_time_ms: number }} AttemptItem
  *
  * State machine:
  *   loading → empty | active
- *   active: show question → show answer → grade → next card | retry pile
+ *   active (self_grade): show question → show answer → grade → next card | retry pile
+ *   active (mcq): show question + choices → grade on click → next card | retry pile
  *   all done → finishing → navigate to results
  */
+
+/**
+ * Resolve whether a card should use MCQ or self_grade for this session mode.
+ * @param {Card} card
+ * @param {string} sessionMode
+ * @returns {"mcq"|"self_grade"}
+ */
+function resolveCardMode(card, sessionMode) {
+  if (sessionMode === "self_grade") return "self_grade";
+  const hasDistractors = Array.isArray(card.distractors) && card.distractors.length >= 2;
+  return hasDistractors ? "mcq" : "self_grade";
+}
+
+function defaultShuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
 
 const PHASE = {
   LOADING: "loading",
@@ -64,10 +81,10 @@ function reducer(state, action) {
     case "SHOW_ANSWER":
       return { ...state, phase: PHASE.ANSWER };
     case "GRADE": {
-      const { correct, responseTimeMs } = action;
+      const { correct, responseTimeMs, cardMode = "self_grade" } = action;
       const card = state.queue[state.cardIndex];
       const cardId = card.id;
-      const attempt = { cardId, correct, mode: "self_grade", response_time_ms: responseTimeMs };
+      const attempt = { cardId, correct, mode: cardMode, response_time_ms: responseTimeMs };
       const newAttempts = [...state.pendingAttempts, attempt];
 
       const isFirstTry = !(cardId in state.firstTryResults);
@@ -116,12 +133,14 @@ function reducer(state, action) {
  *   startSession?: typeof startSessionApi,
  *   postAttempts?: typeof postAttemptsApi,
  *   closeSession?: typeof closeSessionApi,
+ *   shuffleFn?: (arr: string[]) => string[],
  * }} props
  */
 export default function StudySession({
   startSession = startSessionApi,
   postAttempts = postAttemptsApi,
   closeSession = closeSessionApi,
+  shuffleFn = defaultShuffle,
 }) {
   const t = useT();
   const tts = useTts();
@@ -180,8 +199,8 @@ export default function StudySession({
 
   const handleShowAnswer = useCallback(() => dispatch({ type: "SHOW_ANSWER" }), []);
 
-  const handleGrade = useCallback((correct) => {
-    dispatch({ type: "GRADE", correct, responseTimeMs: 0 });
+  const handleGrade = useCallback((correct, cardMode = "self_grade") => {
+    dispatch({ type: "GRADE", correct, responseTimeMs: 0, cardMode });
   }, []);
 
   if (state.phase === PHASE.LOADING) {
@@ -210,6 +229,11 @@ export default function StudySession({
   const card = state.queue[state.cardIndex];
   const position = state.cardIndex + 1;
   const total = state.queue.length + state.retryPile.length;
+  const cardMode = resolveCardMode(card, mode);
+  const isMcq = cardMode === "mcq";
+  const mcqChoices = isMcq
+    ? shuffleFn([card.answer, ...(card.distractors ?? [])])
+    : null;
 
   return (
     <div className="study-session">
@@ -244,8 +268,18 @@ export default function StudySession({
       </div>
 
       <div className="study-actions">
-        {state.phase === PHASE.QUESTION && (
+        {state.phase === PHASE.QUESTION && !isMcq && (
           <button onClick={handleShowAnswer}>{t("study.showAnswer")}</button>
+        )}
+        {state.phase === PHASE.QUESTION && isMcq && mcqChoices && (
+          mcqChoices.map((choice) => (
+            <button
+              key={choice}
+              onClick={() => handleGrade(choice === card.answer, "mcq")}
+            >
+              {choice}
+            </button>
+          ))
         )}
         {state.phase === PHASE.ANSWER && (
           <>

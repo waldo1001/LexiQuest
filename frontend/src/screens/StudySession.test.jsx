@@ -6,6 +6,18 @@ import StudySession from "./StudySession.jsx";
 import { AppProvider } from "../context/AppContext.jsx";
 import { createFakeTts } from "../testing/fake-tts.js";
 
+const CARDS_WITH_DISTRACTORS = [
+  {
+    id: "card-1",
+    course_id: "c-french",
+    question: "What is a dog?",
+    answer: "le chien",
+    distractors: ["le chat", "le cheval"],
+    sm2_ease: 2.5, sm2_interval: 0, sm2_reps: 0,
+    next_review_at: "2026-04-22T09:00:00Z",
+  },
+];
+
 const COURSE_ID = "c-french";
 const SESSION_ID = "sess-1";
 
@@ -39,6 +51,7 @@ function setup({
   lang = "en",
   currentUser = { id: "u-lex", name: "Lex", is_admin: false },
   tts,
+  shuffleFn,
 } = {}) {
   const defaultStart = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS });
   const defaultAttempts = vi.fn().mockResolvedValue({ logged: 2 });
@@ -59,6 +72,7 @@ function setup({
                 startSession={startSession ?? defaultStart}
                 postAttempts={postAttempts ?? defaultAttempts}
                 closeSession={closeSession ?? defaultClose}
+                {...(shuffleFn ? { shuffleFn } : {})}
               />
             }
           />
@@ -276,5 +290,97 @@ describe("StudySession — auto_speak", () => {
     setup({ courseLang: "fr-FR", tts, currentUser: user });
     await screen.findByText("What is a dog?");
     expect(tts.spokenItems).toHaveLength(0);
+  });
+});
+
+describe("StudySession — MCQ mode", () => {
+  function setupMcq(overrides = {}) {
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS_WITH_DISTRACTORS });
+    const postAttempts = vi.fn().mockResolvedValue({ logged: 1 });
+    const closeSession = vi.fn().mockResolvedValue({ ended_at: "2026-04-22T10:05:00Z" });
+    return setup({
+      startSession,
+      postAttempts,
+      closeSession,
+      mode: "mcq",
+      shuffleFn: (arr) => arr, // deterministic: [answer, d1, d2]
+      ...overrides,
+    });
+  }
+
+  it("MCQ1: shows 3 choice buttons in question phase (no Show answer)", async () => {
+    setupMcq();
+    await screen.findByText("What is a dog?");
+    // Should NOT show "Show answer" button
+    expect(screen.queryByRole("button", { name: /show answer/i })).toBeNull();
+    // Should show 3 choice buttons
+    const buttons = screen.getAllByRole("button");
+    const choiceButtons = buttons.filter((b) =>
+      ["le chien", "le chat", "le cheval"].includes(b.textContent ?? ""),
+    );
+    expect(choiceButtons).toHaveLength(3);
+  });
+
+  it("MCQ2: clicking the correct answer grades correct and advances", async () => {
+    const user = userEvent.setup();
+    const postAttempts = vi.fn().mockResolvedValue({ logged: 1 });
+    const closeSession = vi.fn().mockResolvedValue({ ended_at: "now" });
+    setupMcq({ postAttempts, closeSession });
+
+    await screen.findByText("What is a dog?");
+    await user.click(screen.getByRole("button", { name: "le chien" }));
+
+    await waitFor(() => expect(postAttempts).toHaveBeenCalledOnce());
+    const attempt = postAttempts.mock.calls[0][0].items[0];
+    expect(attempt.correct).toBe(true);
+    expect(attempt.mode).toBe("mcq");
+  });
+
+  it("MCQ3: clicking a wrong choice grades incorrect", async () => {
+    const user = userEvent.setup();
+    const postAttempts = vi.fn().mockResolvedValue({ logged: 1 });
+    const closeSession = vi.fn().mockResolvedValue({ ended_at: "now" });
+    setupMcq({ postAttempts, closeSession });
+
+    await screen.findByText("What is a dog?");
+    await user.click(screen.getByRole("button", { name: "le chat" }));
+
+    await waitFor(() => {
+      // After wrong answer, card goes to retry pile and re-appears
+      expect(screen.getByText("What is a dog?")).toBeInTheDocument();
+    });
+    // Click correct this time to finish
+    await user.click(screen.getByRole("button", { name: "le chien" }));
+    await waitFor(() => expect(postAttempts).toHaveBeenCalledOnce());
+    const attempts = postAttempts.mock.calls[0][0].items;
+    expect(attempts[0].correct).toBe(false);
+    expect(attempts[0].mode).toBe("mcq");
+    expect(attempts[1].correct).toBe(true);
+  });
+
+  it("MCQ4: self_grade mode shows Show answer even if card has distractors", async () => {
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS_WITH_DISTRACTORS });
+    setup({ startSession, mode: "self_grade" });
+
+    await screen.findByText("What is a dog?");
+    expect(screen.getByRole("button", { name: /show answer/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "le chien" })).toBeNull();
+  });
+
+  it("MCQ5: mixed mode uses MCQ for card with distractors", async () => {
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS_WITH_DISTRACTORS });
+    setup({ startSession, mode: "mixed", shuffleFn: (arr) => arr });
+
+    await screen.findByText("What is a dog?");
+    expect(screen.queryByRole("button", { name: /show answer/i })).toBeNull();
+    expect(screen.getByRole("button", { name: "le chien" })).toBeInTheDocument();
+  });
+
+  it("MCQ6: mixed mode uses self_grade for card without distractors", async () => {
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS });
+    setup({ startSession, mode: "mixed" });
+
+    await screen.findByText("What is a dog?");
+    expect(screen.getByRole("button", { name: /show answer/i })).toBeInTheDocument();
   });
 });
