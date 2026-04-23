@@ -228,7 +228,7 @@ populates 4 users + current year. See
 
 ## Phase 17 — PWA polish, settings, backup/export
 
-- ⬜ Slice 1 — PWA manifest + service worker (shell-only caching)
+- ✅ Slice 1 — PWA manifest + service worker (shell-only caching)
 - ⬜ Slice 2 — Settings screen completion (daily_goal, preferred_mode, freezes)
 - ⬜ Slice 3 — `GET /api/export` + download button
 - ⬜ Slice 4 — Mobile UX polish (bottom nav, swipe gestures, tap targets, dark mode)
