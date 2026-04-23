@@ -133,10 +133,47 @@ describe("GET /api/stats/session/:id", () => {
     expect(res.status).toBe(200);
   });
 
+  it("AC6c: treats null method as GET (method ?? 'GET' branch)", async () => {
+    const deps = makeDeps();
+    seedSession(deps.tables);
+    const cookie = validCookie(deps);
+    const req = { ...makeReq(cookie, SESSION_ID), method: null } as unknown as HttpRequest;
+    const res = await makeStatsSessionHandler(deps)(req, ctx);
+    expect(res.status).toBe(200);
+  });
+
   it("AC7: returns 405 for non-GET method", async () => {
     const deps = makeDeps();
     const req = { ...makeReq(validCookie(deps), SESSION_ID), method: "POST" } as unknown as HttpRequest;
     const res = await makeStatsSessionHandler(deps)(req, ctx);
     expect(res.status).toBe(405);
+  });
+
+  it("AC8: skips caller's own partition during cross-user scan (continue branch)", async () => {
+    const deps = makeDeps();
+    seedSession(deps.tables); // session owned by USER_ID (u-lex)
+
+    // Seed both users so the scanner sees u-lex + u-mats
+    const lexRow: UserRow = {
+      partitionKey: PARTITIONS.users, rowKey: USER_ID, id: USER_ID,
+      name: "Lex", password_hash: "x", is_admin: false,
+      color: "#111", avatar_emoji: "🦊", ui_language: "en",
+      settings: JSON.stringify({}), created_at: NOW,
+    };
+    const matsRow: UserRow = {
+      partitionKey: PARTITIONS.users, rowKey: "u-mats", id: "u-mats",
+      name: "Mats", password_hash: "x", is_admin: false,
+      color: "#222", avatar_emoji: "🐻", ui_language: "en",
+      settings: JSON.stringify({}), created_at: NOW,
+    };
+    await deps.tables.upsert("users", lexRow);
+    await deps.tables.upsert("users", matsRow);
+
+    // u-mats calls: fast path misses, scan hits u-lex; u-mats's own row is skipped (continue)
+    const matsSigner = new FakeSessionSigner(new FakeClock(NOW));
+    const matsToken = matsSigner.sign({ userId: "u-mats", isAdmin: false, expMs: Date.now() + 60_000 });
+    const matsReq = { ...makeReq(buildSessionCookie(matsToken), SESSION_ID), method: "GET" } as unknown as HttpRequest;
+    const res = await makeStatsSessionHandler({ ...deps, signer: matsSigner })(matsReq, ctx);
+    expect(res.status).toBe(200);
   });
 });

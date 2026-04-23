@@ -59,6 +59,22 @@ describe("computeNewStreak", () => {
     expect(result.freeze_tokens).toBe(2); // not consumed (can't save streak)
   });
 
+  it("AC6b: next-day streak reaching milestone awards a freeze token", () => {
+    const s = state({ streak: 13, last_session_date: "2026-04-21", freeze_tokens: 0 });
+    const result = computeNewStreak(s, "2026-04-22T10:00:00.000Z", TZ);
+    expect(result.streak).toBe(14);
+    expect(result.freeze_tokens).toBe(1);
+    expect(result.freeze_awarded).toBe(true);
+  });
+
+  it("AC5b: freeze-save reaching milestone awards a freeze (if room)", () => {
+    const s = state({ streak: 13, last_session_date: "2026-04-20", freeze_tokens: 1 });
+    const result = computeNewStreak(s, "2026-04-22T10:00:00.000Z", TZ); // gap=2, freeze saves it
+    expect(result.streak).toBe(14);
+    expect(result.freeze_tokens).toBe(1); // used 1, gained 1 at milestone → net 1
+    expect(result.freeze_awarded).toBe(true);
+  });
+
   it("AC7: freeze tokens capped at 2", () => {
     const s = state({ streak: 28, last_session_date: "2026-04-21", freeze_tokens: 2 });
     const result = computeNewStreak(s, "2026-04-22T10:00:00.000Z", TZ);

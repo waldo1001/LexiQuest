@@ -39,7 +39,8 @@ export function computeNewStreak(
     // First ever session
     streak = 1;
     last_session_date = today;
-    // Check if new streak earns a freeze
+    // First session always produces streak=1; shouldAwardFreezeToken(1)=false — unreachable branch
+    /* v8 ignore next 3 */
     if (shouldAwardFreezeToken(streak) && freeze_tokens < MAX_FREEZE_TOKENS) {
       freeze_tokens = Math.min(freeze_tokens + 1, MAX_FREEZE_TOKENS);
       freeze_awarded = true;

@@ -201,7 +201,6 @@ describe("PUT /api/sessions/:id", () => {
   });
 
   it("streak updates to 1 after first session", async () => {
-    // Seed user row without prior streak
     const userRow: UserRow = {
       partitionKey: PARTITIONS.users,
       rowKey: USER_ID,
@@ -222,5 +221,24 @@ describe("PUT /api/sessions/:id", () => {
     const settings = updated?.settings as Record<string, unknown>;
     expect(settings.streak).toBe(1);
     expect(settings.last_session_date).toBe("2026-04-22");
+  });
+
+  it("parses settings stored as a JSON string (Table Storage round-trip branch)", async () => {
+    const userRow: UserRow = {
+      partitionKey: PARTITIONS.users,
+      rowKey: USER_ID,
+      name: "Lex", password_hash: "x", is_admin: false,
+      color: "#16a34a", avatar_emoji: "🐯", ui_language: "en",
+      settings: JSON.stringify({ auto_speak: false, preferred_mode: "self_grade", daily_goal: 20 }) as unknown as Record<string, unknown>,
+      created_at: STARTED_AT,
+    };
+    await deps.tables.upsert<UserRow>("users", userRow);
+    await deps.tables.upsert<SessionRow>("sessions", makeSession());
+
+    const res = await makeSessionsIdHandler(deps)(
+      makeReq(validCookie(deps), SESSION_ID, { body: { cards_studied: 1, cards_correct: 1 } }),
+      ctx,
+    );
+    expect(res.status).toBe(200);
   });
 });
