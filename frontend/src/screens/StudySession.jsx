@@ -6,6 +6,7 @@ import {
   closeSession as closeSessionApi,
 } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
+import { useTts } from "../context/AppContext.jsx";
 
 /**
  * @typedef {{ id: string, question: string, answer: string }} Card
@@ -123,10 +124,12 @@ export default function StudySession({
   closeSession = closeSessionApi,
 }) {
   const t = useT();
+  const tts = useTts();
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { courseName = "", mode = "self_grade" } = location.state ?? {};
+  const { courseName = "", mode = "self_grade", courseLang = null } = location.state ?? {};
+  const canSpeak = Boolean(courseLang && tts.isAvailable(courseLang));
 
   const [state, dispatch] = useReducer(reducer, undefined, init);
 
@@ -204,10 +207,28 @@ export default function StudySession({
       </div>
 
       <div className="study-card">
-        <div className="study-question">{card.question}</div>
+        <div className="study-question">
+          {card.question}
+          {canSpeak && (
+            <button
+              className="speak-btn"
+              aria-label={t("study.speakQuestion")}
+              onClick={() => tts.speak(card.question, courseLang)}
+            >🔊</button>
+          )}
+        </div>
 
         {state.phase === PHASE.ANSWER && (
-          <div className="study-answer">{card.answer}</div>
+          <div className="study-answer">
+            {card.answer}
+            {canSpeak && (
+              <button
+                className="speak-btn"
+                aria-label={t("study.speakAnswer")}
+                onClick={() => tts.speak(card.answer, courseLang)}
+              >🔊</button>
+            )}
+          </div>
         )}
       </div>
 

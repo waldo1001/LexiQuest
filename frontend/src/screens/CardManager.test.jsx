@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
 import CardManager from "./CardManager.jsx";
+import { createFakeTts } from "../testing/fake-tts.js";
 import { AppProvider } from "../context/AppContext.jsx";
 
 const OWNER_ID = "u-lex";
@@ -52,12 +53,14 @@ function setup({
   courseId = COURSE_ID,
   courseName = COURSE_NAME,
   ownerId = OWNER_ID,
+  courseLang = null,
+  tts,
 } = {}) {
   return render(
-    <AppProvider initialLang={lang} initialUser={currentUser}>
+    <AppProvider initialLang={lang} initialUser={currentUser} tts={tts}>
       <MemoryRouter
         initialEntries={[
-          { pathname: `/courses/${courseId}/cards`, state: { courseName, ownerId } },
+          { pathname: `/courses/${courseId}/cards`, state: { courseName, ownerId, courseLang } },
         ]}
       >
         <Routes>
@@ -240,5 +243,34 @@ describe("CardManager", () => {
     await screen.findByText("What is a dog?");
     const backLink = screen.getByRole("link", { name: /back/i });
     expect(backLink).toHaveAttribute("href", "/courses");
+  });
+});
+
+describe("CardManager — TTS speak buttons", () => {
+  const defaultFetch = vi.fn().mockResolvedValue(SEED_CARDS);
+
+  it("shows 🔊 buttons when courseLang set and tts available (AC7)", async () => {
+    const tts = createFakeTts({ available: true });
+    setup({ fetchCards: defaultFetch, courseLang: "fr-FR", tts });
+    await screen.findByText("What is a dog?");
+    const speakBtns = screen.getAllByRole("button", { name: /Speak/i });
+    expect(speakBtns.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("hides 🔊 buttons when no courseLang (AC8)", async () => {
+    const tts = createFakeTts({ available: true });
+    setup({ fetchCards: defaultFetch, courseLang: null, tts });
+    await screen.findByText("What is a dog?");
+    expect(screen.queryByRole("button", { name: /Speak/i })).toBeNull();
+  });
+
+  it("clicking 🔊 on a card question calls tts.speak (AC9)", async () => {
+    const tts = createFakeTts({ available: true });
+    setup({ fetchCards: defaultFetch, courseLang: "fr-FR", tts });
+    await screen.findByText("What is a dog?");
+    const speakBtns = screen.getAllByRole("button", { name: /Speak/i });
+    await userEvent.click(speakBtns[0]);
+    expect(tts.lastSpoken?.lang).toBe("fr-FR");
+    expect(tts.lastSpoken?.text).toBeTruthy();
   });
 });

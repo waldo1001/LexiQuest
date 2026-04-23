@@ -255,13 +255,13 @@ export default function CourseList({
                   <span>{course.name}</span>
                   <Link
                     to={`/courses/${course.id}/study`}
-                    state={{ courseName: course.name, mode: course.default_mode ?? "self_grade" }}
+                    state={{ courseName: course.name, mode: course.default_mode ?? "self_grade", courseLang: course.language ?? null }}
                   >
                     {t("courses.action.study")}
                   </Link>
                   <Link
                     to={`/courses/${course.id}/cards`}
-                    state={{ courseName: course.name, ownerId: course.user_id }}
+                    state={{ courseName: course.name, ownerId: course.user_id, courseLang: course.language ?? null }}
                   >
                     {t("courses.action.manageCards")}
                   </Link>

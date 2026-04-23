@@ -7,7 +7,7 @@ import {
   deleteCard as deleteCardApi,
 } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
-import { useAppContext } from "../context/AppContext.jsx";
+import { useAppContext, useTts } from "../context/AppContext.jsx";
 
 const EMPTY_NEW = { question: "", answer: "", hint: "" };
 
@@ -30,9 +30,11 @@ export default function CardManager({
     : () => false,
 }) {
   const t = useT();
+  const tts = useTts();
   const { courseId } = useParams();
   const location = useLocation();
-  const { courseName = "", ownerId = null } = location.state ?? {};
+  const { courseName = "", ownerId = null, courseLang = null } = location.state ?? {};
+  const canSpeak = Boolean(courseLang && tts.isAvailable(courseLang));
 
   const { user } = useAppContext();
   const canEdit =
@@ -198,8 +200,28 @@ export default function CardManager({
                     </>
                   ) : (
                     <>
-                      <td>{card.question}</td>
-                      <td>{card.answer}</td>
+                      <td>
+                        {card.question}
+                        {canSpeak && (
+                          <button
+                            type="button"
+                            className="speak-btn"
+                            aria-label={t("cards.speak")}
+                            onClick={() => tts.speak(card.question, courseLang)}
+                          >🔊</button>
+                        )}
+                      </td>
+                      <td>
+                        {card.answer}
+                        {canSpeak && (
+                          <button
+                            type="button"
+                            className="speak-btn"
+                            aria-label={t("cards.speak")}
+                            onClick={() => tts.speak(card.answer, courseLang)}
+                          >🔊</button>
+                        )}
+                      </td>
                       <td>{card.hint ?? ""}</td>
                       {canEdit && (
                         <td>

@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import StudySession from "./StudySession.jsx";
 import { AppProvider } from "../context/AppContext.jsx";
+import { createFakeTts } from "../testing/fake-tts.js";
 
 const COURSE_ID = "c-french";
 const SESSION_ID = "sess-1";
@@ -34,18 +35,20 @@ function setup({
   courseId = COURSE_ID,
   courseName = "French",
   mode = "self_grade",
+  courseLang = null,
   lang = "en",
   currentUser = { id: "u-lex", name: "Lex", is_admin: false },
+  tts,
 } = {}) {
   const defaultStart = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS });
   const defaultAttempts = vi.fn().mockResolvedValue({ logged: 2 });
   const defaultClose = vi.fn().mockResolvedValue({ ended_at: "2026-04-22T10:05:00Z" });
 
   return render(
-    <AppProvider initialLang={lang} initialUser={currentUser}>
+    <AppProvider initialLang={lang} initialUser={currentUser} tts={tts}>
       <MemoryRouter
         initialEntries={[
-          { pathname: `/courses/${courseId}/study`, state: { courseName, mode } },
+          { pathname: `/courses/${courseId}/study`, state: { courseName, mode, courseLang } },
         ]}
       >
         <Routes>
@@ -198,5 +201,53 @@ describe("StudySession — session completion", () => {
     // cards_studied = 2 (unique cards), cards_correct = 1 (card-1 failed first try)
     expect(closeCall.cards_studied).toBe(2);
     expect(closeCall.cards_correct).toBe(1);
+  });
+});
+
+describe("StudySession — TTS speak buttons", () => {
+  it("shows 🔊 on question when courseLang set and tts available (AC1)", async () => {
+    const tts = createFakeTts({ available: true });
+    setup({ courseLang: "fr-FR", tts });
+    await screen.findByText("What is a dog?");
+    expect(screen.getByRole("button", { name: /Speak question/i })).toBeTruthy();
+  });
+
+  it("hides 🔊 when no courseLang (AC2)", async () => {
+    const tts = createFakeTts({ available: true });
+    setup({ courseLang: null, tts });
+    await screen.findByText("What is a dog?");
+    expect(screen.queryByRole("button", { name: /Speak question/i })).toBeNull();
+  });
+
+  it("hides 🔊 when tts.isAvailable returns false (AC3)", async () => {
+    const tts = createFakeTts({ available: false });
+    setup({ courseLang: "fr-FR", tts });
+    await screen.findByText("What is a dog?");
+    expect(screen.queryByRole("button", { name: /Speak question/i })).toBeNull();
+  });
+
+  it("clicking 🔊 on question calls tts.speak with question text and lang (AC4)", async () => {
+    const tts = createFakeTts({ available: true });
+    setup({ courseLang: "fr-FR", tts });
+    await screen.findByText("What is a dog?");
+    await userEvent.click(screen.getByRole("button", { name: /Speak question/i }));
+    expect(tts.lastSpoken).toMatchObject({ text: "What is a dog?", lang: "fr-FR" });
+  });
+
+  it("shows 🔊 on answer after reveal (AC5)", async () => {
+    const tts = createFakeTts({ available: true });
+    setup({ courseLang: "fr-FR", tts });
+    await screen.findByText("What is a dog?");
+    await userEvent.click(screen.getByRole("button", { name: /Show answer/i }));
+    expect(screen.getByRole("button", { name: /Speak answer/i })).toBeTruthy();
+  });
+
+  it("clicking 🔊 on answer calls tts.speak with answer text (AC6)", async () => {
+    const tts = createFakeTts({ available: true });
+    setup({ courseLang: "fr-FR", tts });
+    await screen.findByText("What is a dog?");
+    await userEvent.click(screen.getByRole("button", { name: /Show answer/i }));
+    await userEvent.click(screen.getByRole("button", { name: /Speak answer/i }));
+    expect(tts.lastSpoken).toMatchObject({ text: "le chien", lang: "fr-FR" });
   });
 });
