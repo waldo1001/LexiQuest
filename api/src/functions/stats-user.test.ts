@@ -273,6 +273,52 @@ describe("GET /api/stats/user/:userId", () => {
     expect(res.status).toBe(200);
   });
 
+  it("SU-defaults: user with no optional settings fields gets zero fallbacks", async () => {
+    const deps = makeDeps();
+    seedUser(deps.tables, { settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 20 } as UserRow["settings"] });
+    const handler = makeStatsUserHandler(deps);
+    const res = await handler(makeReq(validCookie(deps), USER_ID), ctx);
+    expect(res.status).toBe(200);
+    const body = res.jsonBody as { totalXp: number; currentStreak: number; badgesEarned: string[] };
+    expect(body.totalXp).toBe(0);
+    expect(body.currentStreak).toBe(0);
+    expect(body.badgesEarned).toEqual([]);
+  });
+
+  it("SU-pct0: accuracyTrend pctFirstTry = 0 when session has cards_studied = 0", async () => {
+    const deps = makeDeps();
+    seedUser(deps.tables);
+    seedSession(deps.tables, {
+      started_at: "2026-04-20T09:00:00.000Z",
+      cards_studied: 0,
+      cards_correct: 0,
+    });
+    const handler = makeStatsUserHandler(deps);
+    const res = await handler(makeReq(validCookie(deps), USER_ID), ctx);
+    expect(res.status).toBe(200);
+    const body = res.jsonBody as { accuracyTrend: { date: string; pctFirstTry: number }[] };
+    const entry = body.accuracyTrend.find((e) => e.date === "2026-04-20");
+    expect(entry?.pctFirstTry).toBe(0);
+  });
+
+  it("SU-rt: responseTimeBuckets covers all four buckets", async () => {
+    const deps = makeDeps();
+    seedUser(deps.tables);
+    const base = "2026-04-20T09:";
+    seedAttempt(deps.tables, { response_time_ms: 500, timestamp: `${base}00:00.000Z`, rowKey: `${base}00:00.000Z_a-1` });
+    seedAttempt(deps.tables, { response_time_ms: 2000, timestamp: `${base}01:00.000Z`, rowKey: `${base}01:00.000Z_a-2` });
+    seedAttempt(deps.tables, { response_time_ms: 5000, timestamp: `${base}02:00.000Z`, rowKey: `${base}02:00.000Z_a-3` });
+    seedAttempt(deps.tables, { response_time_ms: 15000, timestamp: `${base}03:00.000Z`, rowKey: `${base}03:00.000Z_a-4` });
+    const handler = makeStatsUserHandler(deps);
+    const res = await handler(makeReq(validCookie(deps), USER_ID), ctx);
+    const body = res.jsonBody as { responseTimeBuckets: { bucket: string; count: number }[] };
+    const buckets = Object.fromEntries(body.responseTimeBuckets.map((b) => [b.bucket, b.count]));
+    expect(buckets["<1s"]).toBe(1);
+    expect(buckets["1-3s"]).toBe(1);
+    expect(buckets["3-10s"]).toBe(1);
+    expect(buckets[">10s"]).toBe(1);
+  });
+
   it("returns hourOfDay distribution from attempts", async () => {
     const deps = makeDeps();
     seedUser(deps.tables);

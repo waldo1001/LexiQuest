@@ -24,6 +24,12 @@ import {
   importCards,
   batchCreateCards,
   enrichCards,
+  fetchFamilyStats,
+  fetchCompareStats,
+  fetchUserStats,
+  fetchCourseStats,
+  fetchLeaderboard,
+  fetchHeatmap,
 } from "./api.js";
 
 function ok(body) {
@@ -744,5 +750,104 @@ describe("enrichCards", () => {
     await expect(
       enrichCards({ courseId: "c1" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
     ).rejects.toThrow(/500/);
+  });
+});
+
+describe("fetchFamilyStats", () => {
+  it("GETs /api/stats/family with range", async () => {
+    const data = { users: [] };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    expect(await fetchFamilyStats({ range: "7d" }, { fetchFn })).toEqual(data);
+    expect(fetchFn).toHaveBeenCalledWith("/api/stats/family?range=7d", expect.anything());
+  });
+  it("throws 'unauthorized' on 401", async () => {
+    await expect(fetchFamilyStats({}, { fetchFn: vi.fn().mockResolvedValue(fail(401)) })).rejects.toThrow("unauthorized");
+  });
+  it("throws on non-ok", async () => {
+    await expect(fetchFamilyStats({}, { fetchFn: vi.fn().mockResolvedValue(fail(500)) })).rejects.toThrow(/500/);
+  });
+});
+
+describe("fetchCompareStats", () => {
+  it("GETs /api/stats/compare with userIds, metric, range", async () => {
+    const data = { series: [] };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    expect(await fetchCompareStats({ userIds: ["u1", "u2"], metric: "xp", range: "30d" }, { fetchFn })).toEqual(data);
+    expect(fetchFn).toHaveBeenCalledWith(expect.stringContaining("/api/stats/compare"), expect.anything());
+  });
+  it("throws 'unauthorized' on 401", async () => {
+    await expect(fetchCompareStats({ userIds: [], metric: "xp" }, { fetchFn: vi.fn().mockResolvedValue(fail(401)) })).rejects.toThrow("unauthorized");
+  });
+  it("throws on non-ok", async () => {
+    await expect(fetchCompareStats({ userIds: [], metric: "xp" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) })).rejects.toThrow(/500/);
+  });
+});
+
+describe("fetchUserStats", () => {
+  it("GETs /api/stats/user/:userId", async () => {
+    const data = { totalXp: 100 };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    expect(await fetchUserStats({ userId: "u1", range: "30d" }, { fetchFn })).toEqual(data);
+    expect(fetchFn).toHaveBeenCalledWith("/api/stats/user/u1?range=30d", expect.anything());
+  });
+  it("throws 'unauthorized' on 401", async () => {
+    await expect(fetchUserStats({ userId: "u1" }, { fetchFn: vi.fn().mockResolvedValue(fail(401)) })).rejects.toThrow("unauthorized");
+  });
+  it("throws 'not_found' on 404", async () => {
+    await expect(fetchUserStats({ userId: "u1" }, { fetchFn: vi.fn().mockResolvedValue(fail(404)) })).rejects.toThrow("not_found");
+  });
+  it("throws on non-ok", async () => {
+    await expect(fetchUserStats({ userId: "u1" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) })).rejects.toThrow(/500/);
+  });
+});
+
+describe("fetchCourseStats", () => {
+  it("GETs /api/stats/course/:courseId", async () => {
+    const data = { cardCount: 10 };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    expect(await fetchCourseStats({ courseId: "c1", range: "7d" }, { fetchFn })).toEqual(data);
+    expect(fetchFn).toHaveBeenCalledWith("/api/stats/course/c1?range=7d", expect.anything());
+  });
+  it("throws 'unauthorized' on 401", async () => {
+    await expect(fetchCourseStats({ courseId: "c1" }, { fetchFn: vi.fn().mockResolvedValue(fail(401)) })).rejects.toThrow("unauthorized");
+  });
+  it("throws 'not_found' on 404", async () => {
+    await expect(fetchCourseStats({ courseId: "c1" }, { fetchFn: vi.fn().mockResolvedValue(fail(404)) })).rejects.toThrow("not_found");
+  });
+  it("throws on non-ok", async () => {
+    await expect(fetchCourseStats({ courseId: "c1" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) })).rejects.toThrow(/500/);
+  });
+});
+
+describe("fetchLeaderboard", () => {
+  it("GETs /api/leaderboard with period", async () => {
+    const data = { rankings: [] };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    expect(await fetchLeaderboard({ period: "7d" }, { fetchFn })).toEqual(data);
+    expect(fetchFn).toHaveBeenCalledWith("/api/leaderboard?period=7d", expect.anything());
+  });
+  it("throws 'unauthorized' on 401", async () => {
+    await expect(fetchLeaderboard({}, { fetchFn: vi.fn().mockResolvedValue(fail(401)) })).rejects.toThrow("unauthorized");
+  });
+  it("throws on non-ok", async () => {
+    await expect(fetchLeaderboard({}, { fetchFn: vi.fn().mockResolvedValue(fail(500)) })).rejects.toThrow(/500/);
+  });
+});
+
+describe("fetchHeatmap", () => {
+  it("GETs /api/stats/heatmap/:userId with range", async () => {
+    const data = { heatmap: [] };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    expect(await fetchHeatmap({ userId: "u1", range: "1y" }, { fetchFn })).toEqual(data);
+    expect(fetchFn).toHaveBeenCalledWith("/api/stats/heatmap/u1?range=1y", expect.anything());
+  });
+  it("throws 'unauthorized' on 401", async () => {
+    await expect(fetchHeatmap({ userId: "u1" }, { fetchFn: vi.fn().mockResolvedValue(fail(401)) })).rejects.toThrow("unauthorized");
+  });
+  it("throws 'not_found' on 404", async () => {
+    await expect(fetchHeatmap({ userId: "u1" }, { fetchFn: vi.fn().mockResolvedValue(fail(404)) })).rejects.toThrow("not_found");
+  });
+  it("throws on non-ok", async () => {
+    await expect(fetchHeatmap({ userId: "u1" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) })).rejects.toThrow(/500/);
   });
 });
