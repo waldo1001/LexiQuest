@@ -461,4 +461,15 @@ describe("CourseList", () => {
     await user.click(within(card).getByRole("button", { name: /enrich/i }));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
+
+  it("course tiles use .card and New course button uses .btn-primary", async () => {
+    setup();
+    await screen.findByText("French");
+    expect(cardFor("French")).toHaveClass("card");
+    expect(cardFor("Math")).toHaveClass("card");
+    expect(screen.getByRole("button", { name: /new course/i })).toHaveClass(
+      "btn",
+      "btn-primary",
+    );
+  });
 });

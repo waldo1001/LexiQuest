@@ -56,4 +56,17 @@ describe("UserPicker", () => {
       /kon gebruikers niet laden/i,
     );
   });
+
+  it("renders each user tile with .card class", async () => {
+    setup(
+      vi.fn().mockResolvedValue([
+        { id: "u1", name: "Alice", avatar_emoji: "🦊", color: "#abc" },
+        { id: "u2", name: "Bob", avatar_emoji: "🦉", color: "#def" },
+      ]),
+    );
+    const alice = await screen.findByTestId("picker-u1");
+    const bob = screen.getByTestId("picker-u2");
+    expect(alice).toHaveClass("card");
+    expect(bob).toHaveClass("card");
+  });
 });

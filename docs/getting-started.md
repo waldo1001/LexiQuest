@@ -25,6 +25,9 @@ Current state: **Phase 1 complete (pending manual `swa start` smoke).**
    swa start http://localhost:5173 --api-location api  # Shell 2
    # -> http://localhost:4280 -> "<h1>Hello from LexiQuest</h1>"
    ```
+   For login to work locally (HTTP), ensure
+   `api/local.settings.json` contains `"COOKIE_SECURE": "false"` — see
+   [setup.md](setup.md#session-cookie-secure-flag-cookie_secure).
 6. Start the next coding task by invoking
    [`/tdd-cycle`](../.claude/skills/tdd-cycle/SKILL.md). The skill
    writes a plan file under [plans/](plans/) before any production

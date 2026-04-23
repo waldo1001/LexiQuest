@@ -25,17 +25,19 @@ export default function UserPicker({ fetchUsers = fetchPublicUsers } = {}) {
   if (error) return <p role="alert">{error}</p>;
   if (users === null) return <p>{t("picker.loading")}</p>;
   return (
-    <main>
+    <main className="stack">
       <h1>{t("picker.title")}</h1>
-      <ul>
+      <ul className="tile-grid">
         {users.map((u) => (
           <li key={u.id}>
             <Link
               to={`/login/${u.id}`}
               style={{ color: u.color }}
               data-testid={`picker-${u.id}`}
+              className="card card-tile"
             >
-              <span aria-hidden="true">{u.avatar_emoji}</span> {u.name}
+              <span className="avatar" aria-hidden="true">{u.avatar_emoji}</span>
+              <span className="tile-name">{u.name}</span>
             </Link>
           </li>
         ))}

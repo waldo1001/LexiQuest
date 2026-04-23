@@ -285,12 +285,15 @@ export default function StudySession({
 
       <div className="study-actions">
         {state.phase === PHASE.QUESTION && !isMcq && (
-          <button onClick={handleShowAnswer}>{t("study.showAnswer")}</button>
+          <button className="btn btn-primary" onClick={handleShowAnswer}>
+            {t("study.showAnswer")}
+          </button>
         )}
         {state.phase === PHASE.QUESTION && isMcq && mcqChoices && (
           mcqChoices.map((choice) => (
             <button
               key={choice}
+              className="btn btn-ghost"
               onClick={() => handleGrade(choice === card.answer, "mcq")}
             >
               {choice}
@@ -299,8 +302,12 @@ export default function StudySession({
         )}
         {state.phase === PHASE.ANSWER && (
           <>
-            <button onClick={() => handleGrade(true)}>{t("study.knewIt")}</button>
-            <button onClick={() => handleGrade(false)}>{t("study.didntKnow")}</button>
+            <button className="btn btn-primary" onClick={() => handleGrade(true)}>
+              {t("study.knewIt")}
+            </button>
+            <button className="btn btn-secondary" onClick={() => handleGrade(false)}>
+              {t("study.didntKnow")}
+            </button>
           </>
         )}
       </div>

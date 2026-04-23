@@ -428,3 +428,19 @@ describe("StudySession — swipe gestures", () => {
     expect(screen.queryByText("What is a cat?")).toBeNull();
   });
 });
+
+describe("StudySession — visual polish classes", () => {
+  it("grade buttons in ANSWER phase use .btn-primary and .btn-secondary", async () => {
+    setup({});
+    await screen.findByText("What is a dog?");
+    await userEvent.click(screen.getByRole("button", { name: /show answer/i }));
+    expect(screen.getByRole("button", { name: /knew it/i })).toHaveClass(
+      "btn",
+      "btn-primary",
+    );
+    expect(screen.getByRole("button", { name: /didn.t know/i })).toHaveClass(
+      "btn",
+      "btn-secondary",
+    );
+  });
+});

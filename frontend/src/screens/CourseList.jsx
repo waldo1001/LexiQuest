@@ -202,7 +202,7 @@ export default function CourseList({
         {visibleCourses.map((course) => {
           const isEditing = editId === course.id;
           return (
-            <article key={course.id}>
+            <article key={course.id} className="card">
               {isEditing && editForm ? (
                 <form onSubmit={(e) => { e.preventDefault(); onSaveEdit(course); }}>
                   <label>
@@ -267,8 +267,10 @@ export default function CourseList({
                       ))}
                     </select>
                   </label>
-                  <button type="submit">{t("courses.action.save")}</button>
-                  <button type="button" onClick={cancelEdit}>
+                  <button type="submit" className="btn btn-primary">
+                    {t("courses.action.save")}
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={cancelEdit}>
                     {t("courses.action.cancel")}
                   </button>
                 </form>
@@ -280,20 +282,21 @@ export default function CourseList({
                     <>
                       <button
                         type="button"
+                        className="btn btn-primary"
                         onClick={() => setModePicking((prev) => prev === course.id ? null : course.id)}
                       >
                         {t("courses.action.study")}
                       </button>
                       {modePicking === course.id && (
-                        <div>
+                        <div className="row wrap">
                           <p>{t("courses.modePicker.title")}</p>
-                          <button type="button" onClick={() => startStudy(course, "self_grade")}>
+                          <button type="button" className="btn btn-ghost" onClick={() => startStudy(course, "self_grade")}>
                             {t("courses.modePicker.self_grade")}
                           </button>
-                          <button type="button" onClick={() => startStudy(course, "mcq")}>
+                          <button type="button" className="btn btn-ghost" onClick={() => startStudy(course, "mcq")}>
                             {t("courses.modePicker.mcq")}
                           </button>
-                          <button type="button" onClick={() => startStudy(course, "mixed")}>
+                          <button type="button" className="btn btn-ghost" onClick={() => startStudy(course, "mixed")}>
                             {t("courses.modePicker.mixed")}
                           </button>
                         </div>
@@ -301,6 +304,7 @@ export default function CourseList({
                     </>
                   ) : (
                     <Link
+                      className="btn btn-primary"
                       to={`/courses/${course.id}/study`}
                       state={{ courseName: course.name, mode: course.default_mode ?? "self_grade", courseLang: course.language ?? null }}
                     >
@@ -308,6 +312,7 @@ export default function CourseList({
                     </Link>
                   )}
                   <Link
+                    className="btn btn-ghost"
                     to={`/courses/${course.id}/cards`}
                     state={{ courseName: course.name, ownerId: course.user_id, courseLang: course.language ?? null }}
                   >
@@ -316,6 +321,7 @@ export default function CourseList({
                   {enrichCards && (
                     <button
                       type="button"
+                      className="btn btn-ghost"
                       disabled={enrichingId === course.id}
                       onClick={() => onEnrich(course)}
                     >
@@ -324,10 +330,10 @@ export default function CourseList({
                         : t("courses.action.enrich")}
                     </button>
                   )}
-                  <button type="button" onClick={() => startEdit(course)}>
+                  <button type="button" className="btn btn-ghost" onClick={() => startEdit(course)}>
                     {t("courses.action.edit")}
                   </button>
-                  <button type="button" onClick={() => onDelete(course)}>
+                  <button type="button" className="btn btn-danger" onClick={() => onDelete(course)}>
                     {t("courses.action.delete")}
                   </button>
                 </>
@@ -339,6 +345,7 @@ export default function CourseList({
 
       <button
         type="button"
+        className="btn btn-primary"
         disabled={!currentYear}
         onClick={() => setShowNew((v) => !v)}
       >
@@ -346,7 +353,7 @@ export default function CourseList({
       </button>
 
       {showNew && currentYear && (
-        <form onSubmit={onCreate}>
+        <form className="panel stack" onSubmit={onCreate}>
           <label>
             {t("courses.field.name")}
             <input
@@ -408,14 +415,16 @@ export default function CourseList({
               ))}
             </select>
           </label>
-          <button type="submit">{t("courses.action.create")}</button>
-          <button type="button" onClick={() => setShowNew(false)}>
+          <button type="submit" className="btn btn-primary">
+            {t("courses.action.create")}
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => setShowNew(false)}>
             {t("courses.action.cancel")}
           </button>
         </form>
       )}
 
-      <Link to="/home">{t("common.back")}</Link>
+      <Link className="btn btn-ghost" to="/home">{t("common.back")}</Link>
     </main>
   );
 }

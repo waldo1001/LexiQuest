@@ -36,6 +36,7 @@ import { createClaudeClient } from "./shared/claude.js";
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING ?? "";
 const anthropicApiKey = process.env.ANTHROPIC_API_KEY ?? "";
 const sessionSecret = process.env.SESSION_SECRET ?? "";
+const cookieSecure = process.env.COOKIE_SECURE !== "false";
 
 const tables = new AzureTableStorage({ connectionString });
 const hasher = new BcryptPasswordHasher();
@@ -44,8 +45,8 @@ const random = new SystemRandom();
 const signer = new HmacSessionSigner({ secret: sessionSecret, clock });
 const logger = new SystemLogger();
 
-registerLogin({ tables, hasher, signer, clock, logger });
-registerLogout();
+registerLogin({ tables, hasher, signer, clock, logger, cookieSecure });
+registerLogout({ cookieSecure });
 registerMe({ tables, signer });
 registerUsers({ tables, signer, hasher, random, clock });
 registerUsersPublic({ tables });

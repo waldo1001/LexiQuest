@@ -3,6 +3,7 @@
   "Values": {
     "FUNCTIONS_WORKER_RUNTIME": "node",
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "COOKIE_SECURE": "false",
     "ANTHROPIC_API_KEY": "sk-ant-REPLACE_WITH_REAL_KEY"
   }
 }

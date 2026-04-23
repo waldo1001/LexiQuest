@@ -58,6 +58,7 @@ describe("POST /api/login", () => {
       signer: new FakeSessionSigner(clock),
       clock,
       logger,
+      cookieSecure: true,
     };
   });
 
@@ -82,6 +83,19 @@ describe("POST /api/login", () => {
     expect(cookie).toContain("Secure");
     expect(cookie).toContain("SameSite=Lax");
     expect(cookie).toContain("Max-Age=2592000");
+  });
+
+  it("omits Secure on Set-Cookie when cookieSecure=false", async () => {
+    await seedAlice(tables, hasher);
+    const response = (await makeLoginHandler({ ...deps, cookieSecure: false })(
+      req({ userId: "u-alice", password: "alice-pw" }),
+      ctx(),
+    )) as HttpResponseInit;
+    expect(response.status).toBe(200);
+    const cookie = (response.headers as Record<string, string>)["Set-Cookie"];
+    expect(cookie).not.toContain("Secure");
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Lax");
   });
 
   it("returns 401 on unknown user with a generic message", async () => {

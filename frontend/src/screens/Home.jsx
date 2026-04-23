@@ -34,14 +34,27 @@ export default function Home({
   if (failed) return <p role="alert">{t("home.notSignedIn")}</p>;
   if (!me) return <p>{t("home.loading")}</p>;
   return (
-    <main>
+    <main className="stack">
       <h1>{t("home.greeting", { name: me.name })}</h1>
-      <button type="button" onClick={onLogout}>
+      <nav className="home-actions">
+        <Link className="card card-tile" to="/courses">
+          <span className="avatar" aria-hidden="true">📚</span>
+          <span className="tile-name">{t("courses.link")}</span>
+        </Link>
+        <Link className="card card-tile" to="/settings">
+          <span className="avatar" aria-hidden="true">⚙️</span>
+          <span className="tile-name">{t("settings.title")}</span>
+        </Link>
+        {me.isAdmin === true && (
+          <Link className="card card-tile" to="/admin">
+            <span className="avatar" aria-hidden="true">🛠️</span>
+            <span className="tile-name">{t("admin.link")}</span>
+          </Link>
+        )}
+      </nav>
+      <button type="button" className="btn btn-ghost" onClick={onLogout}>
         {t("home.logout")}
       </button>
-      <Link to="/settings">{t("settings.title")}</Link>
-      <Link to="/courses">{t("courses.link")}</Link>
-      {me.isAdmin === true && <Link to="/admin">{t("admin.link")}</Link>}
     </main>
   );
 }

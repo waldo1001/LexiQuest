@@ -68,4 +68,13 @@ describe("Login", () => {
       /ongeldige inloggegevens/i,
     );
   });
+
+  it("submit button uses .btn-primary and password input uses .input", () => {
+    setup(vi.fn());
+    expect(screen.getByRole("button", { name: /sign in/i })).toHaveClass(
+      "btn",
+      "btn-primary",
+    );
+    expect(screen.getByLabelText(/password/i)).toHaveClass("input");
+  });
 });

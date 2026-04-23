@@ -3,6 +3,11 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-04-23 (post-Phase 17 fixes)
+
+- Fixed session cookie being dropped on local HTTP: `Secure` flag is now conditional on `COOKIE_SECURE` env var (defaults to on; set `COOKIE_SECURE=false` in `api/local.settings.json` for local `swa start`). `buildSessionCookie` / `buildClearedSessionCookie` take `secure` as an explicit arg; `registerLogin` / `registerLogout` receive `cookieSecure` from the composition root. 4 new tests in `session-cookie.test.ts`, `login.test.ts`, `logout.test.ts`. See [plans/done/phase-17-fix-cookie-secure-flag.md](plans/done/phase-17-fix-cookie-secure-flag.md).
+- Visual polish pass: added `.btn` / `.btn-primary` / `.btn-secondary` / `.btn-ghost` / `.btn-danger` / `.card` / `.card-tile` / `.panel` / `.field` / `.input` / `.badge` / `.stack` / `.row` / `.narrow` utility classes to [frontend/src/index.css](../frontend/src/index.css). Applied to UserPicker, Login, Home, Dashboard, CourseList, StudySession, Settings. Introduces a design-token layer (`--radius`, `--space-*`, `--shadow-*`, `--accent-h`, `--danger`) and explicit `[data-theme="dark"]` + `prefers-color-scheme: dark` palettes. 4 new class-presence tests as regression guards. See [plans/done/phase-17-visual-polish.md](plans/done/phase-17-visual-polish.md).
+
 ## 2026-04-23 (Phase 17 complete — all 17 phases done)
 
 - Added `GET /api/export`: returns `{ user, courses, cards, sessions, attempts }` (own data only; admin can pass `?userId=`). Strips `password_hash`. Sets `Content-Disposition: attachment`. 9 tests, 100% coverage. Phase 17 Slice 3.

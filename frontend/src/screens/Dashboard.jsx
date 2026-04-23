@@ -46,27 +46,27 @@ export default function Dashboard({ fetchCourses = fetchCoursesApi }) {
       </header>
 
       <section className="dashboard-stats">
-        <div className="stat-card">
+        <div className="card stat-card">
           <span className="stat-icon">🔥</span>
           <span className="stat-value" data-testid="streak">{streak}</span>
           <span className="stat-label">{t("dashboard.streak")}</span>
         </div>
 
-        <div className="stat-card">
+        <div className="card stat-card">
           <span className="stat-label">{t("dashboard.level")}</span>
           <span className="stat-value" data-testid="level">{level}</span>
           <span className="stat-label">{t("dashboard.xp")}</span>
           <span className="stat-value" data-testid="total-xp">{totalXp}</span>
         </div>
 
-        <div className="stat-card">
+        <div className="card stat-card">
           <span className="stat-label">{t("dashboard.dailyGoal")}</span>
           <div className="daily-goal-bar" data-testid="daily-goal">
             <span>{dailyGoal} {t("dashboard.cards")}</span>
           </div>
         </div>
 
-        <div className="stat-card">
+        <div className="card stat-card">
           <span className="stat-icon">🧊</span>
           <span className="stat-value" data-testid="freeze-tokens">{freezeTokens}</span>
           <span className="stat-label">{t("dashboard.freezes")}</span>
@@ -78,24 +78,29 @@ export default function Dashboard({ fetchCourses = fetchCoursesApi }) {
         {courses.length === 0 && <p>{t("courses.empty")}</p>}
         <div className="course-grid">
           {courses.map((c) => (
-            <div key={c.id} className="course-card" style={{ borderColor: c.color }}>
+            <div key={c.id} className="card course-card" style={{ borderColor: c.color }}>
               <span className="course-emoji">{c.emoji}</span>
               <span className="course-name">{c.name}</span>
-              <button
-                data-testid="study-btn"
-                onClick={() =>
-                  navigate(`/courses/${c.id}/study`, {
-                    state: {
-                      courseId: c.id,
-                      courseName: c.name,
-                      mode: c.default_mode === "ask" ? "self_grade" : c.default_mode,
-                    },
-                  })
-                }
-              >
-                {t("courses.action.study")}
-              </button>
-              <Link to={`/courses/${c.id}/cards`}>{t("courses.action.manageCards")}</Link>
+              <div className="row">
+                <button
+                  className="btn btn-primary"
+                  data-testid="study-btn"
+                  onClick={() =>
+                    navigate(`/courses/${c.id}/study`, {
+                      state: {
+                        courseId: c.id,
+                        courseName: c.name,
+                        mode: c.default_mode === "ask" ? "self_grade" : c.default_mode,
+                      },
+                    })
+                  }
+                >
+                  {t("courses.action.study")}
+                </button>
+                <Link className="btn btn-ghost" to={`/courses/${c.id}/cards`}>
+                  {t("courses.action.manageCards")}
+                </Link>
+              </div>
             </div>
           ))}
         </div>

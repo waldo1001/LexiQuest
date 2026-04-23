@@ -25,19 +25,20 @@ export default function Login({ login = loginApi } = {}) {
   }
 
   return (
-    <main>
+    <main className="stack narrow">
       <h1>{t("login.title")}</h1>
-      <form onSubmit={onSubmit}>
-        <label>
+      <form className="stack" onSubmit={onSubmit}>
+        <label className="field">
           {t("login.password")}
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoFocus
+            className="input"
           />
         </label>
-        <button type="submit" disabled={submitting}>
+        <button type="submit" disabled={submitting} className="btn btn-primary">
           {submitting ? t("login.submitting") : t("login.submit")}
         </button>
       </form>

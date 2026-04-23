@@ -21,6 +21,7 @@ export interface LoginDeps {
   signer: SessionSigner;
   clock: Clock;
   logger: Logger;
+  cookieSecure: boolean;
 }
 
 const GENERIC_401 = { error: "invalid credentials" };
@@ -67,7 +68,7 @@ export function makeLoginHandler(deps: LoginDeps): HttpHandler {
 
     return {
       status: 200,
-      headers: { "Set-Cookie": buildSessionCookie(token) },
+      headers: { "Set-Cookie": buildSessionCookie(token, deps.cookieSecure) },
       jsonBody: {
         id: user.rowKey,
         name: user.name,

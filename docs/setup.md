@@ -91,6 +91,22 @@ The seed script (Phase 2 Slice 4) uses
 `AZURE_STORAGE_CONNECTION_STRING` (same value works against Azurite
 locally).
 
+## Session cookie `Secure` flag (`COOKIE_SECURE`)
+
+The session cookie is emitted with the `Secure` attribute by default
+(required for production over HTTPS). Browsers drop `Secure` cookies on
+plain HTTP, so for local `swa start` on `http://localhost:4280` you must
+opt out:
+
+```json
+// api/local.settings.json
+"COOKIE_SECURE": "false"
+```
+
+Any value other than the literal string `"false"` (including unset) keeps
+`Secure` on, so production stays safe by default. See
+[api/local.settings.json.example](../api/local.settings.json.example).
+
 ## Anthropic API key (Phase 12+)
 
 The AI card import feature requires an Anthropic API key. Add it to
