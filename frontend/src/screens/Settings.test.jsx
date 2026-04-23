@@ -143,4 +143,17 @@ describe("Settings", () => {
     expect(link).toHaveAttribute("href", "/api/export");
     expect(link).toHaveAttribute("download");
   });
+
+  it("DM-ST-1: renders a dark mode select", () => {
+    setup();
+    expect(screen.getByTestId("dark-mode-select")).toBeInTheDocument();
+  });
+
+  it("DM-ST-2: changing dark mode select calls setDarkMode", async () => {
+    const user = userEvent.setup();
+    setup();
+    const select = screen.getByTestId("dark-mode-select");
+    await user.selectOptions(select, "dark");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  });
 });

@@ -231,5 +231,5 @@ populates 4 users + current year. See
 - ✅ Slice 1 — PWA manifest + service worker (shell-only caching)
 - ✅ Slice 2 — Settings screen completion (daily_goal, preferred_mode, freezes)
 - ✅ Slice 3 — `GET /api/export` + download button
-- ⬜ Slice 4 — Mobile UX polish (bottom nav, swipe gestures, tap targets, dark mode)
+- ✅ Slice 4 — Mobile UX polish (bottom nav, swipe gestures, tap targets, dark mode)
 - ⬜ Slice 5 — Final error-handling pass (banners, offline detection)

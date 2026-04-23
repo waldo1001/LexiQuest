@@ -32,6 +32,7 @@ export function AppProvider({
 }) {
   const [user, setUser] = useState(initialUser);
   const [lang, setLangState] = useState(initialLang);
+  const [darkMode, setDarkModeState] = useState("system");
 
   const setLang = useCallback(
     async (next) => {
@@ -41,13 +42,22 @@ export function AppProvider({
     [patchMe],
   );
 
+  const setDarkMode = useCallback((mode) => {
+    setDarkModeState(mode);
+    if (mode === "system") {
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      document.documentElement.setAttribute("data-theme", mode);
+    }
+  }, []);
+
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
 
   const value = useMemo(
-    () => ({ user, setUser, lang, setLang, tts }),
-    [user, lang, setLang, tts],
+    () => ({ user, setUser, lang, setLang, tts, darkMode, setDarkMode }),
+    [user, lang, setLang, tts, darkMode, setDarkMode],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

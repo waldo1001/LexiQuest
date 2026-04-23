@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useCallback } from "react";
+import { useEffect, useReducer, useCallback, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   startSession as startSessionApi,
@@ -203,6 +203,17 @@ export default function StudySession({
     dispatch({ type: "GRADE", correct, responseTimeMs: 0, cardMode });
   }, []);
 
+  const touchStartX = useRef(null);
+  const handleTouchStart = useCallback((e) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+  const handleTouchEnd = useCallback((e) => {
+    if (state.phase !== PHASE.ANSWER) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) < 60) return;
+    handleGrade(dx > 0);
+  }, [state.phase, handleGrade]);
+
   if (state.phase === PHASE.LOADING) {
     return <div className="study-session">{t("study.loading")}</div>;
   }
@@ -241,7 +252,12 @@ export default function StudySession({
         {t("study.progress", { current: position, total })}
       </div>
 
-      <div className="study-card">
+      <div
+        className="study-card"
+        data-testid="study-card"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <div className="study-question">
           {card.question}
           {canSpeak && (

@@ -19,6 +19,7 @@ import Leaderboard from "./screens/Leaderboard.jsx";
 import CompareView from "./screens/CompareView.jsx";
 import { AppProvider } from "./context/AppContext.jsx";
 import { createTts } from "./lib/tts.js";
+import BottomNav from "./components/BottomNav.jsx";
 
 // Module-level singleton — the only place the real browser speechSynthesis is
 // touched. In jsdom (tests that import App) this resolves to createTts(undefined)
@@ -56,6 +57,7 @@ export default function App({ tts = _tts }) {
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <BottomNav />
       </BrowserRouter>
     </AppProvider>
   );

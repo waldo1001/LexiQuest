@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -382,5 +382,49 @@ describe("StudySession — MCQ mode", () => {
 
     await screen.findByText("What is a dog?");
     expect(screen.getByRole("button", { name: /show answer/i })).toBeInTheDocument();
+  });
+});
+
+describe("StudySession — swipe gestures", () => {
+  it("SW-1: swipe right on card in ANSWER phase grades correct (knew it)", async () => {
+    const postAttempts = vi.fn().mockResolvedValue({ logged: 1 });
+    setup({ postAttempts });
+
+    await screen.findByText("What is a dog?");
+    await userEvent.click(screen.getByRole("button", { name: /show answer/i }));
+    await screen.findByText("le chien");
+
+    const card = screen.getByTestId("study-card");
+    fireEvent.touchStart(card, { touches: [{ clientX: 50, clientY: 100 }] });
+    fireEvent.touchEnd(card, { changedTouches: [{ clientX: 200, clientY: 100 }] });
+
+    await waitFor(() => expect(screen.getByText("What is a cat?")).toBeInTheDocument());
+  });
+
+  it("SW-2: swipe left on card in ANSWER phase grades incorrect (didn't know)", async () => {
+    const postAttempts = vi.fn().mockResolvedValue({ logged: 1 });
+    setup({ postAttempts });
+
+    await screen.findByText("What is a dog?");
+    await userEvent.click(screen.getByRole("button", { name: /show answer/i }));
+    await screen.findByText("le chien");
+
+    const card = screen.getByTestId("study-card");
+    fireEvent.touchStart(card, { touches: [{ clientX: 200, clientY: 100 }] });
+    fireEvent.touchEnd(card, { changedTouches: [{ clientX: 50, clientY: 100 }] });
+
+    await waitFor(() => expect(screen.getByText("What is a cat?")).toBeInTheDocument());
+  });
+
+  it("SW-3: swipe in QUESTION phase does not advance card", async () => {
+    setup({});
+
+    await screen.findByText("What is a dog?");
+    const card = screen.getByTestId("study-card");
+    fireEvent.touchStart(card, { touches: [{ clientX: 50, clientY: 100 }] });
+    fireEvent.touchEnd(card, { changedTouches: [{ clientX: 200, clientY: 100 }] });
+
+    expect(screen.getByText("What is a dog?")).toBeInTheDocument();
+    expect(screen.queryByText("What is a cat?")).toBeNull();
   });
 });

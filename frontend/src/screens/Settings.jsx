@@ -12,7 +12,7 @@ const SUPPORTED_LANGS = ["en", "nl"];
  */
 export default function Settings({ patchMe = patchMeApi }) {
   const t = useT();
-  const { lang, setLang, user, setUser } = useAppContext();
+  const { lang, setLang, user, setUser, darkMode, setDarkMode } = useAppContext();
   const [error, setError] = useState(null);
   const autoSpeak = user?.settings?.auto_speak ?? false;
   const dailyGoal = user?.settings?.daily_goal ?? 20;
@@ -113,6 +113,18 @@ export default function Settings({ patchMe = patchMeApi }) {
         <span>{t("settings.freezeTokens")}: </span>
         <span data-testid="freeze-tokens">{freezeTokens}</span>
       </div>
+
+      <label htmlFor="dark-mode-select">{t("settings.darkMode")}</label>
+      <select
+        id="dark-mode-select"
+        data-testid="dark-mode-select"
+        value={darkMode}
+        onChange={(e) => setDarkMode(e.target.value)}
+      >
+        <option value="system">{t("settings.darkMode.system")}</option>
+        <option value="light">{t("settings.darkMode.light")}</option>
+        <option value="dark">{t("settings.darkMode.dark")}</option>
+      </select>
 
       <a href="/api/export" download data-testid="export-link">
         {t("settings.exportData")}
