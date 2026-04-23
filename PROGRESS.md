@@ -191,7 +191,7 @@ populates 4 users + current year. See
 
 ## Phase 13 — MCQ mode & enrich
 
-- ⬜ Slice 1 — `POST /api/cards/enrich`
+- ✅ Slice 1 — `POST /api/cards/enrich`
 - ⬜ Slice 2 — MCQ rendering + grading in `StudySession`
 - ⬜ Slice 3 — Mode picker, mixed-mode dispatch
 
