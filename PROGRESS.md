@@ -199,12 +199,12 @@ populates 4 users + current year. See
 
 ## Phase 14 — Stats API aggregation engine
 
-- ⬜ Slice 1 — `aggregate.ts` helpers (fetchAttempts, groupByDay, masteryBucket, …)
-- ⬜ Slice 2 — `/api/stats/user/:userId`
-- ⬜ Slice 3 — `/api/stats/course/:courseId` + struggle list
-- ⬜ Slice 4 — `/api/stats/family` and `/api/stats/compare`
-- ⬜ Slice 5 — `/api/stats/heatmap/:userId`
-- ⬜ Slice 6 — `api/__meta__/stats-privacy.test.ts` (invariant 2)
+- ✅ Slice 1 — `aggregate.ts` helpers (fetchAttempts, groupByDay, masteryBucket, …)
+- ✅ Slice 2 — `/api/stats/user/:userId`
+- ✅ Slice 3 — `/api/stats/course/:courseId` + struggle list
+- ✅ Slice 4 — `/api/stats/family` and `/api/stats/compare`
+- ✅ Slice 5 — `/api/stats/heatmap/:userId`
+- ✅ Slice 6 — `api/__meta__/stats-privacy.test.ts` (invariant 2)
 
 ---
 
