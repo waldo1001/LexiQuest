@@ -15,6 +15,7 @@ import ImportReview from "./screens/ImportReview.jsx";
 import FamilyDashboard from "./screens/FamilyDashboard.jsx";
 import UserStats from "./screens/UserStats.jsx";
 import CourseStats from "./screens/CourseStats.jsx";
+import Leaderboard from "./screens/Leaderboard.jsx";
 import { AppProvider } from "./context/AppContext.jsx";
 import { createTts } from "./lib/tts.js";
 
@@ -42,6 +43,7 @@ export default function App({ tts = _tts }) {
           <Route path="/family" element={<FamilyDashboard />} />
           <Route path="/stats/user/:userId" element={<UserStats />} />
           <Route path="/stats/course/:courseId" element={<CourseStats />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
           <Route
             path="/admin"
             element={

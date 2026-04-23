@@ -221,7 +221,7 @@ populates 4 users + current year. See
 ## Phase 16 — Leaderboard & Compare view
 
 - ✅ Slice 1 — `GET /api/leaderboard`
-- ⬜ Slice 2 — `Leaderboard` screen
+- ✅ Slice 2 — `Leaderboard` screen
 - ⬜ Slice 3 — `CompareView` screen
 
 ---

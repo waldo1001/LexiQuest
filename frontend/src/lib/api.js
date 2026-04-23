@@ -612,6 +612,18 @@ export async function fetchCourseStats({ courseId, range = "30d" }, { fetchFn = 
  * @param {{ fetchFn?: typeof fetch }} [options]
  * @returns {Promise<{ heatmap: object[] }>}
  */
+/**
+ * @param {{ period?: string }} [params]
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<{ rankings: object[], mostAccurate: object, longestStreak: object, mostSessions: object }>}
+ */
+export async function fetchLeaderboard({ period = "all" } = {}, { fetchFn = fetch } = {}) {
+  const response = await fetchFn(`/api/leaderboard?period=${period}`, { credentials: "include" });
+  if (response.status === 401) throw new Error("unauthorized");
+  if (!response.ok) throw new Error(`GET /api/leaderboard failed: ${response.status}`);
+  return response.json();
+}
+
 export async function fetchHeatmap({ userId, range = "1y" }, { fetchFn = fetch } = {}) {
   const response = await fetchFn(`/api/stats/heatmap/${userId}?range=${range}`, { credentials: "include" });
   if (response.status === 401) throw new Error("unauthorized");
