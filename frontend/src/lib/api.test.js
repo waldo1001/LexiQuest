@@ -23,6 +23,7 @@ import {
   updateYear,
   importCards,
   batchCreateCards,
+  enrichCards,
 } from "./api.js";
 
 function ok(body) {
@@ -714,6 +715,34 @@ describe("batchCreateCards", () => {
   it("throws on non-ok", async () => {
     await expect(
       batchCreateCards({ courseId: "c1", cards: [] }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
+    ).rejects.toThrow(/500/);
+  });
+});
+
+describe("enrichCards", () => {
+  it("POSTs to /api/cards/enrich and returns enriched count", async () => {
+    const data = { enriched: 3 };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    const result = await enrichCards({ courseId: "c1" }, { fetchFn });
+    expect(fetchFn).toHaveBeenCalledWith("/api/cards/enrich", expect.objectContaining({ method: "POST" }));
+    expect(result).toEqual(data);
+  });
+
+  it("throws 'forbidden' on 403", async () => {
+    await expect(
+      enrichCards({ courseId: "c1" }, { fetchFn: vi.fn().mockResolvedValue(fail(403)) }),
+    ).rejects.toThrow("forbidden");
+  });
+
+  it("throws 'claude_error' on 502", async () => {
+    await expect(
+      enrichCards({ courseId: "c1" }, { fetchFn: vi.fn().mockResolvedValue(fail(502)) }),
+    ).rejects.toThrow("claude_error");
+  });
+
+  it("throws on non-ok", async () => {
+    await expect(
+      enrichCards({ courseId: "c1" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
     ).rejects.toThrow(/500/);
   });
 });

@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
 import CourseList from "./CourseList.jsx";
 import { AppProvider } from "../context/AppContext.jsx";
+import { waitFor } from "@testing-library/react";
 
 const CURRENT_YEAR = {
   id: "y-2025",
@@ -46,6 +47,18 @@ const SEED_COURSES = [
   },
 ];
 
+const ASK_COURSE = {
+  id: "c-ask",
+  user_id: "u-lex",
+  year_id: "y-2025",
+  name: "Science",
+  emoji: "🔬",
+  color: "#00ff00",
+  language: "fr-FR",
+  default_mode: "ask",
+  created_at: "2026-04-22T00:00:00Z",
+};
+
 function setup({
   fetchYears,
   fetchCourses,
@@ -54,6 +67,7 @@ function setup({
   deleteCourse,
   confirmFn,
   lang = "en",
+  enrichCards,
 } = {}) {
   return render(
     <AppProvider initialLang={lang}>
@@ -74,10 +88,12 @@ function setup({
                 updateCourse={updateCourse ?? vi.fn()}
                 deleteCourse={deleteCourse ?? vi.fn()}
                 confirmFn={confirmFn ?? vi.fn(() => false)}
+                {...(enrichCards ? { enrichCards } : {})}
               />
             }
           />
           <Route path="/home" element={<h1>Home</h1>} />
+          <Route path="/courses/:courseId/study" element={<h1>Study</h1>} />
         </Routes>
       </MemoryRouter>
     </AppProvider>,
@@ -353,5 +369,96 @@ describe("CourseList", () => {
     expect(
       screen.getByRole("button", { name: /new course/i }),
     ).toBeDisabled();
+  });
+
+  it("CL-mp1: Study on ask-mode course shows inline mode picker", async () => {
+    setup({
+      fetchCourses: vi.fn().mockResolvedValue([...SEED_COURSES, ASK_COURSE]),
+    });
+    await screen.findByText("Science");
+    const card = cardFor("Science");
+    await userEvent.setup().click(within(card).getByRole("button", { name: /study/i }));
+    expect(within(card).getByRole("button", { name: /self.grade/i })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: /multiple choice/i })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: /mixed/i })).toBeInTheDocument();
+  });
+
+  it("CL-mp2: Clicking Self-grade in mode picker navigates with mode=self_grade", async () => {
+    const user = userEvent.setup();
+    setup({
+      fetchCourses: vi.fn().mockResolvedValue([ASK_COURSE]),
+    });
+    await screen.findByText("Science");
+    const card = cardFor("Science");
+    await user.click(within(card).getByRole("button", { name: /study/i }));
+    await user.click(within(card).getByRole("button", { name: /self.grade/i }));
+    expect(screen.getByRole("heading", { name: /study/i })).toBeInTheDocument();
+  });
+
+  it("CL-mp3: Clicking MCQ in mode picker navigates with mode=mcq", async () => {
+    const user = userEvent.setup();
+    setup({
+      fetchCourses: vi.fn().mockResolvedValue([ASK_COURSE]),
+    });
+    await screen.findByText("Science");
+    const card = cardFor("Science");
+    await user.click(within(card).getByRole("button", { name: /study/i }));
+    await user.click(within(card).getByRole("button", { name: /multiple choice/i }));
+    expect(screen.getByRole("heading", { name: /study/i })).toBeInTheDocument();
+  });
+
+  it("CL-mp4: Clicking Mixed in mode picker navigates with mode=mixed", async () => {
+    const user = userEvent.setup();
+    setup({
+      fetchCourses: vi.fn().mockResolvedValue([ASK_COURSE]),
+    });
+    await screen.findByText("Science");
+    const card = cardFor("Science");
+    await user.click(within(card).getByRole("button", { name: /study/i }));
+    await user.click(within(card).getByRole("button", { name: /mixed/i }));
+    expect(screen.getByRole("heading", { name: /study/i })).toBeInTheDocument();
+  });
+
+  it("CL-mp5: Study link on non-ask course navigates directly without picker", async () => {
+    setup();
+    await screen.findByText("French");
+    const card = cardFor("French");
+    // French has default_mode "mcq" — should be a direct link, no Study button
+    expect(within(card).queryByRole("button", { name: /study/i })).toBeNull();
+    expect(within(card).getByRole("link", { name: /study/i })).toBeInTheDocument();
+  });
+
+  it("CL-enrich1: Enrich button not shown when enrichCards prop is absent", async () => {
+    setup();
+    await screen.findByText("French");
+    expect(screen.queryByRole("button", { name: /enrich/i })).toBeNull();
+  });
+
+  it("CL-enrich2: Enrich button shown for each course when enrichCards prop is provided", async () => {
+    setup({ enrichCards: vi.fn().mockResolvedValue({ enriched: 3 }) });
+    await screen.findByText("French");
+    const enrichBtns = screen.getAllByRole("button", { name: /enrich/i });
+    expect(enrichBtns.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("CL-enrich3: Enrich calls enrichCards with courseId and shows enriched status", async () => {
+    const enrichCards = vi.fn().mockResolvedValue({ enriched: 5 });
+    const user = userEvent.setup();
+    setup({ enrichCards });
+    await screen.findByText("French");
+    const card = cardFor("French");
+    await user.click(within(card).getByRole("button", { name: /enrich/i }));
+    expect(enrichCards).toHaveBeenCalledWith({ courseId: "c-1" });
+    expect(await screen.findByRole("status")).toHaveTextContent(/5/);
+  });
+
+  it("CL-enrich4: Enrich shows error alert when enrichCards fails", async () => {
+    const enrichCards = vi.fn().mockRejectedValue(new Error("claude_error"));
+    const user = userEvent.setup();
+    setup({ enrichCards });
+    await screen.findByText("French");
+    const card = cardFor("French");
+    await user.click(within(card).getByRole("button", { name: /enrich/i }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 });

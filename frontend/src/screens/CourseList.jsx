@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAppContext } from "../context/AppContext.jsx";
 import {
   fetchYears as fetchYearsApi,
@@ -52,9 +52,11 @@ export default function CourseList({
   confirmFn = typeof window !== "undefined"
     ? window.confirm.bind(window)
     : () => false,
+  enrichCards = null,
 }) {
   const t = useT();
   const { user } = useAppContext();
+  const navigate = useNavigate();
   const [years, setYears] = useState(null);
   const [courses, setCourses] = useState(null);
   const [status, setStatus] = useState(null);
@@ -63,6 +65,8 @@ export default function CourseList({
   const [newForm, setNewForm] = useState(EMPTY_NEW);
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState(null);
+  const [modePicking, setModePicking] = useState(null);
+  const [enrichingId, setEnrichingId] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,6 +164,25 @@ export default function CourseList({
     }
   }
 
+  function startStudy(course, mode) {
+    navigate(`/courses/${course.id}/study`, {
+      state: { courseName: course.name, mode, courseLang: course.language ?? null },
+    });
+  }
+
+  async function onEnrich(course) {
+    resetStatus();
+    setEnrichingId(course.id);
+    try {
+      const result = await enrichCards({ courseId: course.id });
+      setStatus(t("courses.status.enriched", { count: result.enriched }));
+    } catch {
+      setError(t("errors.generic"));
+    } finally {
+      setEnrichingId(null);
+    }
+  }
+
   if (years === null || courses === null) return <p>{t("courses.loading")}</p>;
 
   return (
@@ -253,18 +276,54 @@ export default function CourseList({
                 <>
                   <span>{course.emoji}</span>
                   <span>{course.name}</span>
-                  <Link
-                    to={`/courses/${course.id}/study`}
-                    state={{ courseName: course.name, mode: course.default_mode ?? "self_grade", courseLang: course.language ?? null }}
-                  >
-                    {t("courses.action.study")}
-                  </Link>
+                  {course.default_mode === "ask" ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setModePicking((prev) => prev === course.id ? null : course.id)}
+                      >
+                        {t("courses.action.study")}
+                      </button>
+                      {modePicking === course.id && (
+                        <div>
+                          <p>{t("courses.modePicker.title")}</p>
+                          <button type="button" onClick={() => startStudy(course, "self_grade")}>
+                            {t("courses.modePicker.self_grade")}
+                          </button>
+                          <button type="button" onClick={() => startStudy(course, "mcq")}>
+                            {t("courses.modePicker.mcq")}
+                          </button>
+                          <button type="button" onClick={() => startStudy(course, "mixed")}>
+                            {t("courses.modePicker.mixed")}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <Link
+                      to={`/courses/${course.id}/study`}
+                      state={{ courseName: course.name, mode: course.default_mode ?? "self_grade", courseLang: course.language ?? null }}
+                    >
+                      {t("courses.action.study")}
+                    </Link>
+                  )}
                   <Link
                     to={`/courses/${course.id}/cards`}
                     state={{ courseName: course.name, ownerId: course.user_id, courseLang: course.language ?? null }}
                   >
                     {t("courses.action.manageCards")}
                   </Link>
+                  {enrichCards && (
+                    <button
+                      type="button"
+                      disabled={enrichingId === course.id}
+                      onClick={() => onEnrich(course)}
+                    >
+                      {enrichingId === course.id
+                        ? t("courses.status.enriching")
+                        : t("courses.action.enrich")}
+                    </button>
+                  )}
                   <button type="button" onClick={() => startEdit(course)}>
                     {t("courses.action.edit")}
                   </button>

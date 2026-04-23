@@ -193,7 +193,7 @@ populates 4 users + current year. See
 
 - ✅ Slice 1 — `POST /api/cards/enrich`
 - ✅ Slice 2 — MCQ rendering + grading in `StudySession`
-- ⬜ Slice 3 — Mode picker, mixed-mode dispatch
+- ✅ Slice 3 — Mode picker, mixed-mode dispatch
 
 ---
 
