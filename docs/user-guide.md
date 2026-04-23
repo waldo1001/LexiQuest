@@ -2,7 +2,7 @@
 
 For family members using the running app.
 
-Current state: **Phase 16 complete.** This guide fills in from Phase 3
+Current state: **Phase 17 complete — all 17 phases done.** This guide fills in from Phase 3
 onward (first login + dashboard) and gets sections added per phase:
 
 - **Logging in** (Phase 3): tap your avatar, enter password, you land on
@@ -84,9 +84,20 @@ onward (first login + dashboard) and gets sections added per phase:
     metric from the dropdown: XP, Accuracy, Sessions, Cards, or Minutes.
     Pick a date range. The chart updates instantly showing all selected
     users overlaid with their own color.
-- **Install as an app** (Phase 17): add to home screen on iOS or
-  Android. Works full-screen.
-- **Settings**: UI language (NL / EN), auto-speak, daily goal, preferred
-  study mode.
+- **Install as an app** (Phase 17): add to home screen on iOS or Android.
+  Works full-screen without browser chrome.
+- **Settings** (Phase 17): UI language (NL / EN), auto-speak, daily goal,
+  preferred study mode, streak freeze tokens, and:
+  - **Display theme** — System default, Light, or Dark.
+  - **Export my data** — downloads `lexiquest-{name}-{date}.json` containing
+    all your courses, cards, sessions, and attempts.
+- **Studying with swipe** (Phase 17): on touch screens you can swipe the
+  card instead of tapping buttons — swipe right to mark "Knew it", swipe
+  left for "Didn't know". Only active when the answer is shown.
+- **Bottom navigation** (Phase 17): fixed bottom bar links to Dashboard,
+  Study (Home), Family Dashboard, and Settings on all screens.
+- **Offline** (Phase 17): if the device goes offline a banner appears at
+  the bottom of the screen. The app shell remains usable but API calls
+  will fail until connectivity is restored.
 
 Each phase's `/docs-update` run fills out the relevant section here.

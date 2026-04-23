@@ -3,6 +3,16 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-04-23 (Phase 17 complete — all 17 phases done)
+
+- Added `GET /api/export`: returns `{ user, courses, cards, sessions, attempts }` (own data only; admin can pass `?userId=`). Strips `password_hash`. Sets `Content-Disposition: attachment`. 9 tests, 100% coverage. Phase 17 Slice 3.
+- Added "Export my data" download link to Settings screen; triggers `lexiquest-{name}-{date}.json` download. Phase 17 Slice 3.
+- Added `BottomNav` component: fixed bottom navigation (Dashboard / Study / Family / Settings) with `aria-current="page"` on active link. 7 tests. Phase 17 Slice 4.
+- Added swipe gestures to `StudySession` card area: swipe right = Knew it, swipe left = Didn't know (ANSWER phase only, 60 px threshold). 3 tests. Phase 17 Slice 4.
+- Added dark mode support: `setDarkMode('dark'|'light'|'system')` in AppContext applies `data-theme` to `<html>`; theme select in Settings. 4+2 tests. Phase 17 Slice 4.
+- Added `OfflineBanner` component: renders `role="alert"` div when `navigator.onLine` is false or when `offline` event fires; hides on `online` event. 4 tests. Phase 17 Slice 5.
+- Added `ErrorPage` component: friendly 403 / 404 / 500 pages with back-to-home link. 4 tests. Phase 17 Slice 5 — **Phase 17 complete**. Tagged `phase-17-done`. See [PROGRESS.md](../PROGRESS.md).
+
 ## 2026-04-23 (Phase 16 complete)
 
 - Added `GET /api/leaderboard?period=7d|30d|all`: XP-sorted rankings with per-user sessions/cards/accuracy/streak; secondary awards for mostAccurate, longestStreak, mostSessions. 10 tests, 100% coverage. Phase 16 Slice 1.

@@ -6,7 +6,7 @@ repetition, gamification, and AI-assisted card creation from photos. The app
 name is dynamic: LexiQuest / MatsQuest / BenQuest / WaldoQuest, based on who
 is logged in.
 
-**Status**: Phase 16 complete — Leaderboard (`/leaderboard`) and Compare view (`/compare`) are live. The leaderboard ranks all users by XP with secondary awards (most accurate, longest streak, most sessions). Compare lets you overlay any users on one chart across five metrics. Also live: Stats UI with Family Dashboard + User Stats + Course Stats (Phase 15), full stats API (Phase 14), AI card import (Phase 12), MCQ mode (Phase 13), TTS (Phase 11), XP/streaks/badges (Phase 10), SM-2 (Phase 8). Next: Phase 17 — PWA polish, settings, backup/export.
+**Status**: All 17 phases complete. PWA installable on iOS/Android, bottom nav, swipe gestures in study, dark mode, data export (`GET /api/export` → JSON download), offline banner. Also live: Leaderboard + Compare (Phase 16), Stats UI (Phase 15), full stats API (Phase 14), AI card import (Phase 12), MCQ mode (Phase 13), TTS (Phase 11), XP/streaks/badges (Phase 10), SM-2 (Phase 8). Tagged `phase-17-done`. See [Design.md §7](Design.md) for deferred v2 items.
 
 ## What it is
 
