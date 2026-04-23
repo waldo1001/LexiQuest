@@ -219,6 +219,9 @@ export const strings = {
     "compare.metric.cards": "Cards",
     "compare.metric.minutes": "Minutes",
     "compare.link": "Compare",
+    "settings.dailyGoal": "Daily goal (cards)",
+    "settings.preferredMode": "Preferred study mode",
+    "settings.freezeTokens": "Streak freeze tokens",
   },
   nl: {
     "picker.title": "Wie ben jij?",
@@ -431,6 +434,9 @@ export const strings = {
     "compare.metric.cards": "Kaarten",
     "compare.metric.minutes": "Minuten",
     "compare.link": "Vergelijken",
+    "settings.dailyGoal": "Dagdoel (kaarten)",
+    "settings.preferredMode": "Voorkeursstudiemodus",
+    "settings.freezeTokens": "Vriesstokens",
   },
 };
 

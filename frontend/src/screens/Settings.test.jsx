@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
@@ -41,19 +41,19 @@ describe("Settings", () => {
 
   it("pre-selects the current language — en", () => {
     setup({ lang: "en" });
-    expect(screen.getByRole("combobox")).toHaveValue("en");
+    expect(screen.getByTestId("lang-select")).toHaveValue("en");
   });
 
   it("pre-selects the current language — nl", () => {
     setup({ lang: "nl" });
-    expect(screen.getByRole("combobox")).toHaveValue("nl");
+    expect(screen.getByTestId("lang-select")).toHaveValue("nl");
   });
 
   it("calls setLang when the user picks a different language", async () => {
     const user = userEvent.setup();
     const patchMe = vi.fn().mockResolvedValue({ ui_language: "nl" });
     setup({ lang: "en", patchMe });
-    await user.selectOptions(screen.getByRole("combobox"), "nl");
+    await user.selectOptions(screen.getByTestId("lang-select"), "nl");
     expect(patchMe).toHaveBeenCalledWith({ ui_language: "nl" });
   });
 
@@ -61,7 +61,7 @@ describe("Settings", () => {
     const user = userEvent.setup();
     const patchMe = vi.fn().mockRejectedValue(new Error("offline"));
     setup({ lang: "en", patchMe });
-    await user.selectOptions(screen.getByRole("combobox"), "nl");
+    await user.selectOptions(screen.getByTestId("lang-select"), "nl");
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 
@@ -94,5 +94,41 @@ describe("Settings", () => {
     setup({ patchMe, initialUser: { id: "u1", name: "Lex", settings: { auto_speak: false } } });
     await userEvent.click(screen.getByRole("checkbox", { name: /auto-speak/i }));
     expect(patchMe).toHaveBeenCalledWith({ settings: { auto_speak: true } });
+  });
+
+  it("ST-ext-1: renders daily_goal input with current value from user.settings", () => {
+    setup({ initialUser: { id: "u1", name: "Lex", settings: { daily_goal: 15 } } });
+    const input = screen.getByTestId("daily-goal-input");
+    expect(input).toBeInTheDocument();
+    expect(input).toHaveValue(15);
+  });
+
+  it("ST-ext-2: changing daily_goal calls patchMe with settings.daily_goal on blur", async () => {
+    const patchMe = vi.fn().mockResolvedValue({});
+    setup({ patchMe, initialUser: { id: "u1", name: "Lex", settings: { daily_goal: 10 } } });
+    const input = screen.getByTestId("daily-goal-input");
+    fireEvent.change(input, { target: { value: "25" } });
+    fireEvent.blur(input);
+    await vi.waitFor(() => expect(patchMe).toHaveBeenCalledWith({ settings: { daily_goal: 25 } }));
+  });
+
+  it("ST-ext-3: renders preferred_mode select with current value", () => {
+    setup({ initialUser: { id: "u1", name: "Lex", settings: { preferred_mode: "mcq" } } });
+    const select = screen.getByTestId("preferred-mode-select");
+    expect(select).toBeInTheDocument();
+    expect(select).toHaveValue("mcq");
+  });
+
+  it("ST-ext-4: changing preferred_mode calls patchMe with settings.preferred_mode", async () => {
+    const patchMe = vi.fn().mockResolvedValue({});
+    setup({ patchMe, initialUser: { id: "u1", name: "Lex", settings: { preferred_mode: "self_grade" } } });
+    const select = screen.getByTestId("preferred-mode-select");
+    await userEvent.selectOptions(select, "mixed");
+    expect(patchMe).toHaveBeenCalledWith({ settings: { preferred_mode: "mixed" } });
+  });
+
+  it("ST-ext-5: shows freeze tokens from user.settings", () => {
+    setup({ initialUser: { id: "u1", name: "Lex", settings: { freeze_tokens: 3 } } });
+    expect(screen.getByTestId("freeze-tokens")).toHaveTextContent("3");
   });
 });

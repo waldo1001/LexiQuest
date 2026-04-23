@@ -15,12 +15,38 @@ export default function Settings({ patchMe = patchMeApi }) {
   const { lang, setLang, user, setUser } = useAppContext();
   const [error, setError] = useState(null);
   const autoSpeak = user?.settings?.auto_speak ?? false;
+  const dailyGoal = user?.settings?.daily_goal ?? 20;
+  const preferredMode = user?.settings?.preferred_mode ?? "self_grade";
+  const freezeTokens = user?.settings?.freeze_tokens ?? 0;
 
   async function onLangChange(e) {
     const next = /** @type {"en"|"nl"} */ (e.target.value);
     setError(null);
     try {
       await setLang(next);
+    } catch {
+      setError(t("errors.generic"));
+    }
+  }
+
+  async function onDailyGoalBlur(e) {
+    const next = parseInt(e.target.value, 10);
+    if (isNaN(next) || next < 1) return;
+    setError(null);
+    try {
+      await patchMe({ settings: { daily_goal: next } });
+      setUser((u) => u ? { ...u, settings: { ...u.settings, daily_goal: next } } : u);
+    } catch {
+      setError(t("errors.generic"));
+    }
+  }
+
+  async function onPreferredModeChange(e) {
+    const next = e.target.value;
+    setError(null);
+    try {
+      await patchMe({ settings: { preferred_mode: next } });
+      setUser((u) => u ? { ...u, settings: { ...u.settings, preferred_mode: next } } : u);
     } catch {
       setError(t("errors.generic"));
     }
@@ -42,7 +68,7 @@ export default function Settings({ patchMe = patchMeApi }) {
       <h1>{t("settings.title")}</h1>
 
       <label htmlFor="lang-select">{t("settings.language")}</label>
-      <select id="lang-select" value={lang} onChange={onLangChange}>
+      <select id="lang-select" data-testid="lang-select" value={lang} onChange={onLangChange}>
         {SUPPORTED_LANGS.map((l) => (
           <option key={l} value={l}>
             {t(`settings.language.${l}`)}
@@ -59,6 +85,34 @@ export default function Settings({ patchMe = patchMeApi }) {
         />
         {t("settings.autoSpeak")}
       </label>
+
+      <label htmlFor="daily-goal-input">{t("settings.dailyGoal")}</label>
+      <input
+        id="daily-goal-input"
+        data-testid="daily-goal-input"
+        type="number"
+        min="1"
+        max="200"
+        defaultValue={dailyGoal}
+        onBlur={onDailyGoalBlur}
+      />
+
+      <label htmlFor="preferred-mode-select">{t("settings.preferredMode")}</label>
+      <select
+        id="preferred-mode-select"
+        data-testid="preferred-mode-select"
+        value={preferredMode}
+        onChange={onPreferredModeChange}
+      >
+        <option value="self_grade">{t("courses.mode.self_grade")}</option>
+        <option value="mcq">{t("courses.mode.mcq")}</option>
+        <option value="mixed">{t("courses.mode.mixed")}</option>
+      </select>
+
+      <div>
+        <span>{t("settings.freezeTokens")}: </span>
+        <span data-testid="freeze-tokens">{freezeTokens}</span>
+      </div>
 
       {error && <p role="alert">{error}</p>}
 
