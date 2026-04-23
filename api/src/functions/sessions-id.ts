@@ -117,6 +117,7 @@ export function makeSessionsIdHandler(deps: SessionsIdDeps): HttpHandler {
           streak: streakResult.streak,
           last_session_date: streakResult.last_session_date,
           freeze_tokens: streakResult.freeze_tokens,
+          total_xp: (existingSettings.total_xp ?? 0) + xpEarned,
           badges: [...(existingSettings.badges ?? []), ...badgesEarned],
         },
       };

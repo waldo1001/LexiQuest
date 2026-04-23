@@ -9,6 +9,7 @@ import CourseList from "./screens/CourseList.jsx";
 import CardManager from "./screens/CardManager.jsx";
 import StudySession from "./screens/StudySession.jsx";
 import SessionResults from "./screens/SessionResults.jsx";
+import Dashboard from "./screens/Dashboard.jsx";
 import { AppProvider } from "./context/AppContext.jsx";
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/" element={<UserPicker />} />
           <Route path="/login/:userId" element={<Login />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/courses" element={<CourseList />} />
           <Route path="/courses/:courseId/cards" element={<CardManager />} />

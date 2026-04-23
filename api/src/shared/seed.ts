@@ -19,6 +19,7 @@ export interface UserRow extends Entity {
     streak?: number;
     last_session_date?: string | null;
     freeze_tokens?: number;
+    total_xp?: number;
     badges?: string[];
   };
   created_at: string;
