@@ -3,6 +3,15 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-04-23 (Phase 11 Slice 1)
+
+- Added `Tts` seam: `frontend/src/lib/tts.js` (`createTts(speechSynthesis, UtteranceCtor)`) wraps `window.speechSynthesis` with `isAvailable(lang)` (prefix-match, assumes available when voices not yet loaded) and `speak(text, lang, rate=0.9)` (cancels, defers via `onvoiceschanged` when needed); no-op when speechSynthesis null. `frontend/src/testing/fake-tts.js` (`createFakeTts`) records calls for test assertions. `useTts()` hook added to `AppContext`; `App.jsx` wires real `createTts(window.speechSynthesis)`. 19 new tts tests + 3 AppContext tests; `tts.js` 100% lines/branches/functions; all 232 frontend tests pass. See [plan](plans/done/phase-11-slice-1-tts-seam.md).
+
+## 2026-04-23 (Phase 9 + 10 catch-up)
+
+- Phase 9 complete: row-key format `{iso}_{uuid}` meta-test (Slice 1); `SessionResults` screen showing per-card correct/incorrect breakdown (Slice 2); `GET /api/stats/session/:id` endpoint returning session summary with card-level results (Slice 3).
+- Phase 10 complete: `computeSessionXp` pure function (Slice 1); streak logic with `Europe/Brussels` rollover + freeze-token deduction on session-close (Slice 2); badge engine awarding first-session, streak-7, and mastery badges (Slice 3); `Dashboard` screen with XP total, current streak, daily-goal progress, and earned badges (Slice 4).
+
 ## 2026-04-22 (Phase 8)
 
 - Implemented `applySm2(card, quality, now)` pure function in `api/src/shared/sm2.ts` and mirrored to `frontend/src/lib/sm2.js`; covers quality-0 reset, rep-0→1 day, rep-1→6 day, rep-2+ × ease, ease floor 1.3, 13 API tests + 5 frontend tests.

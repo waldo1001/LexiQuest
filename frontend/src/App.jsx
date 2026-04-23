@@ -11,10 +11,16 @@ import StudySession from "./screens/StudySession.jsx";
 import SessionResults from "./screens/SessionResults.jsx";
 import Dashboard from "./screens/Dashboard.jsx";
 import { AppProvider } from "./context/AppContext.jsx";
+import { createTts } from "./lib/tts.js";
 
-export default function App() {
+// Module-level singleton — the only place the real browser speechSynthesis is
+// touched. In jsdom (tests that import App) this resolves to createTts(undefined)
+// which returns a no-op, so existing App-level tests are unaffected.
+const _tts = createTts(typeof window !== "undefined" ? window.speechSynthesis : null);
+
+export default function App({ tts = _tts }) {
   return (
-    <AppProvider>
+    <AppProvider tts={tts}>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<UserPicker />} />

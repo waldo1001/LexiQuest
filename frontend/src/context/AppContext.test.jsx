@@ -1,6 +1,7 @@
 import { render, screen, act } from "@testing-library/react";
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { AppProvider, useAppContext } from "./AppContext.jsx";
+import { AppProvider, useAppContext, useTts } from "./AppContext.jsx";
+import { createFakeTts } from "../testing/fake-tts.js";
 
 function Probe() {
   const { user, lang, setLang, setUser } = useAppContext();
@@ -136,6 +137,55 @@ describe("AppContext", () => {
         screen.getByRole("button", { name: "to-nl" }).click();
       });
       expect(document.documentElement.lang).toBe("nl");
+    });
+  });
+
+  describe("useTts", () => {
+    function TtsProbe() {
+      const tts = useTts();
+      return (
+        <div>
+          <div data-testid="available">{String(tts.isAvailable("fr-FR"))}</div>
+          <button type="button" onClick={() => tts.speak("bonjour", "fr-FR")}>speak</button>
+        </div>
+      );
+    }
+
+    it("returns the tts object injected via the tts prop (AC11)", () => {
+      const fakeTts = createFakeTts({ available: true });
+      render(
+        <AppProvider tts={fakeTts}>
+          <TtsProbe />
+        </AppProvider>,
+      );
+      expect(screen.getByTestId("available").textContent).toBe("true");
+    });
+
+    it("speak() on injected tts records the call (AC11)", () => {
+      const fakeTts = createFakeTts();
+      render(
+        <AppProvider tts={fakeTts}>
+          <TtsProbe />
+        </AppProvider>,
+      );
+      act(() => {
+        screen.getByRole("button", { name: "speak" }).click();
+      });
+      expect(fakeTts.lastSpoken).toEqual({ text: "bonjour", lang: "fr-FR", rate: 0.9 });
+    });
+
+    it("default no-op tts has isAvailable false and speak does nothing (AC12)", () => {
+      render(
+        <AppProvider>
+          <TtsProbe />
+        </AppProvider>,
+      );
+      expect(screen.getByTestId("available").textContent).toBe("false");
+      expect(() =>
+        act(() => {
+          screen.getByRole("button", { name: "speak" }).click();
+        }),
+      ).not.toThrow();
     });
   });
 });

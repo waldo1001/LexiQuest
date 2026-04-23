@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 8 complete (all 5 slices done). Tag `phase-8-done` applied.
+- **Current phase**: Phase 11 in progress (Slice 1 done). Phases 9 + 10 complete.
 - **Last tag**: `phase-8-done`
-- **Next up**: Phase 9 — Attempts & sessions logging + results screen
+- **Next up**: Phase 11 Slice 2 — 🔊 buttons in study + card manager
 
 ---
 
@@ -157,24 +157,24 @@ populates 4 users + current year. See
 
 ## Phase 9 — Attempts & sessions logging + results
 
-- ⬜ Slice 1 — Row-key format `{iso}_{uuid}` meta-test
-- ⬜ Slice 2 — `SessionResults` screen
-- ⬜ Slice 3 — `GET /api/stats/session/:id`
+- ✅ Slice 1 — Row-key format `{iso}_{uuid}` meta-test
+- ✅ Slice 2 — `SessionResults` screen
+- ✅ Slice 3 — `GET /api/stats/session/:id`
 
 ---
 
 ## Phase 10 — XP, streaks, daily goals, badges
 
-- ⬜ Slice 1 — `computeSessionXp` pure function
-- ⬜ Slice 2 — Streak logic with `Europe/Brussels` rollover + freeze tokens
-- ⬜ Slice 3 — Badge engine
-- ⬜ Slice 4 — `Dashboard` screen with streak/XP/progress
+- ✅ Slice 1 — `computeSessionXp` pure function
+- ✅ Slice 2 — Streak logic with `Europe/Brussels` rollover + freeze tokens
+- ✅ Slice 3 — Badge engine
+- ✅ Slice 4 — `Dashboard` screen with streak/XP/progress
 
 ---
 
 ## Phase 11 — speechSynthesis / TTS
 
-- ⬜ Slice 1 — `Tts` seam (interface + real wrapping speechSynthesis + fake)
+- ✅ Slice 1 — `Tts` seam (interface + real wrapping speechSynthesis + fake)
 - ⬜ Slice 2 — 🔊 buttons in study + card manager
 - ⬜ Slice 3 — `auto_speak` setting
 
