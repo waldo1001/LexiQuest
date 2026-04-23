@@ -555,3 +555,67 @@ export async function batchCreateCards(body, { fetchFn = fetch } = {}) {
   if (!response.ok) throw new Error(`POST /api/cards/batch failed: ${response.status}`);
   return response.json();
 }
+
+/**
+ * @param {{ range?: string }} [params]
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<{ users: object[] }>}
+ */
+export async function fetchFamilyStats({ range = "30d" } = {}, { fetchFn = fetch } = {}) {
+  const response = await fetchFn(`/api/stats/family?range=${range}`, { credentials: "include" });
+  if (response.status === 401) throw new Error("unauthorized");
+  if (!response.ok) throw new Error(`GET /api/stats/family failed: ${response.status}`);
+  return response.json();
+}
+
+/**
+ * @param {{ userIds: string[], metric: string, range?: string }} params
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<{ series: object[] }>}
+ */
+export async function fetchCompareStats({ userIds, metric, range = "30d" }, { fetchFn = fetch } = {}) {
+  const qs = new URLSearchParams({ userIds: userIds.join(","), metric, range });
+  const response = await fetchFn(`/api/stats/compare?${qs}`, { credentials: "include" });
+  if (response.status === 401) throw new Error("unauthorized");
+  if (!response.ok) throw new Error(`GET /api/stats/compare failed: ${response.status}`);
+  return response.json();
+}
+
+/**
+ * @param {{ userId: string, range?: string }} params
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<object>}
+ */
+export async function fetchUserStats({ userId, range = "30d" }, { fetchFn = fetch } = {}) {
+  const response = await fetchFn(`/api/stats/user/${userId}?range=${range}`, { credentials: "include" });
+  if (response.status === 401) throw new Error("unauthorized");
+  if (response.status === 404) throw new Error("not_found");
+  if (!response.ok) throw new Error(`GET /api/stats/user failed: ${response.status}`);
+  return response.json();
+}
+
+/**
+ * @param {{ courseId: string, range?: string }} params
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<object>}
+ */
+export async function fetchCourseStats({ courseId, range = "30d" }, { fetchFn = fetch } = {}) {
+  const response = await fetchFn(`/api/stats/course/${courseId}?range=${range}`, { credentials: "include" });
+  if (response.status === 401) throw new Error("unauthorized");
+  if (response.status === 404) throw new Error("not_found");
+  if (!response.ok) throw new Error(`GET /api/stats/course failed: ${response.status}`);
+  return response.json();
+}
+
+/**
+ * @param {{ userId: string, range?: string }} params
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<{ heatmap: object[] }>}
+ */
+export async function fetchHeatmap({ userId, range = "1y" }, { fetchFn = fetch } = {}) {
+  const response = await fetchFn(`/api/stats/heatmap/${userId}?range=${range}`, { credentials: "include" });
+  if (response.status === 401) throw new Error("unauthorized");
+  if (response.status === 404) throw new Error("not_found");
+  if (!response.ok) throw new Error(`GET /api/stats/heatmap failed: ${response.status}`);
+  return response.json();
+}

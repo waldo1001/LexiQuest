@@ -12,6 +12,7 @@ import SessionResults from "./screens/SessionResults.jsx";
 import Dashboard from "./screens/Dashboard.jsx";
 import PhotoImport from "./screens/PhotoImport.jsx";
 import ImportReview from "./screens/ImportReview.jsx";
+import FamilyDashboard from "./screens/FamilyDashboard.jsx";
 import { AppProvider } from "./context/AppContext.jsx";
 import { createTts } from "./lib/tts.js";
 
@@ -36,6 +37,7 @@ export default function App({ tts = _tts }) {
           <Route path="/courses/:courseId/import/review" element={<ImportReview />} />
           <Route path="/courses/:courseId/study" element={<StudySession />} />
           <Route path="/courses/:courseId/results" element={<SessionResults />} />
+          <Route path="/family" element={<FamilyDashboard />} />
           <Route
             path="/admin"
             element={
