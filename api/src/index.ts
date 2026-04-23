@@ -29,6 +29,7 @@ import { registerStatsHeatmap } from "./functions/stats-heatmap.js";
 import { registerCardsImport } from "./functions/cards-import.js";
 import { registerCardsBatch } from "./functions/cards-batch.js";
 import { registerCardsEnrich } from "./functions/cards-enrich.js";
+import { registerLeaderboard } from "./functions/leaderboard.js";
 import { createClaudeClient } from "./shared/claude.js";
 
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING ?? "";
@@ -66,3 +67,4 @@ const claude = createClaudeClient(anthropicApiKey);
 registerCardsImport({ tables, signer, clock, claude });
 registerCardsBatch({ tables, signer, clock, random });
 registerCardsEnrich({ tables, signer, clock, claude });
+registerLeaderboard({ tables, signer, clock });
