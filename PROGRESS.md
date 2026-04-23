@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 15 complete (all 5 slices done). Tagged `phase-15-done`.
-- **Last tag**: `phase-15-done`
-- **Next up**: Phase 16 — Leaderboard & Compare view
+- **Current phase**: Phase 16 complete (all 3 slices done). Tagged `phase-16-done`.
+- **Last tag**: `phase-16-done`
+- **Next up**: Phase 17 — PWA polish, settings, backup/export
 
 ---
 

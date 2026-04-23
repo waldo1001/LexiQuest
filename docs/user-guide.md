@@ -2,7 +2,7 @@
 
 For family members using the running app.
 
-Current state: **Phase 15 complete.** This guide fills in from Phase 3
+Current state: **Phase 16 complete.** This guide fills in from Phase 3
 onward (first login + dashboard) and gets sections added per phase:
 
 - **Logging in** (Phase 3): tap your avatar, enter password, you land on
@@ -71,8 +71,19 @@ onward (first login + dashboard) and gets sections added per phase:
     chart), sessions over time, and the card struggle list — the top 20
     cards ranked by fail count. This tells you which cards to spend extra
     time on.
-- **Leaderboard** (Phase 16): XP ranking plus "most accurate", "longest
-  streak", "most sessions".
+- **Leaderboard** (Phase 16): XP ranking for the whole family.
+  - Go to `/leaderboard`. Choose a period: 7 days, 30 days, or All time.
+    The list shows everyone ranked by XP, with their avatar, name, and XP
+    total. Click any entry to open that person's User Stats.
+  - Three secondary award cards at the top: 🎯 Most accurate (highest
+    correct-first-try rate), 🔥 Longest streak (most consecutive study
+    days), 💪 Most sessions (most study sessions in the selected period).
+- **Compare** (Phase 16): overlay any combination of users on one chart.
+  - Go to `/compare`. All family members are selected by default (shown as
+    colored chips). Click a chip to toggle that person on or off. Choose a
+    metric from the dropdown: XP, Accuracy, Sessions, Cards, or Minutes.
+    Pick a date range. The chart updates instantly showing all selected
+    users overlaid with their own color.
 - **Install as an app** (Phase 17): add to home screen on iOS or
   Android. Works full-screen.
 - **Settings**: UI language (NL / EN), auto-speak, daily goal, preferred

@@ -6,7 +6,7 @@ repetition, gamification, and AI-assisted card creation from photos. The app
 name is dynamic: LexiQuest / MatsQuest / BenQuest / WaldoQuest, based on who
 is logged in.
 
-**Status**: Phase 15 complete — Stats UI is live. Family Dashboard (`/family`) shows all users side-by-side with XP and accuracy charts. User Stats (`/stats/user/:id`) gives a full deep dive: heatmap, trends, hour histogram, response time. Course Stats (`/stats/course/:id`) shows mastery distribution and the card struggle list. Also live: AI card import (Phase 12), MCQ mode + distractor enrichment (Phase 13), full stats API (Phase 14), TTS pronunciation (Phase 11), XP/streaks/badges (Phase 10), SM-2 spaced repetition (Phase 8). Next: Phase 16 — Leaderboard & Compare view.
+**Status**: Phase 16 complete — Leaderboard (`/leaderboard`) and Compare view (`/compare`) are live. The leaderboard ranks all users by XP with secondary awards (most accurate, longest streak, most sessions). Compare lets you overlay any users on one chart across five metrics. Also live: Stats UI with Family Dashboard + User Stats + Course Stats (Phase 15), full stats API (Phase 14), AI card import (Phase 12), MCQ mode (Phase 13), TTS (Phase 11), XP/streaks/badges (Phase 10), SM-2 (Phase 8). Next: Phase 17 — PWA polish, settings, backup/export.
 
 ## What it is
 

@@ -3,6 +3,12 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-04-23 (Phase 16 complete)
+
+- Added `GET /api/leaderboard?period=7d|30d|all`: XP-sorted rankings with per-user sessions/cards/accuracy/streak; secondary awards for mostAccurate, longestStreak, mostSessions. 10 tests, 100% coverage. Phase 16 Slice 1.
+- Added `Leaderboard` screen (`/leaderboard`): period toggle, ranked list with XP, 3 secondary award cards. Links to UserStats per entry. Phase 16 Slice 2.
+- Added `CompareView` screen (`/compare`): user chips (all on by default), metric dropdown (XP/Accuracy/Sessions/Cards/Minutes), range selector, LineOverTime chart. Phase 16 Slice 3 — **Phase 16 complete**. See [PROGRESS.md](../PROGRESS.md).
+
 ## 2026-04-23 (Phase 15 complete)
 
 - Added 7 Recharts chart wrapper components (`frontend/src/charts/`): `LineOverTime`, `DailyBars`, `HourHistogram`, `MasteryStack`, `TopNBars`, `ResponseTimeHistogram`, `CalendarHeatmap` (GitHub-contrib style custom SVG). 18 tests, 94.59% branch coverage. Phase 15 Slice 1+2.
