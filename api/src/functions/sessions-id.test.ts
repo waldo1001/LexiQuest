@@ -3,10 +3,14 @@ import type { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { makeSessionsIdHandler, type SessionsIdDeps } from "./sessions-id.js";
 import type { SessionRow } from "./sessions-shared.js";
 import { makeSessionRowKey } from "./sessions-shared.js";
+import type { AttemptRow } from "./attempts-shared.js";
+import { makeAttemptRowKey } from "./attempts-shared.js";
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
 import { buildSessionCookie } from "../shared/session-cookie.js";
+import { PARTITIONS } from "../shared/table-partitions.js";
+import type { UserRow } from "../shared/seed.js";
 
 const ctx = {} as InvocationContext;
 const STARTED_AT = "2026-04-22T09:00:00.000Z";
@@ -127,8 +131,10 @@ describe("PUT /api/sessions/:id", () => {
     await deps.tables.upsert("users", {
       partitionKey: "users", rowKey: "u-mats",
       name: "Mats", is_admin: false, color: "#aaa", avatar_emoji: "🐻",
-      ui_language: "nl", settings: "{}", created_at: STARTED_AT,
-    });
+      ui_language: "nl",
+      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 20 },
+      created_at: STARTED_AT,
+    } as UserRow);
     await deps.tables.upsert<SessionRow>("sessions", makeSession("u-mats"));
 
     const res = (await makeSessionsIdHandler(deps)(
@@ -167,5 +173,54 @@ describe("PUT /api/sessions/:id", () => {
       ctx,
     )) as HttpResponseInit;
     expect(res.status).toBe(409);
+  });
+
+  it("xp_earned: 2 correct first-try = 2×10 + 20 session + 30 perfect = 70", async () => {
+    await deps.tables.upsert<SessionRow>("sessions", makeSession());
+
+    // Seed 2 correct attempts
+    const a1: AttemptRow = {
+      partitionKey: USER_ID, rowKey: makeAttemptRowKey(STARTED_AT, "a1"),
+      user_id: USER_ID, card_id: "c1", session_id: SESSION_ID,
+      correct: true, mode: "self_grade", response_time_ms: 1000, timestamp: STARTED_AT,
+    };
+    const a2: AttemptRow = {
+      partitionKey: USER_ID, rowKey: makeAttemptRowKey(STARTED_AT, "a2"),
+      user_id: USER_ID, card_id: "c2", session_id: SESSION_ID,
+      correct: true, mode: "self_grade", response_time_ms: 900, timestamp: STARTED_AT,
+    };
+    await deps.tables.upsert<AttemptRow>("attempts", a1);
+    await deps.tables.upsert<AttemptRow>("attempts", a2);
+
+    const res = (await makeSessionsIdHandler(deps)(
+      makeReq(validCookie(deps), SESSION_ID, { body: { cards_studied: 2, cards_correct: 2 } }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(200);
+    expect((res.jsonBody as Record<string, unknown>).xp_earned).toBe(70);
+  });
+
+  it("streak updates to 1 after first session", async () => {
+    // Seed user row without prior streak
+    const userRow: UserRow = {
+      partitionKey: PARTITIONS.users,
+      rowKey: USER_ID,
+      name: "Lex", password_hash: "x", is_admin: false,
+      color: "#16a34a", avatar_emoji: "🐯", ui_language: "en",
+      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 20 },
+      created_at: STARTED_AT,
+    };
+    await deps.tables.upsert<UserRow>("users", userRow);
+    await deps.tables.upsert<SessionRow>("sessions", makeSession());
+
+    await makeSessionsIdHandler(deps)(
+      makeReq(validCookie(deps), SESSION_ID, { body: { cards_studied: 1, cards_correct: 1 } }),
+      ctx,
+    );
+
+    const updated = await deps.tables.getById<UserRow>("users", PARTITIONS.users, USER_ID);
+    const settings = updated?.settings as Record<string, unknown>;
+    expect(settings.streak).toBe(1);
+    expect(settings.last_session_date).toBe("2026-04-22");
   });
 });

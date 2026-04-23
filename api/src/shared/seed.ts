@@ -16,6 +16,10 @@ export interface UserRow extends Entity {
     auto_speak: boolean;
     preferred_mode: "self_grade" | "mcq" | "mixed" | "ask";
     daily_goal: number;
+    streak?: number;
+    last_session_date?: string | null;
+    freeze_tokens?: number;
+    badges?: string[];
   };
   created_at: string;
 }

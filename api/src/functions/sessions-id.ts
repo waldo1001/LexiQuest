@@ -11,6 +11,11 @@ import type { TableStorage } from "../shared/table-storage.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import { type SessionRow, rowKeyToId, sessionProfile } from "./sessions-shared.js";
+import type { AttemptRow } from "./attempts-shared.js";
+import { computeSessionXp } from "../shared/xp.js";
+import { computeNewStreak } from "../shared/streak.js";
+
+const BRUSSELS_TZ = "Europe/Brussels";
 
 export interface SessionsIdDeps {
   tables: TableStorage;
@@ -55,16 +60,53 @@ export function makeSessionsIdHandler(deps: SessionsIdDeps): HttpHandler {
     const startedMs = new Date(session.started_at).getTime();
     const durationSeconds = Math.round((now.getTime() - startedMs) / 1000);
 
+    // Fetch attempts for this session to compute XP
+    const allAttempts = await deps.tables.listByPartition<AttemptRow>("attempts", auth.auth.userId);
+    const sessionAttempts = allAttempts.filter((a) => a.session_id === sessionId);
+
+    const xpEarned = computeSessionXp(
+      { cards_studied: closeBody.value.cards_studied, cards_correct: closeBody.value.cards_correct },
+      sessionAttempts,
+    );
+
     const updated: SessionRow = {
       ...session,
       ended_at: nowIso,
       cards_studied: closeBody.value.cards_studied,
       cards_correct: closeBody.value.cards_correct,
       duration_seconds: durationSeconds,
+      xp_earned: xpEarned,
     };
     await deps.tables.upsert<SessionRow>("sessions", updated);
 
-    return { status: 200, jsonBody: sessionProfile(updated) };
+    // Update user streak
+    const userRow = await deps.tables.getById<UserRow>("users", PARTITIONS.users, auth.auth.userId);
+    if (userRow) {
+      const existingSettings = typeof userRow.settings === "string"
+        ? JSON.parse(userRow.settings as unknown as string)
+        : userRow.settings;
+      const streakResult = computeNewStreak(
+        {
+          streak: existingSettings.streak ?? 0,
+          last_session_date: existingSettings.last_session_date ?? null,
+          freeze_tokens: existingSettings.freeze_tokens ?? 0,
+        },
+        nowIso,
+        BRUSSELS_TZ,
+      );
+      const updatedUser: UserRow = {
+        ...userRow,
+        settings: {
+          ...existingSettings,
+          streak: streakResult.streak,
+          last_session_date: streakResult.last_session_date,
+          freeze_tokens: streakResult.freeze_tokens,
+        },
+      };
+      await deps.tables.upsert<UserRow>("users", updatedUser);
+    }
+
+    return { status: 200, jsonBody: { ...sessionProfile(updated), xp_earned: xpEarned } };
   };
 }
 
