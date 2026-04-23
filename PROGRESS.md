@@ -222,7 +222,7 @@ populates 4 users + current year. See
 
 - ✅ Slice 1 — `GET /api/leaderboard`
 - ✅ Slice 2 — `Leaderboard` screen
-- ⬜ Slice 3 — `CompareView` screen
+- ✅ Slice 3 — `CompareView` screen
 
 ---
 

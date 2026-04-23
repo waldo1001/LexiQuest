@@ -212,6 +212,13 @@ export const strings = {
     "leaderboard.award.mostSessions": "Most sessions 💪",
     "leaderboard.xp": "XP",
     "leaderboard.link": "Leaderboard",
+    "compare.title": "Compare",
+    "compare.metric.xp": "XP",
+    "compare.metric.accuracy": "Accuracy",
+    "compare.metric.sessions": "Sessions",
+    "compare.metric.cards": "Cards",
+    "compare.metric.minutes": "Minutes",
+    "compare.link": "Compare",
   },
   nl: {
     "picker.title": "Wie ben jij?",
@@ -417,6 +424,13 @@ export const strings = {
     "leaderboard.award.mostSessions": "Meeste sessies 💪",
     "leaderboard.xp": "XP",
     "leaderboard.link": "Ranglijst",
+    "compare.title": "Vergelijken",
+    "compare.metric.xp": "XP",
+    "compare.metric.accuracy": "Nauwkeurigheid",
+    "compare.metric.sessions": "Sessies",
+    "compare.metric.cards": "Kaarten",
+    "compare.metric.minutes": "Minuten",
+    "compare.link": "Vergelijken",
   },
 };
 
