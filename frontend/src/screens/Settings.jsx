@@ -114,6 +114,10 @@ export default function Settings({ patchMe = patchMeApi }) {
         <span data-testid="freeze-tokens">{freezeTokens}</span>
       </div>
 
+      <a href="/api/export" download data-testid="export-link">
+        {t("settings.exportData")}
+      </a>
+
       {error && <p role="alert">{error}</p>}
 
       <Link to="/home">{t("common.back")}</Link>

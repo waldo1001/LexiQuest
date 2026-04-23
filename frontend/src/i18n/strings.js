@@ -222,6 +222,7 @@ export const strings = {
     "settings.dailyGoal": "Daily goal (cards)",
     "settings.preferredMode": "Preferred study mode",
     "settings.freezeTokens": "Streak freeze tokens",
+    "settings.exportData": "Export my data",
   },
   nl: {
     "picker.title": "Wie ben jij?",
@@ -437,6 +438,7 @@ export const strings = {
     "settings.dailyGoal": "Dagdoel (kaarten)",
     "settings.preferredMode": "Voorkeursstudiemodus",
     "settings.freezeTokens": "Vriesstokens",
+    "settings.exportData": "Mijn gegevens exporteren",
   },
 };
 

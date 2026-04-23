@@ -131,4 +131,16 @@ describe("Settings", () => {
     setup({ initialUser: { id: "u1", name: "Lex", settings: { freeze_tokens: 3 } } });
     expect(screen.getByTestId("freeze-tokens")).toHaveTextContent("3");
   });
+
+  it("EX-UI-1: renders an export data link", () => {
+    setup();
+    expect(screen.getByTestId("export-link")).toBeInTheDocument();
+  });
+
+  it("EX-UI-2: export link points to /api/export and has download attribute", () => {
+    setup();
+    const link = screen.getByTestId("export-link");
+    expect(link).toHaveAttribute("href", "/api/export");
+    expect(link).toHaveAttribute("download");
+  });
 });

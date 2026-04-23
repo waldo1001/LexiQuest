@@ -30,6 +30,7 @@ import { registerCardsImport } from "./functions/cards-import.js";
 import { registerCardsBatch } from "./functions/cards-batch.js";
 import { registerCardsEnrich } from "./functions/cards-enrich.js";
 import { registerLeaderboard } from "./functions/leaderboard.js";
+import { registerExport } from "./functions/export.js";
 import { createClaudeClient } from "./shared/claude.js";
 
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING ?? "";
@@ -68,3 +69,4 @@ registerCardsImport({ tables, signer, clock, claude });
 registerCardsBatch({ tables, signer, clock, random });
 registerCardsEnrich({ tables, signer, clock, claude });
 registerLeaderboard({ tables, signer, clock });
+registerExport({ tables, signer, clock });
