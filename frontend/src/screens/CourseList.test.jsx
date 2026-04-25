@@ -371,61 +371,22 @@ describe("CourseList", () => {
     ).toBeDisabled();
   });
 
-  it("CL-mp1: Study on ask-mode course shows inline mode picker", async () => {
+  it("CL-mp1: Study on ask-mode course links to /setup", async () => {
     setup({
       fetchCourses: vi.fn().mockResolvedValue([...SEED_COURSES, ASK_COURSE]),
     });
     await screen.findByText("Science");
     const card = cardFor("Science");
-    await userEvent.setup().click(within(card).getByRole("button", { name: /study/i }));
-    expect(within(card).getByRole("button", { name: /self.grade/i })).toBeInTheDocument();
-    expect(within(card).getByRole("button", { name: /multiple choice/i })).toBeInTheDocument();
-    expect(within(card).getByRole("button", { name: /mixed/i })).toBeInTheDocument();
+    const link = within(card).getByRole("link", { name: /study/i });
+    expect(link.getAttribute("href")).toContain("/setup");
   });
 
-  it("CL-mp2: Clicking Self-grade in mode picker navigates with mode=self_grade", async () => {
-    const user = userEvent.setup();
-    setup({
-      fetchCourses: vi.fn().mockResolvedValue([ASK_COURSE]),
-    });
-    await screen.findByText("Science");
-    const card = cardFor("Science");
-    await user.click(within(card).getByRole("button", { name: /study/i }));
-    await user.click(within(card).getByRole("button", { name: /self.grade/i }));
-    expect(screen.getByRole("heading", { name: /study/i })).toBeInTheDocument();
-  });
-
-  it("CL-mp3: Clicking MCQ in mode picker navigates with mode=mcq", async () => {
-    const user = userEvent.setup();
-    setup({
-      fetchCourses: vi.fn().mockResolvedValue([ASK_COURSE]),
-    });
-    await screen.findByText("Science");
-    const card = cardFor("Science");
-    await user.click(within(card).getByRole("button", { name: /study/i }));
-    await user.click(within(card).getByRole("button", { name: /multiple choice/i }));
-    expect(screen.getByRole("heading", { name: /study/i })).toBeInTheDocument();
-  });
-
-  it("CL-mp4: Clicking Mixed in mode picker navigates with mode=mixed", async () => {
-    const user = userEvent.setup();
-    setup({
-      fetchCourses: vi.fn().mockResolvedValue([ASK_COURSE]),
-    });
-    await screen.findByText("Science");
-    const card = cardFor("Science");
-    await user.click(within(card).getByRole("button", { name: /study/i }));
-    await user.click(within(card).getByRole("button", { name: /mixed/i }));
-    expect(screen.getByRole("heading", { name: /study/i })).toBeInTheDocument();
-  });
-
-  it("CL-mp5: Study link on non-ask course navigates directly without picker", async () => {
+  it("CL-mp2: Study on non-ask course also links to /setup", async () => {
     setup();
     await screen.findByText("French");
     const card = cardFor("French");
-    // French has default_mode "mcq" — should be a direct link, no Study button
-    expect(within(card).queryByRole("button", { name: /study/i })).toBeNull();
-    expect(within(card).getByRole("link", { name: /study/i })).toBeInTheDocument();
+    const link = within(card).getByRole("link", { name: /study/i });
+    expect(link.getAttribute("href")).toContain("/setup");
   });
 
   it("CL-enrich1: Enrich button not shown when enrichCards prop is absent", async () => {

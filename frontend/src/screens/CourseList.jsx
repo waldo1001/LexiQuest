@@ -75,7 +75,6 @@ export default function CourseList({
   const [newForm, setNewForm] = useState(EMPTY_NEW);
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState(null);
-  const [modePicking, setModePicking] = useState(null);
   const [enrichingId, setEnrichingId] = useState(null);
 
   useEffect(() => {
@@ -178,12 +177,6 @@ export default function CourseList({
     } catch {
       setError(t("errors.generic"));
     }
-  }
-
-  function startStudy(course, mode) {
-    navigate(`/courses/${course.id}/study`, {
-      state: { courseName: course.name, mode, courseLang: course.language ?? null, questionLangDefault: course.question_lang_default ?? null, answerLangDefault: course.answer_lang_default ?? null },
-    });
   }
 
   async function onEnrich(course) {
@@ -334,39 +327,13 @@ export default function CourseList({
                 <>
                   <span>{course.emoji}</span>
                   <span>{course.name}</span>
-                  {course.default_mode === "ask" ? (
-                    <>
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => setModePicking((prev) => prev === course.id ? null : course.id)}
-                      >
-                        {t("courses.action.study")}
-                      </button>
-                      {modePicking === course.id && (
-                        <div className="row wrap">
-                          <p>{t("courses.modePicker.title")}</p>
-                          <button type="button" className="btn btn-ghost" onClick={() => startStudy(course, "self_grade")}>
-                            {t("courses.modePicker.self_grade")}
-                          </button>
-                          <button type="button" className="btn btn-ghost" onClick={() => startStudy(course, "mcq")}>
-                            {t("courses.modePicker.mcq")}
-                          </button>
-                          <button type="button" className="btn btn-ghost" onClick={() => startStudy(course, "mixed")}>
-                            {t("courses.modePicker.mixed")}
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <Link
-                      className="btn btn-primary"
-                      to={`/courses/${course.id}/study`}
-                      state={{ courseName: course.name, mode: course.default_mode ?? "self_grade", courseLang: course.language ?? null, questionLangDefault: course.question_lang_default ?? null, answerLangDefault: course.answer_lang_default ?? null }}
-                    >
-                      {t("courses.action.study")}
-                    </Link>
-                  )}
+                  <Link
+                    className="btn btn-primary"
+                    to={`/courses/${course.id}/setup`}
+                    state={{ courseName: course.name, defaultMode: course.default_mode ?? "ask", courseLang: course.language ?? null, questionLangDefault: course.question_lang_default ?? null, answerLangDefault: course.answer_lang_default ?? null }}
+                  >
+                    {t("courses.action.study")}
+                  </Link>
                   <Link
                     className="btn btn-ghost"
                     to={`/courses/${course.id}/cards`}

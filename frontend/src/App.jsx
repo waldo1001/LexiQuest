@@ -7,6 +7,7 @@ import AdminRoute from "./screens/AdminRoute.jsx";
 import AdminPanel from "./screens/AdminPanel.jsx";
 import CourseList from "./screens/CourseList.jsx";
 import CardManager from "./screens/CardManager.jsx";
+import SessionSetup from "./screens/SessionSetup.jsx";
 import StudySession from "./screens/StudySession.jsx";
 import SessionResults from "./screens/SessionResults.jsx";
 import Dashboard from "./screens/Dashboard.jsx";
@@ -41,6 +42,7 @@ export default function App({ tts = _tts }) {
           <Route path="/courses/:courseId/cards" element={<CardManager />} />
           <Route path="/courses/:courseId/import" element={<PhotoImport />} />
           <Route path="/courses/:courseId/import/review" element={<ImportReview />} />
+          <Route path="/courses/:courseId/setup" element={<SessionSetup />} />
           <Route path="/courses/:courseId/study" element={<StudySession />} />
           <Route path="/courses/:courseId/results" element={<SessionResults />} />
           <Route path="/family" element={<FamilyDashboard />} />
