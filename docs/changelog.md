@@ -3,6 +3,17 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-04-25 (post-v1 — Gaming mode: session length + game types)
+
+- Added `card-priority.ts` with `scoreCard()` (0.7× overdue + 0.3× mastery) and `buildQueue()` supporting all 4 game types. 17 tests, 97% branch coverage. See [plans/done/gaming-mode.md](plans/done/gaming-mode.md).
+- Extended `SessionRow`/`SessionCreateBody` with `game_type` (`classic|boss_round|speed_round|review_blitz`) and `card_limit` (number|null). Backward-compatible defaults. 7 new validation tests.
+- Wired `buildQueue()` into `POST /api/sessions`; speed round returns `time_limit_seconds: 60`. 9 new session tests covering all game types + edge cases.
+- Extended `computeSessionXp` with per-game-type multipliers (classic 1.0×, boss 1.5×, speed 1.25×, blitz 1.0×) + boss round completion bonus (+50 XP). Wired `bossRoundComplete` into badge engine. 6 new XP tests.
+- Added `SessionSetup` screen (`/courses/:courseId/setup`): game type picker (4 cards), card count pills (10/15/20/30/All), mode picker. 8 tests. ~24 new i18n keys (EN + NL).
+- Added speed round timer to `StudySession`: 60 s countdown (wall-clock delta), auto-finish on expiry, no retry pile. 4 new tests.
+- Updated `SessionResults` with game type badge, XP multiplier display, cards-per-minute for speed round. "Study again" navigates to setup. 5 new tests.
+- Updated `CourseList` to link to `/setup` instead of starting study directly. 2 replacement tests.
+
 ## 2026-04-25 (Phase 18 — Bidirectional cards)
 
 - Added `reverse_of` field to `CardRow`/`CardProfile` and `"reverse"` to `CardSource`. Pure `buildReverseCard()` swaps Q↔A, applies pipe-split (first alternative only), swaps per-side languages, sets `source="reverse"`. 8 new shared tests. Phase 18 Slice 1.

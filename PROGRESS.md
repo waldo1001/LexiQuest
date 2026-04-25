@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 18 — Bidirectional cards — **complete**.
+- **Current phase**: Post-v1 features (gaming mode complete).
 - **Last tag**: `phase-17-done`
-- **Next up**: Tag `phase-18-done`; see [Design.md §7](Design.md) for deferred v2 items.
+- **Next up**: See [Design.md §7](Design.md) for deferred v2 items.
 
 ---
 
@@ -243,3 +243,22 @@ populates 4 users + current year. See
 - ✅ Slice 3 — Bidirectional toggle on Import Review
 - ✅ Slice 4 — Course-level `bidirectional` default
 - ✅ Slice 5 — Card Manager pairing UI + linked delete
+
+---
+
+## Post-v1 — Gaming mode (session length + game types)
+
+- ✅ Slice 1 — Priority scoring module (`card-priority.ts`: `scoreCard`, `buildQueue` Classic)
+- ✅ Slice 2 — Game type data model + validation (`sessions-shared.ts`)
+- ✅ Slice 3 — Game-type queue builders (boss_round, speed_round, review_blitz)
+- ✅ Slice 4 — Wire priority into session creation (`sessions.ts`)
+- ✅ Slice 5 — XP multipliers + Boss Round badge
+- ✅ Slice 6 — Frontend API client update (`api.js`)
+- ✅ Slice 7 — SessionSetup screen
+- ✅ Slice 8 — Speed Round timer in StudySession
+- ✅ Slice 9 — Game type in SessionResults
+- ✅ Slice 10 — Integration + edge cases
+
+**`/local-smoke`** — PASS 2026-04-25: Azurite boot, seed, login + HttpOnly cookie, `/api/me`, wrong-password 401, SPA fallback all PASS. AI import probe skipped (no ANTHROPIC_API_KEY).
+
+See [docs/plans/done/gaming-mode.md](docs/plans/done/gaming-mode.md).

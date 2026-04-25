@@ -2,7 +2,7 @@
 
 For family members using the running app.
 
-Current state: **Phase 18 complete — bidirectional cards.** This guide fills in from Phase 3
+Current state: **Phase 18 complete + gaming mode.** This guide fills in from Phase 3
 onward (first login + dashboard) and gets sections added per phase:
 
 - **Logging in** (Phase 3): tap your avatar, enter password, you land on
@@ -42,19 +42,37 @@ onward (first login + dashboard) and gets sections added per phase:
   per-row checkbox and use "Delete selected (N)", or use "Delete all
   cards" to clear the whole course (both confirm with the count). All
   bulk deletions are scoped to the course you're viewing.
-- **Studying** (Phase 8): from the Courses screen click "Study" next to any
-  course. LexiQuest builds a queue of cards that are due today (their
-  scheduled review date has passed) plus up to 20 new cards you haven't seen
-  yet. For each card:
+- **Studying** (Phase 8 + gaming mode): from the Courses screen click
+  "Study" next to any course. You land on the **Session Setup** screen
+  where you configure your session before starting:
+  - **Game type** — four options:
+    - *Classic* — standard spaced repetition. Due cards + new cards,
+      shuffled. Wrong cards retry at the end. (Default.)
+    - *Boss Round* — only your hardest cards (low ease, high fail rate).
+      1.5× XP multiplier + 50 XP completion bonus. No new cards.
+    - *Speed Round* — 60-second countdown timer. As many cards as you
+      can answer before time runs out. 1.25× XP. No retry pile.
+    - *Review Blitz* — overdue catch-up. Only cards past their due date,
+      most overdue first. No new cards.
+  - **Card count** — choose how many cards: 10, 15, 20, 30, or All.
+    Default is 20. When you have more due cards than the limit, a smart
+    priority algorithm picks the most important ones (balancing how
+    overdue a card is with how weak your mastery is).
+  - **Study mode** — self-grade or MCQ (when the course allows it).
+  Click **Start** to begin. For each card:
   1. Read the **question**.
   2. Click **Show answer** to reveal the answer.
   3. Tap **Knew it** (correct) or **Didn't know** (wrong).
-  Wrong cards go into a retry pile and appear again at the end of the session.
-  When all cards (including retries) are done, the session is saved
-  automatically — SM-2 scheduling on every card updates so the next due date
-  reflects how well you knew it. Correct cards on the first attempt are
-  counted toward your daily goal (Phase 10). MCQ mode (Phase 13) adds once
-  cards have distractors.
+  Wrong cards go into a retry pile and appear again at the end of the session
+  (except in Speed Round, where there's no retry). When all cards (including
+  retries) are done, the session is saved automatically — SM-2 scheduling on
+  every card updates so the next due date reflects how well you knew it.
+  Correct cards on the first attempt are counted toward your daily goal
+  (Phase 10). MCQ mode (Phase 13) adds once cards have distractors.
+  The **results screen** shows your stats: cards studied, accuracy,
+  time taken, XP earned (with multiplier for Boss/Speed rounds), and
+  cards-per-minute for Speed Rounds. A "Study again" button takes you
+  back to the setup screen.
 - **Photo import** (Phase 12): from the Card Manager, click "Import cards
   from photo". Choose a photo of a vocab sheet (or take one with the
   camera). If your course has a language set, two dropdowns appear:
