@@ -678,6 +678,27 @@ describe("startSession", () => {
     expect(result).toEqual(data);
   });
 
+  it("sends gameType and cardLimit when provided", async () => {
+    const data = { sessionId: "s1", cards: [], game_type: "boss_round", card_limit: 20 };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    await startSession({ courseId: "c1", mode: "self_grade", gameType: "boss_round", cardLimit: 20 }, { fetchFn });
+    const [, opts] = fetchFn.mock.calls[0];
+    const body = JSON.parse(opts.body);
+    expect(body.gameType).toBe("boss_round");
+    expect(body.cardLimit).toBe(20);
+  });
+
+  it("omits gameType and cardLimit when not provided", async () => {
+    const data = { sessionId: "s1", cards: [] };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    await startSession({ courseId: "c1", mode: "self_grade" }, { fetchFn });
+    const [, opts] = fetchFn.mock.calls[0];
+    const body = JSON.parse(opts.body);
+    expect(body.courseId).toBe("c1");
+    expect(body.mode).toBe("self_grade");
+    // gameType/cardLimit not in body since they weren't provided
+  });
+
   it("throws on non-ok", async () => {
     await expect(
       startSession({ courseId: "c1", mode: "self_grade" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
