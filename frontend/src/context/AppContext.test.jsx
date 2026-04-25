@@ -188,4 +188,75 @@ describe("AppContext", () => {
       ).not.toThrow();
     });
   });
+
+  describe("theme", () => {
+    function ThemeProbe() {
+      const { themeName, setThemeName, darkMode, setDarkMode } = useAppContext();
+      return (
+        <div>
+          <div data-testid="theme-name">{themeName ?? "none"}</div>
+          <button type="button" onClick={() => setThemeName("arcade")}>to-arcade</button>
+          <button type="button" onClick={() => setThemeName("playful")}>to-playful</button>
+          <button type="button" onClick={() => setDarkMode("light")}>to-light</button>
+          <div data-testid="dark-mode">{darkMode}</div>
+        </div>
+      );
+    }
+
+    afterEach(() => {
+      document.documentElement.removeAttribute("data-theme-name");
+      document.documentElement.removeAttribute("data-theme");
+    });
+
+    it("applies data-theme-name on documentElement when themeName is set", async () => {
+      const patchMe = vi.fn().mockResolvedValue({});
+      render(
+        <AppProvider patchMe={patchMe}>
+          <ThemeProbe />
+        </AppProvider>,
+      );
+      expect(screen.getByTestId("theme-name").textContent).toBe("playful");
+      expect(document.documentElement.getAttribute("data-theme-name")).toBe("playful");
+
+      await act(async () => {
+        screen.getByRole("button", { name: "to-arcade" }).click();
+      });
+      expect(document.documentElement.getAttribute("data-theme-name")).toBe("arcade");
+    });
+
+    it("setThemeName calls patchMe with settings.theme", async () => {
+      const patchMe = vi.fn().mockResolvedValue({});
+      render(
+        <AppProvider patchMe={patchMe}>
+          <ThemeProbe />
+        </AppProvider>,
+      );
+      patchMe.mockClear();
+      await act(async () => {
+        screen.getByRole("button", { name: "to-arcade" }).click();
+      });
+      expect(patchMe).toHaveBeenCalledWith({ settings: { theme: "arcade" } });
+    });
+
+    it("arcade theme forces data-theme='dark' on documentElement", async () => {
+      const patchMe = vi.fn().mockResolvedValue({});
+      render(
+        <AppProvider patchMe={patchMe}>
+          <ThemeProbe />
+        </AppProvider>,
+      );
+      await act(async () => {
+        screen.getByRole("button", { name: "to-light" }).click();
+      });
+      await act(async () => {
+        screen.getByRole("button", { name: "to-arcade" }).click();
+      });
+      expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+
+      await act(async () => {
+        screen.getByRole("button", { name: "to-playful" }).click();
+      });
+      expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+    });
+  });
 });

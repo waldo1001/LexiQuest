@@ -540,9 +540,28 @@ export async function importCards(body, { fetchFn = fetch } = {}) {
 }
 
 /**
+ * @param {{ courseId: string, uploadId?: string, ids?: string[], all?: boolean }} body
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<{ deleted: number }>}
+ */
+export async function bulkDeleteCards(body, { fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/cards/bulk-delete", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (response.status === 403) throw new Error("forbidden");
+  if (!response.ok) {
+    throw new Error(`POST /api/cards/bulk-delete failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
  * @param {{ courseId: string, cards: object[] }} body
  * @param {{ fetchFn?: typeof fetch }} [options]
- * @returns {Promise<{ cards: object[] }>}
+ * @returns {Promise<{ upload_id: string, cards: object[] }>}
  */
 export async function batchCreateCards(body, { fetchFn = fetch } = {}) {
   const response = await fetchFn("/api/cards/batch", {

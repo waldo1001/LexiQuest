@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchMe, logout as logoutApi } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
+import { useAppContext } from "../context/AppContext.jsx";
 
 export default function Home({
   fetchMe: fetchMeInjected = fetchMe,
@@ -9,6 +10,7 @@ export default function Home({
 } = {}) {
   const t = useT();
   const navigate = useNavigate();
+  const { setUser } = useAppContext();
   const [me, setMe] = useState(null);
   const [failed, setFailed] = useState(false);
 
@@ -16,7 +18,10 @@ export default function Home({
     let cancelled = false;
     fetchMeInjected()
       .then((u) => {
-        if (!cancelled) setMe(u);
+        if (!cancelled) {
+          setMe(u);
+          setUser(u);
+        }
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
@@ -24,7 +29,7 @@ export default function Home({
     return () => {
       cancelled = true;
     };
-  }, [fetchMeInjected]);
+  }, [fetchMeInjected, setUser]);
 
   async function onLogout() {
     await logoutInjected();

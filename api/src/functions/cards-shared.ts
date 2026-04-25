@@ -18,6 +18,7 @@ export interface CardRow extends Entity {
   sm2_reps: number;
   next_review_at: string; // ISO datetime
   created_at: string;     // ISO datetime
+  upload_id?: string | null; // groups cards created in one batch import; null/absent for manual cards
 }
 
 export interface CardCreateBody {
@@ -49,6 +50,7 @@ export type CardProfile = {
   sm2_reps: number;
   next_review_at: string;
   created_at: string;
+  upload_id: string | null;
 };
 
 export function validateCardCreate(
@@ -154,5 +156,6 @@ export function cardProfile(row: CardRow): CardProfile {
     sm2_reps: row.sm2_reps,
     next_review_at: row.next_review_at,
     created_at: row.created_at,
+    upload_id: row.upload_id ?? null,
   };
 }

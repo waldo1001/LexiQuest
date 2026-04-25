@@ -47,9 +47,10 @@ function setup({
   createCard,
   updateCard,
   deleteCard,
+  bulkDeleteCards,
   confirmFn,
   lang = "en",
-  currentUser = { id: OWNER_ID, name: "Lex", is_admin: false },
+  currentUser = { id: OWNER_ID, name: "Lex", isAdmin: false },
   courseId = COURSE_ID,
   courseName = COURSE_NAME,
   ownerId = OWNER_ID,
@@ -72,6 +73,7 @@ function setup({
                 createCard={createCard ?? vi.fn()}
                 updateCard={updateCard ?? vi.fn()}
                 deleteCard={deleteCard ?? vi.fn()}
+                bulkDeleteCards={bulkDeleteCards ?? vi.fn().mockResolvedValue({ deleted: 0 })}
                 confirmFn={confirmFn ?? vi.fn(() => false)}
               />
             }
@@ -97,7 +99,7 @@ describe("CardManager", () => {
   });
 
   it("CM3: owner sees edit and delete buttons for each card", async () => {
-    setup({ currentUser: { id: OWNER_ID, name: "Lex", is_admin: false } });
+    setup({ currentUser: { id: OWNER_ID, name: "Lex", isAdmin: false } });
     await screen.findByText("What is a dog?");
     const editButtons = screen.getAllByRole("button", { name: /edit/i });
     expect(editButtons.length).toBeGreaterThanOrEqual(2);
@@ -106,14 +108,14 @@ describe("CardManager", () => {
   });
 
   it("CM4: non-owner does not see edit or delete buttons", async () => {
-    setup({ currentUser: { id: OTHER_ID, name: "Mats", is_admin: false } });
+    setup({ currentUser: { id: OTHER_ID, name: "Mats", isAdmin: false } });
     await screen.findByText("What is a dog?");
     expect(screen.queryByRole("button", { name: /edit/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /delete/i })).toBeNull();
   });
 
   it("CM5: admin sees edit and delete buttons for another user's course", async () => {
-    setup({ currentUser: { id: "u-waldo", name: "Waldo", is_admin: true } });
+    setup({ currentUser: { id: "u-waldo", name: "Waldo", isAdmin: true } });
     await screen.findByText("What is a dog?");
     expect(screen.getAllByRole("button", { name: /edit/i }).length).toBeGreaterThanOrEqual(2);
   });
@@ -184,7 +186,7 @@ describe("CardManager", () => {
     setup({ deleteCard, confirmFn: vi.fn(() => true) });
 
     await screen.findByText("What is a dog?");
-    const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
+    const deleteButtons = screen.getAllByRole("button", { name: /^delete$/i });
     await user.click(deleteButtons[0]);
 
     expect(deleteCard).toHaveBeenCalledWith("card-1", COURSE_ID);
@@ -198,7 +200,7 @@ describe("CardManager", () => {
     setup({ deleteCard, confirmFn: vi.fn(() => false) });
 
     await screen.findByText("What is a dog?");
-    const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
+    const deleteButtons = screen.getAllByRole("button", { name: /^delete$/i });
     await user.click(deleteButtons[0]);
 
     expect(deleteCard).not.toHaveBeenCalled();
@@ -236,6 +238,130 @@ describe("CardManager", () => {
   it("CM11c: fetch error shows generic error message", async () => {
     setup({ fetchCards: vi.fn().mockRejectedValue(new Error("network")) });
     expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
+
+  it("CM-BULK1: groups cards by upload_id with manual cards under Manual", async () => {
+    const grouped = [
+      { ...SEED_CARDS[0], upload_id: null },
+      { ...SEED_CARDS[1], upload_id: "upl-A", source: "ai_import" },
+      {
+        id: "card-3",
+        course_id: COURSE_ID,
+        question: "What is a horse?",
+        answer: "le cheval",
+        distractors: [],
+        hint: null,
+        source: "ai_import",
+        sm2_ease: 2.5,
+        sm2_interval: 0,
+        sm2_reps: 0,
+        next_review_at: "2026-04-22T09:00:00Z",
+        created_at: "2026-04-22T09:00:00Z",
+        upload_id: "upl-A",
+      },
+    ];
+    setup({ fetchCards: vi.fn().mockResolvedValue(grouped) });
+    expect(await screen.findByText(/manual cards/i)).toBeInTheDocument();
+    expect(screen.getByText(/Upload — .* \(2 cards\)/i)).toBeInTheDocument();
+  });
+
+  it("CM-BULK2: shows Delete this upload only on non-manual groups", async () => {
+    const grouped = [
+      { ...SEED_CARDS[0], upload_id: null },
+      { ...SEED_CARDS[1], upload_id: "upl-A", source: "ai_import" },
+    ];
+    setup({ fetchCards: vi.fn().mockResolvedValue(grouped) });
+    await screen.findByText(/manual cards/i);
+    const buttons = screen.getAllByRole("button", { name: /delete this upload/i });
+    expect(buttons.length).toBe(1); // only on the upl-A group
+  });
+
+  it("CM-BULK3: confirming Delete this upload calls bulkDeleteCards with uploadId", async () => {
+    const grouped = [
+      { ...SEED_CARDS[1], upload_id: "upl-A", source: "ai_import" },
+    ];
+    const bulkDeleteCards = vi.fn().mockResolvedValue({ deleted: 1 });
+    const user = userEvent.setup();
+    setup({
+      fetchCards: vi.fn().mockResolvedValue(grouped),
+      bulkDeleteCards,
+      confirmFn: vi.fn(() => true),
+    });
+
+    await screen.findByText(/upload — /i);
+    await user.click(screen.getByRole("button", { name: /delete this upload/i }));
+
+    expect(bulkDeleteCards).toHaveBeenCalledWith({ courseId: COURSE_ID, uploadId: "upl-A" });
+    // group disappears from UI
+    expect(screen.queryByText(/upload — /i)).toBeNull();
+  });
+
+  it("CM-BULK4: Delete selected calls bulkDeleteCards with checked ids", async () => {
+    const bulkDeleteCards = vi.fn().mockResolvedValue({ deleted: 1 });
+    const user = userEvent.setup();
+    setup({ bulkDeleteCards, confirmFn: vi.fn(() => true) });
+
+    await screen.findByText("What is a dog?");
+    const checkboxes = screen.getAllByRole("checkbox", { name: /select card/i });
+    await user.click(checkboxes[0]);
+    await user.click(screen.getByRole("button", { name: /delete selected/i }));
+
+    expect(bulkDeleteCards).toHaveBeenCalledWith({ courseId: COURSE_ID, ids: ["card-1"] });
+  });
+
+  it("CM-BULK5: Delete all confirms then calls bulkDeleteCards with all=true", async () => {
+    const bulkDeleteCards = vi.fn().mockResolvedValue({ deleted: 2 });
+    const user = userEvent.setup();
+    setup({ bulkDeleteCards, confirmFn: vi.fn(() => true) });
+
+    await screen.findByText("What is a dog?");
+    await user.click(screen.getByRole("button", { name: /delete all cards/i }));
+
+    expect(bulkDeleteCards).toHaveBeenCalledWith({ courseId: COURSE_ID, all: true });
+  });
+
+  it("CM-BULK6: non-owner / non-admin sees no bulk-delete UI", async () => {
+    const grouped = [
+      { ...SEED_CARDS[0], upload_id: "upl-A", source: "ai_import" },
+    ];
+    setup({
+      currentUser: { id: OTHER_ID, name: "Mats", isAdmin: false },
+      fetchCards: vi.fn().mockResolvedValue(grouped),
+    });
+    await screen.findByText("What is a dog?");
+    expect(screen.queryByRole("button", { name: /delete this upload/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /delete all cards/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /delete selected/i })).toBeNull();
+  });
+
+  it("CM-BULK7: bulk-delete API failure shows error and leaves list intact", async () => {
+    const grouped = [
+      { ...SEED_CARDS[0], upload_id: "upl-A", source: "ai_import" },
+    ];
+    const bulkDeleteCards = vi.fn().mockRejectedValue(new Error("boom"));
+    const user = userEvent.setup();
+    setup({
+      fetchCards: vi.fn().mockResolvedValue(grouped),
+      bulkDeleteCards,
+      confirmFn: vi.fn(() => true),
+    });
+
+    await screen.findByText("What is a dog?");
+    await user.click(screen.getByRole("button", { name: /delete this upload/i }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByText("What is a dog?")).toBeInTheDocument();
+  });
+
+  it("CM-BULK8: declined confirm on Delete all does nothing", async () => {
+    const bulkDeleteCards = vi.fn();
+    const user = userEvent.setup();
+    setup({ bulkDeleteCards, confirmFn: vi.fn(() => false) });
+
+    await screen.findByText("What is a dog?");
+    await user.click(screen.getByRole("button", { name: /delete all cards/i }));
+
+    expect(bulkDeleteCards).not.toHaveBeenCalled();
   });
 
   it("CM12: back link navigates to /courses", async () => {

@@ -319,6 +319,30 @@ describe("PATCH /api/me", () => {
     expect(res.status).toBe(400);
   });
 
+  it("PATCH /me accepts valid theme and persists it", async () => {
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { theme: "arcade" } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(200);
+    const stored = await tables.getById<UserRow>("users", "users", "u-alice");
+    expect(stored?.settings.theme).toBe("arcade");
+  });
+
+  it("PATCH /me rejects invalid theme with 400", async () => {
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { theme: "neon-pony" } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
   it("rejects a non-object body with 400", async () => {
     const res = (await makeMeHandler(deps)(
       req(validCookie, { method: "PATCH", body: "not-an-object" }),

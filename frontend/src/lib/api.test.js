@@ -23,6 +23,7 @@ import {
   updateYear,
   importCards,
   batchCreateCards,
+  bulkDeleteCards,
   enrichCards,
   fetchFamilyStats,
   fetchCompareStats,
@@ -586,6 +587,55 @@ describe("updateCard", () => {
   it("throws on other non-ok", async () => {
     await expect(
       updateCard("card-1", "c1", {}, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
+    ).rejects.toThrow(/500/);
+  });
+});
+
+describe("bulkDeleteCards", () => {
+  it("POSTs the uploadId selector and returns deleted count", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(ok({ deleted: 3 }));
+    const result = await bulkDeleteCards(
+      { courseId: "c1", uploadId: "upl-1" },
+      { fetchFn },
+    );
+    expect(fetchFn).toHaveBeenCalledWith(
+      "/api/cards/bulk-delete",
+      expect.objectContaining({ method: "POST", credentials: "include" }),
+    );
+    const call = fetchFn.mock.calls[0][1];
+    expect(JSON.parse(call.body)).toEqual({ courseId: "c1", uploadId: "upl-1" });
+    expect(result).toEqual({ deleted: 3 });
+  });
+
+  it("POSTs the ids selector", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(ok({ deleted: 2 }));
+    await bulkDeleteCards({ courseId: "c1", ids: ["a", "b"] }, { fetchFn });
+    const call = fetchFn.mock.calls[0][1];
+    expect(JSON.parse(call.body)).toEqual({ courseId: "c1", ids: ["a", "b"] });
+  });
+
+  it("POSTs the all selector", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(ok({ deleted: 5 }));
+    await bulkDeleteCards({ courseId: "c1", all: true }, { fetchFn });
+    const call = fetchFn.mock.calls[0][1];
+    expect(JSON.parse(call.body)).toEqual({ courseId: "c1", all: true });
+  });
+
+  it("throws 'forbidden' on 403", async () => {
+    await expect(
+      bulkDeleteCards(
+        { courseId: "c1", all: true },
+        { fetchFn: vi.fn().mockResolvedValue(fail(403)) },
+      ),
+    ).rejects.toThrow("forbidden");
+  });
+
+  it("throws on other non-ok", async () => {
+    await expect(
+      bulkDeleteCards(
+        { courseId: "c1", all: true },
+        { fetchFn: vi.fn().mockResolvedValue(fail(500)) },
+      ),
     ).rejects.toThrow(/500/);
   });
 });

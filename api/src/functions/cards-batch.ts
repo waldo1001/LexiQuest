@@ -99,6 +99,7 @@ export function makeCardsBatchHandler(deps: CardsBatchDeps): HttpHandler {
     }
 
     const nowIso = deps.clock.now().toISOString();
+    const uploadId = deps.random.uuid();
     const created: CardRow[] = [];
 
     for (const input of cards) {
@@ -117,12 +118,16 @@ export function makeCardsBatchHandler(deps: CardsBatchDeps): HttpHandler {
         sm2_reps: 0,
         next_review_at: nowIso,
         created_at: nowIso,
+        upload_id: uploadId,
       };
       await deps.tables.upsert<CardRow>("cards", row);
       created.push(row);
     }
 
-    return { status: 201, jsonBody: { cards: created.map(cardProfile) } };
+    return {
+      status: 201,
+      jsonBody: { upload_id: uploadId, cards: created.map(cardProfile) },
+    };
   };
 }
 

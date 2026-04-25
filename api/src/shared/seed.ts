@@ -16,6 +16,7 @@ export interface UserRow extends Entity {
     auto_speak: boolean;
     preferred_mode: "self_grade" | "mcq" | "mixed" | "ask";
     daily_goal: number;
+    theme?: "classic" | "playful" | "arcade";
     streak?: number;
     last_session_date?: string | null;
     freeze_tokens?: number;
@@ -106,6 +107,7 @@ export async function seed(opts: SeedOptions): Promise<SeedResult> {
         auto_speak: true,
         preferred_mode: "ask",
         daily_goal: 20,
+        theme: "playful",
       },
       created_at: clock.now().toISOString(),
     };

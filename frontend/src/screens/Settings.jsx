@@ -12,7 +12,7 @@ const SUPPORTED_LANGS = ["en", "nl"];
  */
 export default function Settings({ patchMe = patchMeApi }) {
   const t = useT();
-  const { lang, setLang, user, setUser, darkMode, setDarkMode } = useAppContext();
+  const { lang, setLang, user, setUser, darkMode, setDarkMode, themeName, setThemeName } = useAppContext();
   const [error, setError] = useState(null);
   const autoSpeak = user?.settings?.auto_speak ?? false;
   const dailyGoal = user?.settings?.daily_goal ?? 20;
@@ -58,6 +58,17 @@ export default function Settings({ patchMe = patchMeApi }) {
     try {
       await patchMe({ settings: { auto_speak: next } });
       setUser((u) => u ? { ...u, settings: { ...u.settings, auto_speak: next } } : u);
+    } catch {
+      setError(t("errors.generic"));
+    }
+  }
+
+  async function onThemeChange(e) {
+    const next = e.target.value;
+    setError(null);
+    try {
+      await setThemeName(next);
+      setUser((u) => u ? { ...u, settings: { ...u.settings, theme: next } } : u);
     } catch {
       setError(t("errors.generic"));
     }
@@ -127,6 +138,21 @@ export default function Settings({ patchMe = patchMeApi }) {
         <div className="field-row">
           <span>{t("settings.freezeTokens")}: </span>
           <span className="badge" data-testid="freeze-tokens">{freezeTokens}</span>
+        </div>
+
+        <div className="field">
+          <label htmlFor="theme-select">{t("settings.theme")}</label>
+          <select
+            id="theme-select"
+            data-testid="theme-select"
+            className="input"
+            value={themeName}
+            onChange={onThemeChange}
+          >
+            <option value="classic">{t("settings.theme.classic")}</option>
+            <option value="playful">{t("settings.theme.playful")}</option>
+            <option value="arcade">{t("settings.theme.arcade")}</option>
+          </select>
         </div>
 
         <div className="field">

@@ -79,6 +79,7 @@ export function makeCardsHandler(deps: CardsDeps): HttpHandler {
       sm2_reps: 0,
       next_review_at: nowIso,
       created_at: nowIso,
+      upload_id: null,
     };
     await deps.tables.upsert<CardRow>("cards", row);
 

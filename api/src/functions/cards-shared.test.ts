@@ -196,4 +196,19 @@ describe("cardProfile", () => {
     expect(profile.next_review_at).toBe("2026-04-22T09:00:00.000Z");
     expect(profile.created_at).toBe("2026-04-22T09:00:00.000Z");
   });
+
+  it("coerces missing upload_id to null (legacy rows)", () => {
+    const row = makeRow();
+    expect(cardProfile(row).upload_id).toBeNull();
+  });
+
+  it("preserves a string upload_id", () => {
+    const row = makeRow({ upload_id: "upload-abc" });
+    expect(cardProfile(row).upload_id).toBe("upload-abc");
+  });
+
+  it("coerces explicit null upload_id to null", () => {
+    const row = makeRow({ upload_id: null });
+    expect(cardProfile(row).upload_id).toBeNull();
+  });
 });

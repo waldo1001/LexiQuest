@@ -17,6 +17,7 @@ export interface MeDeps {
 type UiLanguage = UserRow["ui_language"];
 type UserSettings = UserRow["settings"];
 type PreferredMode = UserSettings["preferred_mode"];
+type Theme = NonNullable<UserSettings["theme"]>;
 
 const UI_LANGUAGES = new Set<UiLanguage>(["en", "nl"]);
 const PREFERRED_MODES = new Set<PreferredMode>([
@@ -25,6 +26,7 @@ const PREFERRED_MODES = new Set<PreferredMode>([
   "mixed",
   "ask",
 ]);
+const THEMES = new Set<Theme>(["classic", "playful", "arcade"]);
 
 function publicProfile(user: UserRow) {
   return {
@@ -94,6 +96,13 @@ function validatePatch(
         return { ok: false, error: "daily_goal must be a positive integer" };
       }
       out.daily_goal = g;
+    }
+    if ("theme" in sr) {
+      const th = sr.theme;
+      if (typeof th !== "string" || !THEMES.has(th as Theme)) {
+        return { ok: false, error: "invalid theme" };
+      }
+      out.theme = th as Theme;
     }
     patch.settings = out;
   }

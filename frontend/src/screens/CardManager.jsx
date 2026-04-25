@@ -1,15 +1,49 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
   fetchCards as fetchCardsApi,
   createCard as createCardApi,
   updateCard as updateCardApi,
   deleteCard as deleteCardApi,
+  bulkDeleteCards as bulkDeleteCardsApi,
 } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
 import { useAppContext, useTts } from "../context/AppContext.jsx";
 
 const EMPTY_NEW = { question: "", answer: "", hint: "" };
+const MANUAL_KEY = "__manual__";
+
+function groupByUpload(cards) {
+  const groups = new Map();
+  for (const c of cards) {
+    const key = c.upload_id ?? MANUAL_KEY;
+    let g = groups.get(key);
+    if (!g) {
+      g = { key, uploadId: c.upload_id ?? null, cards: [], earliest: c.created_at };
+      groups.set(key, g);
+    }
+    g.cards.push(c);
+    if (c.created_at && c.created_at < g.earliest) g.earliest = c.created_at;
+  }
+  // Manual group always first; uploads sorted by earliest created_at desc.
+  const manual = groups.get(MANUAL_KEY);
+  const uploads = [...groups.values()]
+    .filter((g) => g.key !== MANUAL_KEY)
+    .sort((a, b) => (a.earliest < b.earliest ? 1 : -1));
+  return manual ? [manual, ...uploads] : uploads;
+}
+
+function formatDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${y}-${m}-${day} ${hh}:${mm}`;
+}
 
 /**
  * @param {{
@@ -17,6 +51,7 @@ const EMPTY_NEW = { question: "", answer: "", hint: "" };
  *   createCard?: typeof createCardApi,
  *   updateCard?: typeof updateCardApi,
  *   deleteCard?: typeof deleteCardApi,
+ *   bulkDeleteCards?: typeof bulkDeleteCardsApi,
  *   confirmFn?: (msg: string) => boolean,
  * }} props
  */
@@ -25,6 +60,7 @@ export default function CardManager({
   createCard = createCardApi,
   updateCard = updateCardApi,
   deleteCard = deleteCardApi,
+  bulkDeleteCards = bulkDeleteCardsApi,
   confirmFn = typeof window !== "undefined"
     ? window.confirm.bind(window)
     : () => false,
@@ -38,7 +74,7 @@ export default function CardManager({
 
   const { user } = useAppContext();
   const canEdit =
-    user !== null && (user.id === ownerId || user.is_admin === true);
+    user !== null && (user.id === ownerId || user.isAdmin === true);
 
   const [cards, setCards] = useState(null);
   const [status, setStatus] = useState(null);
@@ -47,6 +83,7 @@ export default function CardManager({
   const [newForm, setNewForm] = useState(EMPTY_NEW);
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState(null);
+  const [selected, setSelected] = useState(() => new Set());
 
   useEffect(() => {
     if (!courseId) return;
@@ -63,9 +100,20 @@ export default function CardManager({
     };
   }, [courseId, fetchCards]);
 
+  const groups = useMemo(() => (cards ? groupByUpload(cards) : []), [cards]);
+
   function resetStatus() {
     setStatus(null);
     setError(null);
+  }
+
+  function toggleSelected(id) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
   async function onAdd(e) {
@@ -132,6 +180,55 @@ export default function CardManager({
     }
   }
 
+  async function onDeleteUpload(group) {
+    const count = group.cards.length;
+    if (!confirmFn(t("cards.confirm.deleteUpload", { count }))) return;
+    resetStatus();
+    try {
+      const result = await bulkDeleteCards({ courseId, uploadId: group.uploadId });
+      const removed = new Set(group.cards.map((c) => c.id));
+      setCards((prev) => (prev ?? []).filter((c) => !removed.has(c.id)));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        for (const id of removed) next.delete(id);
+        return next;
+      });
+      setStatus(t("cards.status.bulkDeleted", { count: result.deleted }));
+    } catch {
+      setError(t("errors.generic"));
+    }
+  }
+
+  async function onDeleteSelected() {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    if (!confirmFn(t("cards.confirm.deleteSelected", { count: ids.length }))) return;
+    resetStatus();
+    try {
+      const result = await bulkDeleteCards({ courseId, ids });
+      const removed = new Set(ids);
+      setCards((prev) => (prev ?? []).filter((c) => !removed.has(c.id)));
+      setSelected(new Set());
+      setStatus(t("cards.status.bulkDeleted", { count: result.deleted }));
+    } catch {
+      setError(t("errors.generic"));
+    }
+  }
+
+  async function onDeleteAll() {
+    const count = cards?.length ?? 0;
+    if (!confirmFn(t("cards.confirm.deleteAll", { count }))) return;
+    resetStatus();
+    try {
+      const result = await bulkDeleteCards({ courseId, all: true });
+      setCards([]);
+      setSelected(new Set());
+      setStatus(t("cards.status.bulkDeleted", { count: result.deleted }));
+    } catch {
+      setError(t("errors.generic"));
+    }
+  }
+
   if (cards === null && !error) return <p>{t("cards.loading")}</p>;
 
   const title = t("cards.title", { courseName });
@@ -145,102 +242,148 @@ export default function CardManager({
 
       {cards !== null && cards.length === 0 && <p>{t("cards.empty")}</p>}
 
-      {cards !== null && cards.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>{t("cards.field.question")}</th>
-              <th>{t("cards.field.answer")}</th>
-              <th>{t("cards.field.hint")}</th>
-              {canEdit && <th></th>}
-            </tr>
-          </thead>
-          <tbody>
-            {cards.map((card) => {
-              const isEditing = editId === card.id;
-              return (
-                <tr key={card.id}>
-                  {isEditing && editForm ? (
-                    <>
-                      <td>
-                        <input
-                          aria-label={t("cards.field.question")}
-                          value={editForm.question}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, question: e.target.value })
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          aria-label={t("cards.field.answer")}
-                          value={editForm.answer}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, answer: e.target.value })
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          aria-label={t("cards.field.hint")}
-                          value={editForm.hint}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, hint: e.target.value })
-                          }
-                        />
-                      </td>
-                      <td>
-                        <button type="button" onClick={() => onSaveEdit(card)}>
-                          {t("cards.action.save")}
-                        </button>
-                        <button type="button" onClick={cancelEdit}>
-                          {t("cards.action.cancel")}
-                        </button>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td>
-                        {card.question}
-                        {canSpeak && (
-                          <button
-                            type="button"
-                            className="speak-btn"
-                            aria-label={t("cards.speak")}
-                            onClick={() => tts.speak(card.question, courseLang)}
-                          >🔊</button>
-                        )}
-                      </td>
-                      <td>
-                        {card.answer}
-                        {canSpeak && (
-                          <button
-                            type="button"
-                            className="speak-btn"
-                            aria-label={t("cards.speak")}
-                            onClick={() => tts.speak(card.answer, courseLang)}
-                          >🔊</button>
-                        )}
-                      </td>
-                      <td>{card.hint ?? ""}</td>
+      {canEdit && cards !== null && cards.length > 0 && (
+        <div className="bulk-toolbar">
+          <button
+            type="button"
+            disabled={selected.size === 0}
+            onClick={onDeleteSelected}
+          >
+            {t("cards.action.deleteSelected", { count: selected.size })}
+          </button>
+          <button type="button" onClick={onDeleteAll}>
+            {t("cards.action.deleteAll")}
+          </button>
+        </div>
+      )}
+
+      {groups.map((group) => {
+        const label =
+          group.uploadId === null
+            ? t("cards.group.manual")
+            : t("cards.group.upload", {
+                date: formatDate(group.earliest),
+                count: group.cards.length,
+              });
+        return (
+          <section key={group.key}>
+            <h2>{label}</h2>
+            {canEdit && group.uploadId !== null && (
+              <button
+                type="button"
+                onClick={() => onDeleteUpload(group)}
+              >
+                {t("cards.action.deleteUpload")}
+              </button>
+            )}
+            <table>
+              <thead>
+                <tr>
+                  {canEdit && <th></th>}
+                  <th>{t("cards.field.question")}</th>
+                  <th>{t("cards.field.answer")}</th>
+                  <th>{t("cards.field.hint")}</th>
+                  {canEdit && <th></th>}
+                </tr>
+              </thead>
+              <tbody>
+                {group.cards.map((card) => {
+                  const isEditing = editId === card.id;
+                  return (
+                    <tr key={card.id}>
                       {canEdit && (
                         <td>
-                          <button type="button" onClick={() => startEdit(card)}>
-                            {t("cards.action.edit")}
-                          </button>
-                          <button type="button" onClick={() => onDelete(card)}>
-                            {t("cards.action.delete")}
-                          </button>
+                          <input
+                            type="checkbox"
+                            aria-label={t("cards.select")}
+                            checked={selected.has(card.id)}
+                            onChange={() => toggleSelected(card.id)}
+                          />
                         </td>
                       )}
-                    </>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
+                      {isEditing && editForm ? (
+                        <>
+                          <td>
+                            <input
+                              aria-label={t("cards.field.question")}
+                              value={editForm.question}
+                              onChange={(e) =>
+                                setEditForm({ ...editForm, question: e.target.value })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              aria-label={t("cards.field.answer")}
+                              value={editForm.answer}
+                              onChange={(e) =>
+                                setEditForm({ ...editForm, answer: e.target.value })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              aria-label={t("cards.field.hint")}
+                              value={editForm.hint}
+                              onChange={(e) =>
+                                setEditForm({ ...editForm, hint: e.target.value })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <button type="button" onClick={() => onSaveEdit(card)}>
+                              {t("cards.action.save")}
+                            </button>
+                            <button type="button" onClick={cancelEdit}>
+                              {t("cards.action.cancel")}
+                            </button>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td>
+                            {card.question}
+                            {canSpeak && (
+                              <button
+                                type="button"
+                                className="speak-btn"
+                                aria-label={t("cards.speak")}
+                                onClick={() => tts.speak(card.question, courseLang)}
+                              >🔊</button>
+                            )}
+                          </td>
+                          <td>
+                            {card.answer}
+                            {canSpeak && (
+                              <button
+                                type="button"
+                                className="speak-btn"
+                                aria-label={t("cards.speak")}
+                                onClick={() => tts.speak(card.answer, courseLang)}
+                              >🔊</button>
+                            )}
+                          </td>
+                          <td>{card.hint ?? ""}</td>
+                          {canEdit && (
+                            <td>
+                              <button type="button" onClick={() => startEdit(card)}>
+                                {t("cards.action.edit")}
+                              </button>
+                              <button type="button" onClick={() => onDelete(card)}>
+                                {t("cards.action.delete")}
+                              </button>
+                            </td>
+                          )}
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </section>
+        );
+      })}
 
       {canEdit && (
         <button

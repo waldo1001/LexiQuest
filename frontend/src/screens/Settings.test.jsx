@@ -156,4 +156,15 @@ describe("Settings", () => {
     await user.selectOptions(select, "dark");
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   });
+
+  it("changing theme calls patchMe with settings.theme and updates context", async () => {
+    const user = userEvent.setup();
+    const patchMe = vi.fn().mockResolvedValue({});
+    setup({ patchMe });
+    patchMe.mockClear();
+    const select = screen.getByTestId("theme-select");
+    await user.selectOptions(select, "arcade");
+    expect(patchMe).toHaveBeenCalledWith({ settings: { theme: "arcade" } });
+    expect(document.documentElement.getAttribute("data-theme-name")).toBe("arcade");
+  });
 });

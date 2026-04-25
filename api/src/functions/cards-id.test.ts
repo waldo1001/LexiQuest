@@ -227,6 +227,29 @@ describe("PUT /api/cards/:id", () => {
     expect(stored?.question).toBe("Persisted?");
   });
 
+  it("PUT preserves upload_id when editing a batch-imported card", async () => {
+    await deps.tables.upsert("cards", makeCard(COURSE_ID, "card-batched", {
+      upload_id: "upload-xyz",
+      source: "ai_import",
+    }));
+
+    const res = (await makeCardsIdHandler(deps)(
+      makeReq(validCookie(deps, OWNER_ID), {
+        method: "PUT",
+        params: { id: "card-batched" },
+        query: { courseId: COURSE_ID },
+        body: { question: "edited" },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(200);
+    const body = res.jsonBody as { upload_id: string | null };
+    expect(body.upload_id).toBe("upload-xyz");
+
+    const stored = await deps.tables.getById<CardRow>("cards", COURSE_ID, "card-batched");
+    expect(stored?.upload_id).toBe("upload-xyz");
+  });
+
   it("returns 400 on invalid patch body", async () => {
     const res = (await makeCardsIdHandler(deps)(
       makeReq(validCookie(deps, OWNER_ID), {

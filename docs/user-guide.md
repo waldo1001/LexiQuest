@@ -10,6 +10,11 @@ onward (first login + dashboard) and gets sections added per phase:
 - **Settings** (Phase 4): click the "Settings" link on the Home screen.
   Pick your UI language (English or Dutch). The change takes effect
   immediately and is remembered across sessions.
+- **Themes** (post-Phase 17): Settings → Theme. Three options:
+  - *Classic* — clean purple on near-white (grown-up).
+  - *Playful* — coral + Nunito font, rounded everything (default for new users; kid-friendly).
+  - *Arcade* — dark navy with neon cyan accents, JetBrains Mono headings (always dark).
+  The theme is saved per-user, so each family member can pick their own.
 - **Courses** (Phase 6): from the Home screen, click "My courses" to see
   your courses for the current school year. Click "New course" to create
   one — give it a name, emoji, color, optional language (e.g. `fr-FR` for
@@ -28,6 +33,15 @@ onward (first login + dashboard) and gets sections added per phase:
   due. Edit a card inline by clicking "Edit" and Save. Delete with
   confirmation. You can browse any family member's cards — a great way to
   see what Lex is studying in French.
+- **Bulk-deleting cards**: cards in the Card Manager are grouped by
+  upload — every photo or AI import becomes its own group with a
+  timestamp label like `Upload — 2026-04-25 14:02 (12 cards)`; manually
+  added cards live under "Manual cards". Each upload group has a "Delete
+  this upload" button so a wrong import can be wiped in one click. A
+  toolbar above the groups offers two more options: select rows via the
+  per-row checkbox and use "Delete selected (N)", or use "Delete all
+  cards" to clear the whole course (both confirm with the count). All
+  bulk deletions are scoped to the course you're viewing.
 - **Studying** (Phase 8): from the Courses screen click "Study" next to any
   course. LexiQuest builds a queue of cards that are due today (their
   scheduled review date has passed) plus up to 20 new cards you haven't seen

@@ -36,7 +36,10 @@ function makeReq(
   } as unknown as HttpRequest;
 }
 
-const SCRIPTED_UUIDS = ["id-1", "id-2", "id-3", "id-4", "id-5"];
+const SCRIPTED_UUIDS = [
+  "id-1", "id-2", "id-3", "id-4", "id-5",
+  "id-6", "id-7", "id-8", "id-9", "id-10",
+];
 
 function makeDeps(): CardsBatchDeps & {
   tables: FakeTableStorage;
@@ -244,6 +247,48 @@ describe("POST /api/cards/batch", () => {
 
     const stored = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
     expect(stored[0]?.distractors).toEqual([]);
+  });
+
+  it("AC18: stamps a single upload_id on every card created in one batch", async () => {
+    await seedCourse(deps);
+
+    await makeCardsBatchHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+
+    const stored = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
+    expect(stored.length).toBe(2);
+    const uploadIds = new Set(stored.map((c) => c.upload_id));
+    expect(uploadIds.size).toBe(1);
+    const onlyUploadId = [...uploadIds][0];
+    expect(typeof onlyUploadId).toBe("string");
+    expect(onlyUploadId).not.toBeNull();
+  });
+
+  it("AC19: response body includes upload_id alongside created cards", async () => {
+    await seedCourse(deps);
+
+    const res = await makeCardsBatchHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+    expect(res.status).toBe(201);
+
+    const body = res.jsonBody as Record<string, unknown>;
+    expect(typeof body.upload_id).toBe("string");
+    expect((body.upload_id as string).length).toBeGreaterThan(0);
+
+    // Every returned card profile carries the same upload_id
+    const cards = body.cards as Array<{ upload_id: string | null }>;
+    for (const c of cards) {
+      expect(c.upload_id).toBe(body.upload_id);
+    }
+  });
+
+  it("AC20: each batch request mints a fresh upload_id", async () => {
+    await seedCourse(deps);
+
+    const res1 = await makeCardsBatchHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+    const res2 = await makeCardsBatchHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+
+    const id1 = (res1.jsonBody as { upload_id: string }).upload_id;
+    const id2 = (res2.jsonBody as { upload_id: string }).upload_id;
+    expect(id1).not.toBe(id2);
   });
 
   it("AC17: skips caller's own row during cross-user scan (continue branch)", async () => {
