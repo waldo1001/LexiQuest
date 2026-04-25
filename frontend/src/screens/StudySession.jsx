@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useCallback, useRef } from "react";
+import { useEffect, useReducer, useCallback, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   startSession as startSessionApi,
@@ -56,6 +56,7 @@ function init() {
     pendingAttempts: [],  // AttemptItem[]
     startedAt: null,
     error: null,
+    gameType: "classic",
   };
 }
 
@@ -76,12 +77,13 @@ function reducer(state, action) {
         firstTryResults: {},
         pendingAttempts: [],
         startedAt: Date.now(),
+        gameType: action.gameType ?? "classic",
       };
     }
     case "SHOW_ANSWER":
       return { ...state, phase: PHASE.ANSWER };
     case "GRADE": {
-      const { correct, responseTimeMs, cardMode = "self_grade" } = action;
+      const { correct, responseTimeMs, cardMode = "self_grade", forceFinish = false } = action;
       const card = state.queue[state.cardIndex];
       const cardId = card.id;
       const attempt = { cardId, correct, mode: cardMode, response_time_ms: responseTimeMs };
@@ -92,7 +94,14 @@ function reducer(state, action) {
         ? { ...state.firstTryResults, [cardId]: correct }
         : state.firstTryResults;
 
-      const newRetry = !correct ? [...state.retryPile, card] : state.retryPile;
+      // Speed round: no retry pile; forceFinish ends immediately
+      const skipRetry = state.gameType === "speed_round";
+      const newRetry = !correct && !skipRetry ? [...state.retryPile, card] : state.retryPile;
+
+      if (forceFinish) {
+        return { ...state, phase: PHASE.FINISHING, pendingAttempts: newAttempts, firstTryResults: newFirstTry };
+      }
+
       const nextIndex = state.cardIndex + 1;
 
       if (nextIndex < state.queue.length) {
@@ -106,7 +115,7 @@ function reducer(state, action) {
         };
       }
 
-      // Queue drained — move retry pile into queue
+      // Queue drained — move retry pile into queue (not for speed round)
       if (newRetry.length > 0) {
         return {
           ...state,
@@ -148,24 +157,56 @@ export default function StudySession({
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { courseName = "", mode = "self_grade", courseLang = null } = location.state ?? {};
+  const { courseName = "", mode = "self_grade", courseLang = null, questionLangDefault = null, answerLangDefault = null, gameType = "classic", cardLimit = null } = location.state ?? {};
+  const isSpeedRound = gameType === "speed_round";
   const canSpeak = Boolean(courseLang && tts.isAvailable(courseLang));
   const autoSpeak = canSpeak && Boolean(user?.settings?.auto_speak);
 
   const [state, dispatch] = useReducer(reducer, undefined, init);
 
+  // Speed round timer
+  const [timeRemaining, setTimeRemaining] = useState(60);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (!isSpeedRound || state.phase === PHASE.LOADING || state.phase === PHASE.EMPTY || state.phase === PHASE.ERROR || state.phase === PHASE.FINISHING) {
+      return;
+    }
+    const start = Date.now();
+    const initialTime = 60;
+    timerRef.current = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - start) / 1000);
+      const remaining = Math.max(0, initialTime - elapsed);
+      setTimeRemaining(remaining);
+      if (remaining <= 0) {
+        clearInterval(timerRef.current);
+      }
+    }, 250);
+    return () => clearInterval(timerRef.current);
+  }, [isSpeedRound, state.phase]);
+
+  // Auto-finish when speed round timer expires
+  useEffect(() => {
+    if (isSpeedRound && timeRemaining <= 0 && state.phase !== PHASE.FINISHING && state.phase !== PHASE.LOADING && state.phase !== PHASE.EMPTY && state.phase !== PHASE.ERROR) {
+      dispatch({ type: "GRADE", correct: false, responseTimeMs: 0, cardMode: "self_grade", forceFinish: true });
+    }
+  }, [isSpeedRound, timeRemaining, state.phase]);
+
   // Load session on mount
   useEffect(() => {
     let cancelled = false;
-    startSession({ courseId, mode })
+    const body = { courseId, mode };
+    if (gameType !== "classic") body.gameType = gameType;
+    if (cardLimit !== null) body.cardLimit = cardLimit;
+    startSession(body)
       .then((data) => {
-        if (!cancelled) dispatch({ type: "LOADED", sessionId: data.sessionId, cards: data.cards });
+        if (!cancelled) dispatch({ type: "LOADED", sessionId: data.sessionId, cards: data.cards, gameType });
       })
       .catch((err) => {
         if (!cancelled) dispatch({ type: "ERROR", error: String(err) });
       });
     return () => { cancelled = true; };
-  }, [courseId, mode, startSession]);
+  }, [courseId, mode, gameType, cardLimit, startSession]);
 
   // Finish session when phase transitions to FINISHING
   const finishSession = useCallback(async () => {
@@ -176,7 +217,7 @@ export default function StudySession({
       await postAttempts({ sessionId: state.sessionId, items: state.pendingAttempts });
       await closeSession(state.sessionId, { cards_studied: cardsStudied, cards_correct: cardsCorrect });
       navigate(`/courses/${courseId}/results`, {
-        state: { sessionId: state.sessionId, courseName },
+        state: { sessionId: state.sessionId, courseName, gameType },
         replace: true,
       });
     } catch {
@@ -193,8 +234,8 @@ export default function StudySession({
     if (!autoSpeak) return;
     const card = state.queue[state.cardIndex];
     if (!card) return;
-    if (state.phase === PHASE.QUESTION) tts.speak(card.question, courseLang);
-    if (state.phase === PHASE.ANSWER) tts.speak(card.answer, courseLang);
+    if (state.phase === PHASE.QUESTION) tts.speak(card.question, card.question_lang ?? questionLangDefault ?? courseLang);
+    if (state.phase === PHASE.ANSWER) tts.speak(card.answer, card.answer_lang ?? answerLangDefault ?? courseLang);
   }, [state.phase, state.cardIndex, autoSpeak]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleShowAnswer = useCallback(() => dispatch({ type: "SHOW_ANSWER" }), []);
@@ -250,6 +291,9 @@ export default function StudySession({
     <div className="study-session">
       <div className="study-progress">
         {t("study.progress", { current: position, total })}
+        {isSpeedRound && (
+          <span className="speed-timer" data-testid="speed-timer">{t("study.timer", { seconds: timeRemaining })}</span>
+        )}
       </div>
 
       <div
@@ -264,7 +308,7 @@ export default function StudySession({
             <button
               className="speak-btn"
               aria-label={t("study.speakQuestion")}
-              onClick={() => tts.speak(card.question, courseLang)}
+              onClick={() => tts.speak(card.question, card.question_lang ?? questionLangDefault ?? courseLang)}
             >🔊</button>
           )}
         </div>
@@ -276,7 +320,7 @@ export default function StudySession({
               <button
                 className="speak-btn"
                 aria-label={t("study.speakAnswer")}
-                onClick={() => tts.speak(card.answer, courseLang)}
+                onClick={() => tts.speak(card.answer, card.answer_lang ?? answerLangDefault ?? courseLang)}
               >🔊</button>
             )}
           </div>

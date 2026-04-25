@@ -48,6 +48,10 @@ function setup({
   courseName = "French",
   mode = "self_grade",
   courseLang = null,
+  questionLangDefault = null,
+  answerLangDefault = null,
+  gameType = "classic",
+  cardLimit = null,
   lang = "en",
   currentUser = { id: "u-lex", name: "Lex", is_admin: false },
   tts,
@@ -61,7 +65,7 @@ function setup({
     <AppProvider initialLang={lang} initialUser={currentUser} tts={tts}>
       <MemoryRouter
         initialEntries={[
-          { pathname: `/courses/${courseId}/study`, state: { courseName, mode, courseLang } },
+          { pathname: `/courses/${courseId}/study`, state: { courseName, mode, courseLang, questionLangDefault, answerLangDefault, gameType, cardLimit } },
         ]}
       >
         <Routes>
@@ -429,6 +433,80 @@ describe("StudySession — swipe gestures", () => {
   });
 });
 
+describe("StudySession — per-side language TTS", () => {
+  const CARDS_WITH_LANG = [
+    {
+      id: "card-1",
+      course_id: COURSE_ID,
+      question: "the dog",
+      answer: "le chien",
+      question_lang: "en",
+      answer_lang: "fr-FR",
+      sm2_ease: 2.5, sm2_interval: 0, sm2_reps: 0,
+      next_review_at: "2026-04-22T09:00:00Z",
+    },
+  ];
+
+  it("auto-speak uses card.question_lang for question and card.answer_lang for answer (AC7)", async () => {
+    const tts = createFakeTts({ available: true });
+    const user = { id: "u-lex", name: "Lex", is_admin: false, settings: { auto_speak: true } };
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS_WITH_LANG });
+    setup({ startSession, courseLang: "fr-FR", tts, currentUser: user });
+
+    await screen.findByText("the dog");
+    expect(tts.spokenItems.some((s) => s.text === "the dog" && s.lang === "en")).toBe(true);
+
+    await userEvent.click(screen.getByRole("button", { name: /Show answer/i }));
+    expect(tts.spokenItems.some((s) => s.text === "le chien" && s.lang === "fr-FR")).toBe(true);
+  });
+
+  it("auto-speak falls back to courseLang when question_lang and answer_lang are null (AC8)", async () => {
+    const tts = createFakeTts({ available: true });
+    const user = { id: "u-lex", name: "Lex", is_admin: false, settings: { auto_speak: true } };
+    setup({ courseLang: "fr-FR", tts, currentUser: user });
+
+    await screen.findByText("What is a dog?");
+    expect(tts.spokenItems.some((s) => s.text === "What is a dog?" && s.lang === "fr-FR")).toBe(true);
+  });
+
+  it("manual speak button uses card.question_lang for question side (AC9)", async () => {
+    const tts = createFakeTts({ available: true });
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS_WITH_LANG });
+    setup({ startSession, courseLang: "fr-FR", tts });
+
+    await screen.findByText("the dog");
+    await userEvent.click(screen.getByRole("button", { name: /Speak question/i }));
+    expect(tts.lastSpoken).toMatchObject({ text: "the dog", lang: "en" });
+  });
+
+  it("manual speak button uses card.answer_lang for answer side (AC9b)", async () => {
+    const tts = createFakeTts({ available: true });
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS_WITH_LANG });
+    setup({ startSession, courseLang: "fr-FR", tts });
+
+    await screen.findByText("the dog");
+    await userEvent.click(screen.getByRole("button", { name: /Show answer/i }));
+    await userEvent.click(screen.getByRole("button", { name: /Speak answer/i }));
+    expect(tts.lastSpoken).toMatchObject({ text: "le chien", lang: "fr-FR" });
+  });
+
+  it("auto-speak uses course-level lang defaults when card has no per-side lang", async () => {
+    const tts = createFakeTts({ available: true });
+    const user = { id: "u-lex", name: "Lex", is_admin: false, settings: { auto_speak: true } };
+    setup({
+      courseLang: "fr-FR",
+      questionLangDefault: "fr",
+      answerLangDefault: "nl",
+      tts,
+      currentUser: user,
+    });
+
+    await screen.findByText("What is a dog?");
+    // Question: card has no question_lang → questionLangDefault "fr"
+    expect(tts.spokenItems.some((s) => s.text === "What is a dog?" && s.lang === "fr")).toBe(true);
+  });
+});
+
 describe("StudySession — visual polish classes", () => {
   it("grade buttons in ANSWER phase use .btn-primary and .btn-secondary", async () => {
     setup({});
@@ -442,5 +520,42 @@ describe("StudySession — visual polish classes", () => {
       "btn",
       "btn-secondary",
     );
+  });
+});
+
+describe("StudySession — game type features", () => {
+  it("speed round displays countdown timer", async () => {
+    setup({ gameType: "speed_round" });
+    await screen.findByText("What is a dog?");
+    expect(screen.getByTestId("speed-timer")).toBeTruthy();
+  });
+
+  it("classic mode does NOT show timer", async () => {
+    setup({ gameType: "classic" });
+    await screen.findByText("What is a dog?");
+    expect(screen.queryByTestId("speed-timer")).toBeNull();
+  });
+
+  it("passes gameType and cardLimit to startSession", async () => {
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS });
+    setup({ startSession, gameType: "boss_round", cardLimit: 10 });
+    await screen.findByText("What is a dog?");
+    expect(startSession).toHaveBeenCalledWith(
+      expect.objectContaining({ gameType: "boss_round", cardLimit: 10 }),
+    );
+  });
+
+  it("speed round has no retry pile — wrong cards not re-shown", async () => {
+    const singleCard = [CARDS[0]];
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: singleCard });
+    const postAttempts = vi.fn().mockResolvedValue({ logged: 1 });
+    const closeSession = vi.fn().mockResolvedValue({ ended_at: "2026-04-22T10:05:00Z" });
+    setup({ startSession, postAttempts, closeSession, gameType: "speed_round" });
+    await screen.findByText("What is a dog?");
+    // Show answer and mark wrong
+    await userEvent.click(screen.getByRole("button", { name: /show answer/i }));
+    await userEvent.click(screen.getByRole("button", { name: /didn.t know/i }));
+    // Should go to finishing (no retry), then navigate to results
+    await waitFor(() => expect(screen.getByRole("heading", { name: /results/i })).toBeInTheDocument());
   });
 });
