@@ -12,7 +12,7 @@ import type { TableStorage } from "../shared/table-storage.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { CourseRow } from "./courses-shared.js";
-import { cardProfile, type CardRow } from "./cards-shared.js";
+import { buildReverseCard, cardProfile, type CardRow } from "./cards-shared.js";
 
 export interface CardsBatchDeps {
   tables: TableStorage;
@@ -32,7 +32,7 @@ interface BatchCardInput {
 
 function validateBody(
   body: unknown,
-): { ok: true; courseId: string; cards: BatchCardInput[] } | { ok: false; error: string } {
+): { ok: true; courseId: string; cards: BatchCardInput[]; bidirectional: boolean } | { ok: false; error: string } {
   if (body === null || typeof body !== "object") {
     return { ok: false, error: "body must be an object" };
   }
@@ -54,7 +54,8 @@ function validateBody(
       return { ok: false, error: "each card must have an answer" };
     }
   }
-  return { ok: true, courseId: src.courseId.trim(), cards: src.cards as BatchCardInput[] };
+  const bidirectional = src.bidirectional === true;
+  return { ok: true, courseId: src.courseId.trim(), cards: src.cards as BatchCardInput[], bidirectional };
 }
 
 async function findCourseById(
@@ -88,7 +89,7 @@ export function makeCardsBatchHandler(deps: CardsBatchDeps): HttpHandler {
     if (!validated.ok) {
       return { status: 400, jsonBody: { error: validated.error } };
     }
-    const { courseId, cards } = validated;
+    const { courseId, cards, bidirectional } = validated;
 
     const course = await findCourseById(deps.tables, auth.auth.userId, courseId);
     if (!course) {
@@ -127,6 +128,12 @@ export function makeCardsBatchHandler(deps: CardsBatchDeps): HttpHandler {
       };
       await deps.tables.upsert<CardRow>("cards", row);
       created.push(row);
+
+      if (bidirectional) {
+        const rev = buildReverseCard(row, { id: deps.random.uuid(), nowIso });
+        await deps.tables.upsert<CardRow>("cards", rev);
+        created.push(rev);
+      }
     }
 
     return {

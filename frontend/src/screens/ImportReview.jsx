@@ -2,20 +2,24 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { batchCreateCards as batchCreateCardsApi } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
+import { useAppContext } from "../context/AppContext.jsx";
 
 /**
  * @param {{ batchCreateCards?: typeof batchCreateCardsApi }} props
  */
 export default function ImportReview({ batchCreateCards = batchCreateCardsApi }) {
   const t = useT();
+  const { user } = useAppContext();
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { candidates = [], courseName = "" } = location.state ?? {};
+  const { candidates = [], courseName = "", courseLang = null } = location.state ?? {};
 
   const [checked, setChecked] = useState(() =>
     Object.fromEntries(candidates.map((_, i) => [i, true])),
   );
+  const defaultBidir = Boolean(courseLang && user?.ui_language && courseLang !== user.ui_language);
+  const [bidirectional, setBidirectional] = useState(defaultBidir);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -36,10 +40,13 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
     try {
       await batchCreateCards({
         courseId,
+        bidirectional,
         cards: selected.map((c) => ({
           question: c.question,
           answer: c.answer,
           distractors: c.distractors ?? [],
+          question_lang: c.question_lang ?? null,
+          answer_lang: c.answer_lang ?? null,
         })),
       });
       navigate(`/courses/${courseId}/cards`);
@@ -68,6 +75,15 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
       <Link to={`/courses/${courseId}/import`} state={location.state}>
         {t("review.back")}
       </Link>
+
+      <label>
+        <input
+          type="checkbox"
+          checked={bidirectional}
+          onChange={(e) => setBidirectional(e.target.checked)}
+        />
+        {t("review.bidirectional")}
+      </label>
 
       <ul>
         {candidates.map((card, idx) => (

@@ -291,6 +291,40 @@ describe("POST /api/cards/batch", () => {
     expect(id1).not.toBe(id2);
   });
 
+  it("AC21: persists question_lang and answer_lang from batch input", async () => {
+    await seedCourse(deps);
+
+    const body = {
+      courseId: COURSE_ID,
+      cards: [
+        { question: "the dog", answer: "le chien", question_lang: "en", answer_lang: "fr-FR" },
+      ],
+    };
+    const res = await makeCardsBatchHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(201);
+
+    const stored = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
+    expect(stored[0].question_lang).toBe("en");
+    expect(stored[0].answer_lang).toBe("fr-FR");
+
+    const resBody = res.jsonBody as { cards: Array<{ question_lang: string | null; answer_lang: string | null }> };
+    expect(resBody.cards[0].question_lang).toBe("en");
+    expect(resBody.cards[0].answer_lang).toBe("fr-FR");
+  });
+
+  it("AC22: batch input without per-side lang defaults to null", async () => {
+    await seedCourse(deps);
+
+    const res = await makeCardsBatchHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+    expect(res.status).toBe(201);
+
+    const stored = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
+    for (const card of stored) {
+      expect(card.question_lang ?? null).toBeNull();
+      expect(card.answer_lang ?? null).toBeNull();
+    }
+  });
+
   it("AC17: skips caller's own row during cross-user scan (continue branch)", async () => {
     // Seed u-mats first so scanner hits caller's row before owner's row
     await seedUser(deps, "u-mats");
@@ -302,5 +336,67 @@ describe("POST /api/cards/batch", () => {
 
     const res = await makeCardsBatchHandler(deps)(makeReq(matsCookie, validBody), ctx);
     expect(res.status).toBe(403); // u-mats is not the owner — scan ran and found the course
+  });
+
+  it("creates only forward cards when bidirectional is false or omitted", async () => {
+    await seedUser(deps);
+    await seedCourse(deps);
+    const res = await makeCardsBatchHandler(deps)(
+      makeReq(validCookie(deps), { ...validBody, bidirectional: false }),
+      ctx,
+    );
+    expect(res.status).toBe(201);
+    const body = res.jsonBody as { cards: unknown[] };
+    expect(body.cards).toHaveLength(2); // only forward cards
+    const allRows = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
+    expect(allRows).toHaveLength(2);
+  });
+
+  it("creates a forward + reverse pair for each input when bidirectional=true", async () => {
+    await seedUser(deps);
+    await seedCourse(deps);
+    const res = await makeCardsBatchHandler(deps)(
+      makeReq(validCookie(deps), { ...validBody, bidirectional: true }),
+      ctx,
+    );
+    expect(res.status).toBe(201);
+    const body = res.jsonBody as { cards: { reverse_of: string | null }[] };
+    expect(body.cards).toHaveLength(4); // 2 forward + 2 reverse
+    const allRows = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
+    expect(allRows).toHaveLength(4);
+  });
+
+  it("bidirectional=true response includes both forward and reverse profiles", async () => {
+    await seedUser(deps);
+    await seedCourse(deps);
+    const res = await makeCardsBatchHandler(deps)(
+      makeReq(validCookie(deps), { ...validBody, bidirectional: true }),
+      ctx,
+    );
+    const body = res.jsonBody as { cards: { reverse_of: string | null; source: string }[] };
+    const forwards = body.cards.filter((c) => c.reverse_of === null);
+    const reverses = body.cards.filter((c) => c.reverse_of !== null);
+    expect(forwards).toHaveLength(2);
+    expect(reverses).toHaveLength(2);
+    for (const rev of reverses) {
+      expect(rev.source).toBe("reverse");
+    }
+  });
+
+  it("pipe-alternative rule applies on the reverse when bidirectional=true", async () => {
+    await seedUser(deps);
+    await seedCourse(deps);
+    const pipeInput = [
+      { question: "the dog", answer: "le chien|le chiot" },
+    ];
+    const res = await makeCardsBatchHandler(deps)(
+      makeReq(validCookie(deps), { courseId: COURSE_ID, cards: pipeInput, bidirectional: true }),
+      ctx,
+    );
+    const body = res.jsonBody as { cards: { question: string; answer: string; reverse_of: string | null }[] };
+    const rev = body.cards.find((c) => c.reverse_of !== null);
+    expect(rev).toBeDefined();
+    expect(rev!.question).toBe("le chien");
+    expect(rev!.answer).toBe("the dog");
   });
 });

@@ -13,13 +13,19 @@ const CANDIDATES = [
   { question: "la maison", answer: "the house", distractors: ["the car", "the tree"] },
 ];
 
-function setup({ batchCreateCards = vi.fn(), candidates = CANDIDATES, lang = "en" } = {}) {
+function setup({
+  batchCreateCards = vi.fn(),
+  candidates = CANDIDATES,
+  lang = "en",
+  courseLang = null,
+  currentUser,
+} = {}) {
   return render(
-    <AppProvider initialLang={lang}>
+    <AppProvider initialLang={lang} initialUser={currentUser}>
       <MemoryRouter
         initialEntries={[{
           pathname: `/courses/${COURSE_ID}/import/review`,
-          state: { courseId: COURSE_ID, courseName: COURSE_NAME, candidates },
+          state: { courseId: COURSE_ID, courseName: COURSE_NAME, candidates, courseLang },
         }]}
       >
         <Routes>
@@ -56,8 +62,10 @@ describe("ImportReview", () => {
   it("shows checkboxes for each card (default checked)", () => {
     setup();
     const checkboxes = screen.getAllByRole("checkbox");
-    expect(checkboxes).toHaveLength(2);
-    checkboxes.forEach((cb) => expect(cb).toBeChecked());
+    expect(checkboxes).toHaveLength(3); // 2 card checkboxes + 1 bidirectional
+    // Card checkboxes are all checked
+    const cardCheckboxes = checkboxes.filter((cb) => cb !== screen.getByLabelText(/also create reverse cards/i));
+    cardCheckboxes.forEach((cb) => expect(cb).toBeChecked());
   });
 
   it("shows save button", () => {
@@ -131,7 +139,8 @@ describe("ImportReview", () => {
     setup({ batchCreateCards });
 
     const checkboxes = screen.getAllByRole("checkbox");
-    await user.click(checkboxes[0]); // uncheck first
+    // checkboxes[0] is the bidirectional checkbox, card checkboxes start at 1
+    await user.click(checkboxes[1]); // uncheck first card
 
     await user.click(screen.getByRole("button", { name: /save selected/i }));
     await waitFor(() => expect(batchCreateCards).toHaveBeenCalledOnce());
@@ -162,6 +171,86 @@ describe("ImportReview", () => {
       </AppProvider>,
     );
     expect(screen.getByText(/no cards were extracted/i)).toBeInTheDocument();
+  });
+
+  it("passes question_lang and answer_lang through to batchCreateCards", async () => {
+    const user = userEvent.setup();
+    const batchCreateCards = vi.fn().mockResolvedValue({ cards: [] });
+    const candidatesWithLang = [
+      { question: "the dog", answer: "le chien", distractors: ["le chat", "le cheval"], question_lang: "en", answer_lang: "fr-FR" },
+    ];
+    setup({ batchCreateCards, candidates: candidatesWithLang });
+
+    await user.click(screen.getByRole("button", { name: /save selected/i }));
+    await waitFor(() => expect(batchCreateCards).toHaveBeenCalledOnce());
+
+    const card = batchCreateCards.mock.calls[0][0].cards[0];
+    expect(card.question_lang).toBe("en");
+    expect(card.answer_lang).toBe("fr-FR");
+  });
+
+  it("defaults missing question_lang and answer_lang to null in batch payload", async () => {
+    const user = userEvent.setup();
+    const batchCreateCards = vi.fn().mockResolvedValue({ cards: [] });
+    setup({ batchCreateCards });
+
+    await user.click(screen.getByRole("button", { name: /save selected/i }));
+    await waitFor(() => expect(batchCreateCards).toHaveBeenCalledOnce());
+
+    const card = batchCreateCards.mock.calls[0][0].cards[0];
+    expect(card.question_lang).toBeNull();
+    expect(card.answer_lang).toBeNull();
+  });
+
+  it("shows 'Also create reverse cards' checkbox on Import Review", () => {
+    setup();
+    expect(screen.getByLabelText(/also create reverse cards/i)).toBeInTheDocument();
+  });
+
+  it("defaults checkbox on when course.language differs from user.ui_language", () => {
+    setup({
+      courseLang: "fr-FR",
+      currentUser: { id: "u1", name: "Lex", isAdmin: false, ui_language: "en" },
+    });
+    expect(screen.getByLabelText(/also create reverse cards/i)).toBeChecked();
+  });
+
+  it("defaults checkbox off when course has no language", () => {
+    setup({
+      courseLang: null,
+      currentUser: { id: "u1", name: "Lex", isAdmin: false, ui_language: "en" },
+    });
+    expect(screen.getByLabelText(/also create reverse cards/i)).not.toBeChecked();
+  });
+
+  it("submits bidirectional=true to /api/cards/batch when checkbox ticked", async () => {
+    const user = userEvent.setup();
+    const batchCreateCards = vi.fn().mockResolvedValue({ cards: [] });
+    setup({
+      batchCreateCards,
+      courseLang: "fr-FR",
+      currentUser: { id: "u1", name: "Lex", isAdmin: false, ui_language: "en" },
+    });
+
+    // checkbox is on by default
+    await user.click(screen.getByRole("button", { name: /save selected/i }));
+    await waitFor(() => expect(batchCreateCards).toHaveBeenCalledOnce());
+    expect(batchCreateCards.mock.calls[0][0].bidirectional).toBe(true);
+  });
+
+  it("submits bidirectional=false when checkbox unticked", async () => {
+    const user = userEvent.setup();
+    const batchCreateCards = vi.fn().mockResolvedValue({ cards: [] });
+    setup({
+      batchCreateCards,
+      courseLang: "fr-FR",
+      currentUser: { id: "u1", name: "Lex", isAdmin: false, ui_language: "en" },
+    });
+
+    await user.click(screen.getByLabelText(/also create reverse cards/i));
+    await user.click(screen.getByRole("button", { name: /save selected/i }));
+    await waitFor(() => expect(batchCreateCards).toHaveBeenCalledOnce());
+    expect(batchCreateCards.mock.calls[0][0].bidirectional).toBe(false);
   });
 
   it("saves card with null distractors as empty array (distractors ?? [] branch)", async () => {
