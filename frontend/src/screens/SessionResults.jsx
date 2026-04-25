@@ -26,12 +26,29 @@ export default function SessionResults() {
   const xpEarned      = state.xp_earned      ?? 0;
   const courseName    = state.courseName     ?? "";
   const mode          = state.mode           ?? "self_grade";
+  const gameType      = state.gameType       ?? "classic";
+
+  const MULTIPLIERS = { classic: 1.0, boss_round: 1.5, speed_round: 1.25, review_blitz: 1.0 };
+  const multiplier = MULTIPLIERS[gameType] ?? 1.0;
+  const showGameBadge = gameType !== "classic";
+  const cardsPerMinute = durationSec > 0 ? Math.round(cardsStudied / (durationSec / 60)) : cardsStudied;
 
   const accuracy = calcAccuracy(cardsStudied, cardsCorrect);
 
   return (
     <div className="session-results">
       <h1>{t("results.title")}</h1>
+
+      {showGameBadge && (
+        <div className="game-badge" data-testid="game-type-badge">
+          {t(`setup.gameType.${gameType}`)}
+          {multiplier > 1 && (
+            <span className="xp-multiplier" data-testid="xp-multiplier">
+              {t("results.multiplier", { multiplier })}
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="results-stats">
         <div className="results-stat">
@@ -58,6 +75,13 @@ export default function SessionResults() {
           <span className="results-label">{t("results.xp")}</span>
           <span className="results-value" data-testid="xp-earned">+{xpEarned} XP</span>
         </div>
+
+        {gameType === "speed_round" && (
+          <div className="results-stat">
+            <span className="results-label">{t("results.cardsPerMinute")}</span>
+            <span className="results-value" data-testid="cards-per-minute">{cardsPerMinute}</span>
+          </div>
+        )}
       </div>
 
       <div className="results-actions">
@@ -71,8 +95,8 @@ export default function SessionResults() {
         <button
           data-testid="study-again-btn"
           onClick={() =>
-            navigate(`/courses/${courseId}/study`, {
-              state: { courseName, mode },
+            navigate(`/courses/${courseId}/setup`, {
+              state: { courseName },
             })
           }
         >

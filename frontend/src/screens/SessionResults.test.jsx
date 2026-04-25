@@ -67,7 +67,7 @@ describe("SessionResults", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/courses");
   });
 
-  it("AC8: Study again button navigates to study route", async () => {
+  it("AC8: Study again button navigates to setup route", async () => {
     renderWithState({
       cards_studied: 5,
       cards_correct: 5,
@@ -78,8 +78,8 @@ describe("SessionResults", () => {
     });
     await userEvent.click(screen.getByTestId("study-again-btn"));
     expect(mockNavigate).toHaveBeenCalledWith(
-      "/courses/c1/study",
-      expect.objectContaining({ state: expect.objectContaining({ mode: "self_grade" }) }),
+      "/courses/c1/setup",
+      expect.objectContaining({ state: expect.objectContaining({ courseName: "French" }) }),
     );
   });
 
@@ -101,5 +101,40 @@ describe("SessionResults", () => {
   it("AC12: accuracy is 0% when no cards studied", () => {
     renderWithState({ cards_studied: 0, cards_correct: 0, duration_seconds: 0 });
     expect(screen.getByTestId("accuracy")).toHaveTextContent("0%");
+  });
+
+  it("AC13: classic results show no game type indicator", () => {
+    renderWithState({ cards_studied: 5, cards_correct: 5, duration_seconds: 60, gameType: "classic" });
+    expect(screen.queryByTestId("game-type-badge")).toBeNull();
+  });
+
+  it("AC14: boss_round results show game type badge", () => {
+    renderWithState({ cards_studied: 5, cards_correct: 5, duration_seconds: 60, gameType: "boss_round" });
+    expect(screen.getByTestId("game-type-badge")).toHaveTextContent(/Boss Round/);
+  });
+
+  it("AC15: speed_round results show cards per minute", () => {
+    renderWithState({ cards_studied: 10, cards_correct: 8, duration_seconds: 60, gameType: "speed_round" });
+    expect(screen.getByTestId("cards-per-minute")).toHaveTextContent("10");
+  });
+
+  it("AC16: XP multiplier displayed for boss_round", () => {
+    renderWithState({ cards_studied: 5, cards_correct: 5, duration_seconds: 60, gameType: "boss_round", xp_earned: 100 });
+    expect(screen.getByTestId("xp-multiplier")).toHaveTextContent("1.5x XP");
+  });
+
+  it("AC17: Study again navigates to setup instead of study", async () => {
+    renderWithState({
+      cards_studied: 5,
+      cards_correct: 5,
+      duration_seconds: 60,
+      courseName: "French",
+      gameType: "boss_round",
+    });
+    await userEvent.click(screen.getByTestId("study-again-btn"));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.stringContaining("/setup"),
+      expect.anything(),
+    );
   });
 });
