@@ -230,6 +230,30 @@ describe("PUT /api/courses/:id", () => {
     )) as HttpResponseInit;
     expect(res.status).toBe(405);
   });
+
+  it("PUT merges question_lang_default and answer_lang_default", async () => {
+    await deps.tables.upsert<CourseRow>("courses", course("u-alice", "c1"));
+    const res = (await makeCoursesIdHandler(deps)(
+      makeReq(cookie("u-alice"), { id: "c1" }, { body: { question_lang_default: "fr", answer_lang_default: "nl" } }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(200);
+    const stored = await deps.tables.getById<CourseRow>("courses", "u-alice", "c1");
+    expect(stored?.question_lang_default).toBe("fr");
+    expect(stored?.answer_lang_default).toBe("nl");
+  });
+
+  it("PUT preserves existing per-side lang defaults when patch omits them", async () => {
+    await deps.tables.upsert<CourseRow>("courses", course("u-alice", "c1", { question_lang_default: "fr", answer_lang_default: "nl" }));
+    const res = (await makeCoursesIdHandler(deps)(
+      makeReq(cookie("u-alice"), { id: "c1" }, { body: { name: "Renamed" } }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(200);
+    const body = res.jsonBody as Record<string, unknown>;
+    expect(body.question_lang_default).toBe("fr");
+    expect(body.answer_lang_default).toBe("nl");
+  });
 });
 
 describe("DELETE /api/courses/:id", () => {

@@ -462,6 +462,31 @@ describe("CourseList", () => {
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 
+  it("course form shows a 'Cards study both directions' checkbox", async () => {
+    const user = userEvent.setup();
+    setup();
+    await screen.findByText("French");
+    await user.click(screen.getByRole("button", { name: /new course/i }));
+    expect(screen.getByLabelText(/cards study both directions/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/cards study both directions/i)).not.toBeChecked();
+  });
+
+  it("submitting the form persists the bidirectional value", async () => {
+    const user = userEvent.setup();
+    const createdCourse = { ...SEED_COURSES[0], id: "c-new", name: "New", bidirectional: true };
+    const createCourse = vi.fn().mockResolvedValue(createdCourse);
+    setup({ createCourse });
+    await screen.findByText("French");
+
+    await user.click(screen.getByRole("button", { name: /new course/i }));
+    await user.type(screen.getByRole("textbox", { name: /^name$/i }), "New");
+    await user.click(screen.getByLabelText(/cards study both directions/i));
+    await user.click(screen.getByRole("button", { name: /create course/i }));
+
+    await waitFor(() => expect(createCourse).toHaveBeenCalledOnce());
+    expect(createCourse.mock.calls[0][0].bidirectional).toBe(true);
+  });
+
   it("course tiles use .card and New course button uses .btn-primary", async () => {
     setup();
     await screen.findByText("French");

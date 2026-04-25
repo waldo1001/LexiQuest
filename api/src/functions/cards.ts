@@ -13,6 +13,7 @@ import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { CourseRow } from "./courses-shared.js";
 import {
+  buildReverseCard,
   cardProfile,
   validateCardCreate,
   type CardRow,
@@ -85,6 +86,11 @@ export function makeCardsHandler(deps: CardsDeps): HttpHandler {
       reverse_of: null,
     };
     await deps.tables.upsert<CardRow>("cards", row);
+
+    if (course.bidirectional) {
+      const rev = buildReverseCard(row, { id: deps.random.uuid(), nowIso });
+      await deps.tables.upsert<CardRow>("cards", rev);
+    }
 
     return { status: 201, jsonBody: cardProfile(row) };
   };

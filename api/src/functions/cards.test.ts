@@ -340,4 +340,39 @@ describe("POST /api/cards", () => {
     const rows = await deps.tables.listByPartition("cards", COURSE_ID);
     expect(rows).toHaveLength(1);
   });
+
+  it("POST /api/cards spawns a reverse when parent course is bidirectional", async () => {
+    const biDeps = makeDeps(["card-fwd", "card-rev"]);
+    await biDeps.tables.upsert("users", makeUser(OWNER_ID, false));
+    await biDeps.tables.upsert("courses", makeCourse(OWNER_ID, COURSE_ID, { bidirectional: true }));
+    const res = await makeCardsHandler(biDeps)(
+      makeReq(validCookie(biDeps, OWNER_ID), {
+        method: "POST",
+        body: { course_id: COURSE_ID, question: "the dog", answer: "le chien" },
+      }),
+      ctx,
+    );
+    expect(res.status).toBe(201);
+    const rows = await biDeps.tables.listByPartition<CardRow>("cards", COURSE_ID);
+    expect(rows).toHaveLength(2);
+    const rev = rows.find((r) => r.reverse_of !== null);
+    expect(rev).toBeDefined();
+    expect(rev!.source).toBe("reverse");
+    expect(rev!.question).toBe("le chien");
+    expect(rev!.answer).toBe("the dog");
+  });
+
+  it("POST /api/cards does not spawn a reverse when parent course is not bidirectional", async () => {
+    const res = await makeCardsHandler(deps)(
+      makeReq(validCookie(deps, OWNER_ID), {
+        method: "POST",
+        body: { course_id: COURSE_ID, question: "the dog", answer: "le chien" },
+      }),
+      ctx,
+    );
+    expect(res.status).toBe(201);
+    const rows = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].reverse_of).toBeNull();
+  });
 });

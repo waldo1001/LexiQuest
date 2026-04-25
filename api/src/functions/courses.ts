@@ -63,7 +63,10 @@ export function makeCoursesHandler(deps: CoursesDeps): HttpHandler {
       emoji: value.emoji,
       color: value.color,
       language: value.language,
+      question_lang_default: value.question_lang_default,
+      answer_lang_default: value.answer_lang_default,
       default_mode: value.default_mode,
+      bidirectional: value.bidirectional,
       created_at: deps.clock.now().toISOString(),
     };
     await deps.tables.upsert<CourseRow>("courses", row);

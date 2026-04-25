@@ -67,6 +67,9 @@ export function makeCoursesIdHandler(deps: CoursesIdDeps): HttpHandler {
       color: patch.color ?? found.color,
       default_mode: patch.default_mode ?? found.default_mode,
       language: patch.language === undefined ? found.language : patch.language,
+      question_lang_default: patch.question_lang_default === undefined ? (found.question_lang_default ?? null) : patch.question_lang_default,
+      answer_lang_default: patch.answer_lang_default === undefined ? (found.answer_lang_default ?? null) : patch.answer_lang_default,
+      bidirectional: patch.bidirectional === undefined ? (found.bidirectional ?? false) : patch.bidirectional,
     };
     await deps.tables.upsert<CourseRow>("courses", merged);
 

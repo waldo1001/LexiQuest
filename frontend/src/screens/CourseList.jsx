@@ -16,6 +16,7 @@ const EMPTY_NEW = {
   color: "#2563eb",
   language: "none",
   default_mode: "ask",
+  bidirectional: false,
 };
 
 const LANGUAGES = [
@@ -24,6 +25,15 @@ const LANGUAGES = [
   { value: "nl-BE", label: "nl-BE" },
   { value: "en-GB", label: "en-GB" },
   { value: "de-DE", label: "de-DE" },
+];
+
+const SIDE_LANGS = [
+  { value: "", labelKey: "import.langNone" },
+  { value: "en", label: "English" },
+  { value: "nl", label: "Nederlands" },
+  { value: "fr", label: "Français" },
+  { value: "de", label: "Deutsch" },
+  { value: "es", label: "Español" },
 ];
 
 const MODES = [
@@ -104,6 +114,7 @@ export default function CourseList({
       color: newForm.color,
       language: newForm.language === "none" ? null : newForm.language,
       default_mode: newForm.default_mode,
+      bidirectional: newForm.bidirectional,
       year_id: currentYear.id,
     };
     try {
@@ -124,7 +135,10 @@ export default function CourseList({
       emoji: course.emoji,
       color: course.color,
       language: course.language ?? "none",
+      question_lang_default: course.question_lang_default ?? "",
+      answer_lang_default: course.answer_lang_default ?? "",
       default_mode: course.default_mode,
+      bidirectional: course.bidirectional ?? false,
     });
   }
 
@@ -138,6 +152,8 @@ export default function CourseList({
     const payload = {
       ...editForm,
       language: editForm.language === "none" ? null : editForm.language,
+      question_lang_default: editForm.question_lang_default || null,
+      answer_lang_default: editForm.answer_lang_default || null,
     };
     try {
       const updated = await updateCourse(course.id, payload);
@@ -166,7 +182,7 @@ export default function CourseList({
 
   function startStudy(course, mode) {
     navigate(`/courses/${course.id}/study`, {
-      state: { courseName: course.name, mode, courseLang: course.language ?? null },
+      state: { courseName: course.name, mode, courseLang: course.language ?? null, questionLangDefault: course.question_lang_default ?? null, answerLangDefault: course.answer_lang_default ?? null },
     });
   }
 
@@ -251,6 +267,38 @@ export default function CourseList({
                       ))}
                     </select>
                   </label>
+                  {editForm.language !== "none" && (
+                    <>
+                      <label>
+                        {t("import.questionLang")}
+                        <select
+                          aria-label={t("import.questionLang")}
+                          value={editForm.question_lang_default}
+                          onChange={(e) => setEditForm({ ...editForm, question_lang_default: e.target.value })}
+                        >
+                          {SIDE_LANGS.map((l) => (
+                            <option key={l.value} value={l.value}>
+                              {l.labelKey ? t(l.labelKey) : l.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        {t("import.answerLang")}
+                        <select
+                          aria-label={t("import.answerLang")}
+                          value={editForm.answer_lang_default}
+                          onChange={(e) => setEditForm({ ...editForm, answer_lang_default: e.target.value })}
+                        >
+                          {SIDE_LANGS.map((l) => (
+                            <option key={l.value} value={l.value}>
+                              {l.labelKey ? t(l.labelKey) : l.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </>
+                  )}
                   <label>
                     {t("courses.field.defaultMode")}
                     <select
@@ -266,6 +314,14 @@ export default function CourseList({
                         </option>
                       ))}
                     </select>
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={editForm.bidirectional}
+                      onChange={(e) => setEditForm({ ...editForm, bidirectional: e.target.checked })}
+                    />
+                    {t("courses.field.bidirectional")}
                   </label>
                   <button type="submit" className="btn btn-primary">
                     {t("courses.action.save")}
@@ -306,7 +362,7 @@ export default function CourseList({
                     <Link
                       className="btn btn-primary"
                       to={`/courses/${course.id}/study`}
-                      state={{ courseName: course.name, mode: course.default_mode ?? "self_grade", courseLang: course.language ?? null }}
+                      state={{ courseName: course.name, mode: course.default_mode ?? "self_grade", courseLang: course.language ?? null, questionLangDefault: course.question_lang_default ?? null, answerLangDefault: course.answer_lang_default ?? null }}
                     >
                       {t("courses.action.study")}
                     </Link>
@@ -314,7 +370,7 @@ export default function CourseList({
                   <Link
                     className="btn btn-ghost"
                     to={`/courses/${course.id}/cards`}
-                    state={{ courseName: course.name, ownerId: course.user_id, courseLang: course.language ?? null }}
+                    state={{ courseName: course.name, ownerId: course.user_id, courseLang: course.language ?? null, questionLangDefault: course.question_lang_default ?? null, answerLangDefault: course.answer_lang_default ?? null }}
                   >
                     {t("courses.action.manageCards")}
                   </Link>
@@ -414,6 +470,14 @@ export default function CourseList({
                 </option>
               ))}
             </select>
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={newForm.bidirectional}
+              onChange={(e) => setNewForm({ ...newForm, bidirectional: e.target.checked })}
+            />
+            {t("courses.field.bidirectional")}
           </label>
           <button type="submit" className="btn btn-primary">
             {t("courses.action.create")}

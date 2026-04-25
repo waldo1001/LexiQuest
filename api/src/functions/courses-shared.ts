@@ -26,7 +26,10 @@ export interface CourseRow extends Entity {
   emoji: string;
   color: string;
   language: string | null;
+  question_lang_default?: string | null;
+  answer_lang_default?: string | null;
   default_mode: CourseDefaultMode;
+  bidirectional?: boolean;
   created_at: string;
 }
 
@@ -35,7 +38,10 @@ export interface CourseCreateBody {
   emoji: string;
   color: string;
   language: string | null;
+  question_lang_default: string | null;
+  answer_lang_default: string | null;
   default_mode: CourseDefaultMode;
+  bidirectional: boolean;
   year_id: string;
 }
 
@@ -68,6 +74,15 @@ export function validateCourseCreate(
   if (language === INVALID) {
     return { ok: false, error: "invalid language" };
   }
+  const question_lang_default = normalizeLanguage(src.question_lang_default);
+  if (question_lang_default === INVALID) {
+    return { ok: false, error: "invalid question_lang_default" };
+  }
+  const answer_lang_default = normalizeLanguage(src.answer_lang_default);
+  if (answer_lang_default === INVALID) {
+    return { ok: false, error: "invalid answer_lang_default" };
+  }
+  const bidirectional = src.bidirectional === true;
   return {
     ok: true,
     value: {
@@ -75,7 +90,10 @@ export function validateCourseCreate(
       emoji: src.emoji,
       color: src.color,
       language,
+      question_lang_default,
+      answer_lang_default,
       default_mode: src.default_mode as CourseDefaultMode,
+      bidirectional,
       year_id: src.year_id,
     },
   };
@@ -86,7 +104,10 @@ export interface CoursePatchBody {
   emoji?: string;
   color?: string;
   language?: string | null;
+  question_lang_default?: string | null;
+  answer_lang_default?: string | null;
   default_mode?: CourseDefaultMode;
+  bidirectional?: boolean;
 }
 
 export function validateCoursePatch(
@@ -124,12 +145,29 @@ export function validateCoursePatch(
     }
     patch.default_mode = src.default_mode as CourseDefaultMode;
   }
+  if ("bidirectional" in src) {
+    patch.bidirectional = src.bidirectional === true;
+  }
   if ("language" in src) {
     const language = normalizeLanguage(src.language);
     if (language === INVALID) {
       return { ok: false, error: "invalid language" };
     }
     patch.language = language;
+  }
+  if ("question_lang_default" in src) {
+    const v = normalizeLanguage(src.question_lang_default);
+    if (v === INVALID) {
+      return { ok: false, error: "invalid question_lang_default" };
+    }
+    patch.question_lang_default = v;
+  }
+  if ("answer_lang_default" in src) {
+    const v = normalizeLanguage(src.answer_lang_default);
+    if (v === INVALID) {
+      return { ok: false, error: "invalid answer_lang_default" };
+    }
+    patch.answer_lang_default = v;
   }
   return { ok: true, patch };
 }
@@ -142,7 +180,10 @@ export function courseProfile(row: CourseRow): {
   emoji: string;
   color: string;
   language: string | null;
+  question_lang_default: string | null;
+  answer_lang_default: string | null;
   default_mode: CourseDefaultMode;
+  bidirectional: boolean;
   created_at: string;
 } {
   return {
@@ -153,7 +194,10 @@ export function courseProfile(row: CourseRow): {
     emoji: row.emoji,
     color: row.color,
     language: row.language,
+    question_lang_default: row.question_lang_default ?? null,
+    answer_lang_default: row.answer_lang_default ?? null,
     default_mode: row.default_mode,
+    bidirectional: row.bidirectional ?? false,
     created_at: row.created_at,
   };
 }

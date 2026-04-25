@@ -84,6 +84,42 @@ describe("validateCourseCreate", () => {
     const r = validateCourseCreate({ ...valid(), language: "gibberish!" });
     expect(r.ok).toBe(false);
   });
+
+  it("accepts question_lang_default and answer_lang_default", () => {
+    const r = validateCourseCreate({ ...valid(), question_lang_default: "fr", answer_lang_default: "nl" });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.question_lang_default).toBe("fr");
+      expect(r.value.answer_lang_default).toBe("nl");
+    }
+  });
+
+  it("defaults question_lang_default and answer_lang_default to null when absent", () => {
+    const r = validateCourseCreate(valid());
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.question_lang_default).toBeNull();
+      expect(r.value.answer_lang_default).toBeNull();
+    }
+  });
+
+  it("rejects invalid question_lang_default", () => {
+    expect(validateCourseCreate({ ...valid(), question_lang_default: "!!!" }).ok).toBe(false);
+  });
+
+  it("rejects invalid answer_lang_default", () => {
+    expect(validateCourseCreate({ ...valid(), answer_lang_default: 123 }).ok).toBe(false);
+  });
+
+  it("course create accepts bidirectional flag, defaults to false", () => {
+    const r1 = validateCourseCreate({ ...valid(), bidirectional: true });
+    expect(r1.ok).toBe(true);
+    if (r1.ok) expect(r1.value.bidirectional).toBe(true);
+
+    const r2 = validateCourseCreate(valid());
+    expect(r2.ok).toBe(true);
+    if (r2.ok) expect(r2.value.bidirectional).toBe(false);
+  });
 });
 
 describe("validateCoursePatch", () => {
@@ -105,6 +141,42 @@ describe("validateCoursePatch", () => {
     expect(validateCoursePatch({ default_mode: "nope" }).ok).toBe(false);
     expect(validateCoursePatch({ language: "!!" }).ok).toBe(false);
     expect(validateCoursePatch(null).ok).toBe(false);
+  });
+
+  it("accepts question_lang_default and answer_lang_default in patch", () => {
+    const r = validateCoursePatch({ question_lang_default: "fr", answer_lang_default: "nl" });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.patch.question_lang_default).toBe("fr");
+      expect(r.patch.answer_lang_default).toBe("nl");
+    }
+  });
+
+  it("accepts null to clear per-side defaults", () => {
+    const r = validateCoursePatch({ question_lang_default: null, answer_lang_default: null });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.patch.question_lang_default).toBeNull();
+      expect(r.patch.answer_lang_default).toBeNull();
+    }
+  });
+
+  it("rejects invalid question_lang_default in patch", () => {
+    expect(validateCoursePatch({ question_lang_default: "!!!" }).ok).toBe(false);
+  });
+
+  it("rejects invalid answer_lang_default in patch", () => {
+    expect(validateCoursePatch({ answer_lang_default: 42 }).ok).toBe(false);
+  });
+
+  it("course patch can flip bidirectional from false to true and back", () => {
+    const r1 = validateCoursePatch({ bidirectional: true });
+    expect(r1.ok).toBe(true);
+    if (r1.ok) expect(r1.patch.bidirectional).toBe(true);
+
+    const r2 = validateCoursePatch({ bidirectional: false });
+    expect(r2.ok).toBe(true);
+    if (r2.ok) expect(r2.patch.bidirectional).toBe(false);
   });
 
   it("ignores attempts to mutate user_id or year_id", () => {
@@ -133,9 +205,37 @@ describe("courseProfile", () => {
       emoji: "📘",
       color: "#123456",
       language: "fr-FR",
+      question_lang_default: null,
+      answer_lang_default: null,
       default_mode: "ask",
+      bidirectional: false,
       created_at: "2026-04-22T09:00:00.000Z",
     });
+  });
+
+  it("returns per-side lang defaults when set on the row", () => {
+    const row = course("u1", "c1", { question_lang_default: "fr", answer_lang_default: "nl" });
+    const p = courseProfile(row);
+    expect(p.question_lang_default).toBe("fr");
+    expect(p.answer_lang_default).toBe("nl");
+  });
+
+  it("defaults missing per-side lang to null for legacy rows", () => {
+    const row = course("u1", "c1");
+    // legacy rows have no question_lang_default / answer_lang_default properties
+    const p = courseProfile(row);
+    expect(p.question_lang_default).toBeNull();
+    expect(p.answer_lang_default).toBeNull();
+  });
+
+  it("exposes bidirectional, defaulting to false for legacy rows", () => {
+    const row = course("u1", "c1");
+    expect(courseProfile(row).bidirectional).toBe(false);
+  });
+
+  it("preserves bidirectional=true when set", () => {
+    const row = course("u1", "c1", { bidirectional: true });
+    expect(courseProfile(row).bidirectional).toBe(true);
   });
 });
 
