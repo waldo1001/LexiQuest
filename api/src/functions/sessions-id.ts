@@ -65,9 +65,11 @@ export function makeSessionsIdHandler(deps: SessionsIdDeps): HttpHandler {
     const allAttempts = await deps.tables.listByPartition<AttemptRow>("attempts", auth.auth.userId);
     const sessionAttempts = allAttempts.filter((a) => a.session_id === sessionId);
 
+    const gameType = (session as Record<string, unknown>).game_type as string ?? "classic";
     const xpEarned = computeSessionXp(
       { cards_studied: closeBody.value.cards_studied, cards_correct: closeBody.value.cards_correct },
       sessionAttempts,
+      gameType as import("../shared/card-priority.js").GameType,
     );
 
     const updated: SessionRow = {
@@ -105,7 +107,7 @@ export function makeSessionsIdHandler(deps: SessionsIdDeps): HttpHandler {
         totalCardsStudied: closeBody.value.cards_studied,
         perfectSession: isPerfect,
         firstPhotoImport: false,
-        bossRoundComplete: false,
+        bossRoundComplete: gameType === "boss_round",
         cardsAtHighMastery: 0,
         existingBadges: existingSettings.badges ?? [],
       });

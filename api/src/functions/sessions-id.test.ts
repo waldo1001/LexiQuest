@@ -56,19 +56,22 @@ function validCookie(deps: ReturnType<typeof makeDeps>, userId = USER_ID): strin
   return buildSessionCookie(token);
 }
 
-function makeSession(userId = USER_ID): SessionRow {
+function makeSession(userId = USER_ID, overrides: Partial<SessionRow> = {}): SessionRow {
   return {
     partitionKey: userId,
     rowKey: makeSessionRowKey(STARTED_AT, SESSION_ID),
     user_id: userId,
     course_id: COURSE_ID,
     mode: "self_grade",
+    game_type: "classic",
+    card_limit: null,
     started_at: STARTED_AT,
     ended_at: null,
     cards_studied: 0,
     cards_correct: 0,
     xp_earned: 0,
     duration_seconds: 0,
+    ...overrides,
   };
 }
 
@@ -221,6 +224,98 @@ describe("PUT /api/sessions/:id", () => {
     const settings = updated?.settings as Record<string, unknown>;
     expect(settings.streak).toBe(1);
     expect(settings.last_session_date).toBe("2026-04-22");
+  });
+
+  it("closing a boss_round session awards boss_slayer badge", async () => {
+    const userRow: UserRow = {
+      partitionKey: PARTITIONS.users,
+      rowKey: USER_ID,
+      name: "Lex", password_hash: "x", is_admin: false,
+      color: "#16a34a", avatar_emoji: "🐯", ui_language: "en",
+      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 20, badges: [] } as unknown as Record<string, unknown>,
+      created_at: STARTED_AT,
+    };
+    await deps.tables.upsert<UserRow>("users", userRow);
+    await deps.tables.upsert<SessionRow>("sessions", makeSession(USER_ID, { game_type: "boss_round" }));
+
+    const attemptRow: AttemptRow = {
+      partitionKey: USER_ID,
+      rowKey: makeAttemptRowKey(STARTED_AT, "att-1"),
+      user_id: USER_ID,
+      card_id: "card-1",
+      session_id: SESSION_ID,
+      correct: true,
+      mode: "self_grade",
+      response_time_ms: 0,
+      timestamp: STARTED_AT,
+    };
+    await deps.tables.upsert<AttemptRow>("attempts", attemptRow);
+
+    const res = (await makeSessionsIdHandler(deps)(
+      makeReq(validCookie(deps), SESSION_ID, { body: { cards_studied: 1, cards_correct: 1 } }),
+      ctx,
+    )) as HttpResponseInit;
+
+    expect(res.status).toBe(200);
+    const body = res.jsonBody as { badges_earned: string[] };
+    expect(body.badges_earned).toContain("boss_slayer");
+  });
+
+  it("closing a classic session does NOT award boss_slayer badge", async () => {
+    const userRow: UserRow = {
+      partitionKey: PARTITIONS.users,
+      rowKey: USER_ID,
+      name: "Lex", password_hash: "x", is_admin: false,
+      color: "#16a34a", avatar_emoji: "🐯", ui_language: "en",
+      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 20, badges: [] } as unknown as Record<string, unknown>,
+      created_at: STARTED_AT,
+    };
+    await deps.tables.upsert<UserRow>("users", userRow);
+    await deps.tables.upsert<SessionRow>("sessions", makeSession(USER_ID, { game_type: "classic" }));
+
+    const res = (await makeSessionsIdHandler(deps)(
+      makeReq(validCookie(deps), SESSION_ID, { body: { cards_studied: 1, cards_correct: 1 } }),
+      ctx,
+    )) as HttpResponseInit;
+
+    expect(res.status).toBe(200);
+    const body = res.jsonBody as { badges_earned: string[] };
+    expect(body.badges_earned).not.toContain("boss_slayer");
+  });
+
+  it("boss_round XP includes 1.5x multiplier + 50 bonus", async () => {
+    const userRow: UserRow = {
+      partitionKey: PARTITIONS.users,
+      rowKey: USER_ID,
+      name: "Lex", password_hash: "x", is_admin: false,
+      color: "#16a34a", avatar_emoji: "🐯", ui_language: "en",
+      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 20 } as unknown as Record<string, unknown>,
+      created_at: STARTED_AT,
+    };
+    await deps.tables.upsert<UserRow>("users", userRow);
+    await deps.tables.upsert<SessionRow>("sessions", makeSession(USER_ID, { game_type: "boss_round" }));
+
+    const attemptRow: AttemptRow = {
+      partitionKey: USER_ID,
+      rowKey: makeAttemptRowKey(STARTED_AT, "att-1"),
+      user_id: USER_ID,
+      card_id: "card-1",
+      session_id: SESSION_ID,
+      correct: true,
+      mode: "self_grade",
+      response_time_ms: 0,
+      timestamp: STARTED_AT,
+    };
+    await deps.tables.upsert<AttemptRow>("attempts", attemptRow);
+
+    const res = (await makeSessionsIdHandler(deps)(
+      makeReq(validCookie(deps), SESSION_ID, { body: { cards_studied: 1, cards_correct: 1 } }),
+      ctx,
+    )) as HttpResponseInit;
+
+    const body = res.jsonBody as { xp_earned: number };
+    // 1 card × 10 × 1.5 = 15 + 20 session + 30 perfect + 50 boss = 115
+    expect(body.xp_earned).toBe(115);
   });
 
   it("parses settings stored as a JSON string (Table Storage round-trip branch)", async () => {

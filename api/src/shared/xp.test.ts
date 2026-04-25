@@ -79,3 +79,44 @@ describe("computeSessionXp", () => {
     expect(computeSessionXp(session, [])).toBe(20);
   });
 });
+
+describe("computeSessionXp — game type multipliers", () => {
+  it("classic mode XP unchanged (multiplier 1.0)", () => {
+    const session: SessionLike = { cards_studied: 2, cards_correct: 2 };
+    const attempts: AttemptLike[] = [attempt("c1", true), attempt("c2", true)];
+    expect(computeSessionXp(session, attempts, "classic")).toBe(70); // 2×10 + 20 + 30
+  });
+
+  it("boss_round: per-card XP multiplied by 1.5 + flat 50 bonus", () => {
+    const session: SessionLike = { cards_studied: 2, cards_correct: 2 };
+    const attempts: AttemptLike[] = [attempt("c1", true), attempt("c2", true)];
+    // 2 × 10 × 1.5 = 30 (per-card), +20 session, +30 perfect, +50 boss = 130
+    expect(computeSessionXp(session, attempts, "boss_round")).toBe(130);
+  });
+
+  it("speed_round: per-card XP multiplied by 1.25", () => {
+    const session: SessionLike = { cards_studied: 2, cards_correct: 2 };
+    const attempts: AttemptLike[] = [attempt("c1", true), attempt("c2", true)];
+    // 2 × 10 × 1.25 = 25, +20 session, +30 perfect = 75
+    expect(computeSessionXp(session, attempts, "speed_round")).toBe(75);
+  });
+
+  it("review_blitz: no multiplier", () => {
+    const session: SessionLike = { cards_studied: 2, cards_correct: 2 };
+    const attempts: AttemptLike[] = [attempt("c1", true), attempt("c2", true)];
+    expect(computeSessionXp(session, attempts, "review_blitz")).toBe(70);
+  });
+
+  it("session/perfect bonuses NOT multiplied", () => {
+    // All wrong — only session bonus, no card XP to multiply
+    const session: SessionLike = { cards_studied: 2, cards_correct: 0 };
+    const attempts: AttemptLike[] = [attempt("c1", false), attempt("c2", false)];
+    expect(computeSessionXp(session, attempts, "boss_round")).toBe(70); // 20 session + 50 boss
+  });
+
+  it("defaults to classic when gameType omitted", () => {
+    const session: SessionLike = { cards_studied: 1, cards_correct: 1 };
+    const attempts: AttemptLike[] = [attempt("c1", true)];
+    expect(computeSessionXp(session, attempts)).toBe(60); // 10 + 20 + 30
+  });
+});
