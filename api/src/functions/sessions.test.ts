@@ -330,6 +330,65 @@ describe("POST /api/sessions", () => {
     expect(body.time_limit_seconds).toBeNull();
   });
 
+  it("returns 400 for invalid gameType", async () => {
+    const res = (await makeSessionsHandler(deps)(
+      makeReq(validCookie(deps), { body: { courseId: "c1", mode: "self_grade", gameType: "invalid" } }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for cardLimit=0", async () => {
+    const res = (await makeSessionsHandler(deps)(
+      makeReq(validCookie(deps), { body: { courseId: "c1", mode: "self_grade", cardLimit: 0 } }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
+  it("boss_round with no hard cards returns empty array", async () => {
+    deps = makeDeps(["sess-1"], [[]]);
+    await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
+    // Card with high ease (not hard)
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "easy", {
+      sm2_ease: 2.5,
+      sm2_reps: 3,
+      next_review_at: NOW,
+    }));
+
+    const res = (await makeSessionsHandler(deps)(
+      makeReq(validCookie(deps, "u-lex"), {
+        body: { courseId: "c1", mode: "self_grade", gameType: "boss_round", cardLimit: 10 },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+
+    expect(res.status).toBe(200);
+    const body = res.jsonBody as { cards: unknown[] };
+    expect(body.cards).toHaveLength(0);
+  });
+
+  it("review_blitz with no overdue cards returns empty array", async () => {
+    deps = makeDeps(["sess-1"], [[]]);
+    await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
+    // Only future card
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "future", {
+      sm2_reps: 3,
+      next_review_at: TOMORROW,
+    }));
+
+    const res = (await makeSessionsHandler(deps)(
+      makeReq(validCookie(deps, "u-lex"), {
+        body: { courseId: "c1", mode: "self_grade", gameType: "review_blitz" },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+
+    expect(res.status).toBe(200);
+    const body = res.jsonBody as { cards: unknown[] };
+    expect(body.cards).toHaveLength(0);
+  });
+
   it("user_id comes from session token, not body", async () => {
     deps = makeDeps(["sess-1"], [[0]]);
     await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
