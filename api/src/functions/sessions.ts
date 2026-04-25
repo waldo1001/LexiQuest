@@ -19,8 +19,7 @@ import {
   makeSessionRowKey,
   type SessionRow,
 } from "./sessions-shared.js";
-
-const MAX_NEW_CARDS = 20;
+import { buildQueue } from "../shared/card-priority.js";
 
 export interface SessionsDeps {
   tables: TableStorage;
@@ -43,7 +42,7 @@ export function makeSessionsHandler(deps: SessionsDeps): HttpHandler {
     if (!result.ok) {
       return { status: 400, jsonBody: { error: result.error } };
     }
-    const { courseId, mode } = result.value;
+    const { courseId, mode, gameType, cardLimit } = result.value;
 
     // Verify the course exists (scan the caller's partition then all)
     const course = await findCourseById(deps.tables, auth.auth.userId, courseId);
@@ -54,14 +53,14 @@ export function makeSessionsHandler(deps: SessionsDeps): HttpHandler {
     const now = deps.clock.now();
     const nowIso = now.toISOString();
 
-    // Build queue: due cards + new cards (capped at MAX_NEW_CARDS)
+    // Build queue using priority algorithm
     const allCards = await deps.tables.listByPartition<CardRow>("cards", courseId);
-    const dueCards = allCards.filter((c) => c.next_review_at <= nowIso);
-    const newCards = allCards
-      .filter((c) => c.sm2_reps === 0 && c.next_review_at > nowIso)
-      .slice(0, MAX_NEW_CARDS);
-
-    const queue = deps.random.shuffle([...dueCards, ...newCards]);
+    const queue = buildQueue(allCards, {
+      gameType,
+      cardLimit,
+      now,
+      shuffle: deps.random.shuffle.bind(deps.random),
+    });
 
     const sessionId = deps.random.uuid();
     const rowKey = makeSessionRowKey(nowIso, sessionId);
@@ -72,6 +71,8 @@ export function makeSessionsHandler(deps: SessionsDeps): HttpHandler {
       user_id: auth.auth.userId,
       course_id: courseId,
       mode,
+      game_type: gameType,
+      card_limit: cardLimit,
       started_at: nowIso,
       ended_at: null,
       cards_studied: 0,
@@ -86,6 +87,9 @@ export function makeSessionsHandler(deps: SessionsDeps): HttpHandler {
       jsonBody: {
         sessionId,
         cards: queue.map(cardProfile),
+        game_type: gameType,
+        card_limit: cardLimit,
+        time_limit_seconds: gameType === "speed_round" ? 60 : null,
       },
     };
   };

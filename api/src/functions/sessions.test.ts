@@ -245,6 +245,91 @@ describe("POST /api/sessions", () => {
     expect(body.cards).toHaveLength(0);
   });
 
+  it("persists game_type and card_limit on session row", async () => {
+    deps = makeDeps(["sess-1"], [[0]]);
+    await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-1"));
+
+    await makeSessionsHandler(deps)(
+      makeReq(validCookie(deps, "u-lex"), {
+        body: { courseId: "c1", mode: "self_grade", gameType: "boss_round", cardLimit: 10 },
+      }),
+      ctx,
+    );
+
+    const sessions = await deps.tables.listByPartition<SessionRow>("sessions", "u-lex");
+    expect(sessions[0]?.game_type).toBe("boss_round");
+    expect(sessions[0]?.card_limit).toBe(10);
+  });
+
+  it("defaults game_type=classic and card_limit=null when not specified", async () => {
+    deps = makeDeps(["sess-1"], [[0]]);
+    await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-1"));
+
+    await makeSessionsHandler(deps)(
+      makeReq(validCookie(deps, "u-lex"), {
+        body: { courseId: "c1", mode: "self_grade" },
+      }),
+      ctx,
+    );
+
+    const sessions = await deps.tables.listByPartition<SessionRow>("sessions", "u-lex");
+    expect(sessions[0]?.game_type).toBe("classic");
+    expect(sessions[0]?.card_limit).toBeNull();
+  });
+
+  it("with cardLimit=10 returns at most 10 cards", async () => {
+    const identity10 = Array.from({ length: 10 }, (_, i) => i);
+    deps = makeDeps(["sess-1"], [identity10]);
+    await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
+    for (let i = 0; i < 30; i++) {
+      await deps.tables.upsert<CardRow>("cards", makeCard("c1", `card-${i}`));
+    }
+
+    const res = (await makeSessionsHandler(deps)(
+      makeReq(validCookie(deps, "u-lex"), {
+        body: { courseId: "c1", mode: "self_grade", cardLimit: 10 },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+
+    const body = res.jsonBody as { cards: unknown[] };
+    expect(body.cards.length).toBeLessThanOrEqual(10);
+  });
+
+  it("speed_round response includes time_limit_seconds=60", async () => {
+    deps = makeDeps(["sess-1"], [[0]]);
+    await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-1"));
+
+    const res = (await makeSessionsHandler(deps)(
+      makeReq(validCookie(deps, "u-lex"), {
+        body: { courseId: "c1", mode: "self_grade", gameType: "speed_round" },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+
+    const body = res.jsonBody as { time_limit_seconds: number | null };
+    expect(body.time_limit_seconds).toBe(60);
+  });
+
+  it("classic response has time_limit_seconds=null", async () => {
+    deps = makeDeps(["sess-1"], [[0]]);
+    await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-1"));
+
+    const res = (await makeSessionsHandler(deps)(
+      makeReq(validCookie(deps, "u-lex"), {
+        body: { courseId: "c1", mode: "self_grade" },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+
+    const body = res.jsonBody as { time_limit_seconds: number | null };
+    expect(body.time_limit_seconds).toBeNull();
+  });
+
   it("user_id comes from session token, not body", async () => {
     deps = makeDeps(["sess-1"], [[0]]);
     await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
