@@ -239,7 +239,7 @@ populates 4 users + current year. See
 ## Phase 18 — Bidirectional cards
 
 - ✅ Slice 1 — Schema + pure reverse builder (`reverse_of`, `CardSource="reverse"`, `buildReverseCard`)
-- ⬜ Slice 2 — `POST /api/cards/reverse` + Card Manager button
+- ✅ Slice 2 — `POST /api/cards/reverse` + Card Manager button
 - ⬜ Slice 3 — Bidirectional toggle on Import Review
 - ⬜ Slice 4 — Course-level `bidirectional` default
 - ⬜ Slice 5 — Card Manager pairing UI + linked delete

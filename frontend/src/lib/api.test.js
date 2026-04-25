@@ -25,6 +25,7 @@ import {
   batchCreateCards,
   bulkDeleteCards,
   enrichCards,
+  reverseCards,
   fetchFamilyStats,
   fetchCompareStats,
   fetchUserStats,
@@ -899,5 +900,27 @@ describe("fetchHeatmap", () => {
   });
   it("throws on non-ok", async () => {
     await expect(fetchHeatmap({ userId: "u1" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) })).rejects.toThrow(/500/);
+  });
+});
+
+describe("reverseCards", () => {
+  it("POSTs to /api/cards/reverse and returns created/skipped", async () => {
+    const data = { created: 5, skipped: 0 };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    const result = await reverseCards({ courseId: "c1" }, { fetchFn });
+    expect(fetchFn).toHaveBeenCalledWith("/api/cards/reverse", expect.objectContaining({ method: "POST" }));
+    expect(result).toEqual(data);
+  });
+
+  it("throws 'forbidden' on 403", async () => {
+    await expect(
+      reverseCards({ courseId: "c1" }, { fetchFn: vi.fn().mockResolvedValue(fail(403)) }),
+    ).rejects.toThrow("forbidden");
+  });
+
+  it("throws on non-ok", async () => {
+    await expect(
+      reverseCards({ courseId: "c1" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
+    ).rejects.toThrow(/500/);
   });
 });

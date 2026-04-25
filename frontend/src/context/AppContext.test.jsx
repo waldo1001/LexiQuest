@@ -208,6 +208,18 @@ describe("AppContext", () => {
       document.documentElement.removeAttribute("data-theme");
     });
 
+    it("syncs themeName from user.settings.theme on login", async () => {
+      const patchMe = vi.fn().mockResolvedValue({});
+      const userWithTheme = { id: "u1", name: "Lex", isAdmin: false, settings: { theme: "arcade" } };
+      render(
+        <AppProvider patchMe={patchMe} initialUser={userWithTheme}>
+          <ThemeProbe />
+        </AppProvider>,
+      );
+      // The useEffect on user should sync the theme
+      expect(screen.getByTestId("theme-name").textContent).toBe("arcade");
+    });
+
     it("applies data-theme-name on documentElement when themeName is set", async () => {
       const patchMe = vi.fn().mockResolvedValue({});
       render(

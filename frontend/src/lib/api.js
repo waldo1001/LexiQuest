@@ -559,6 +559,23 @@ export async function bulkDeleteCards(body, { fetchFn = fetch } = {}) {
 }
 
 /**
+ * @param {{ courseId: string }} body
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<{ created: number, skipped: number }>}
+ */
+export async function reverseCards(body, { fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/cards/reverse", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (response.status === 403) throw new Error("forbidden");
+  if (!response.ok) throw new Error(`POST /api/cards/reverse failed: ${response.status}`);
+  return response.json();
+}
+
+/**
  * @param {{ courseId: string, cards: object[] }} body
  * @param {{ fetchFn?: typeof fetch }} [options]
  * @returns {Promise<{ upload_id: string, cards: object[] }>}

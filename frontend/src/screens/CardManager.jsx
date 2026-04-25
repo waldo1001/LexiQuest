@@ -6,6 +6,7 @@ import {
   updateCard as updateCardApi,
   deleteCard as deleteCardApi,
   bulkDeleteCards as bulkDeleteCardsApi,
+  reverseCards as reverseCardsApi,
 } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
 import { useAppContext, useTts } from "../context/AppContext.jsx";
@@ -52,6 +53,7 @@ function formatDate(iso) {
  *   updateCard?: typeof updateCardApi,
  *   deleteCard?: typeof deleteCardApi,
  *   bulkDeleteCards?: typeof bulkDeleteCardsApi,
+ *   reverseCards?: typeof reverseCardsApi,
  *   confirmFn?: (msg: string) => boolean,
  * }} props
  */
@@ -61,6 +63,7 @@ export default function CardManager({
   updateCard = updateCardApi,
   deleteCard = deleteCardApi,
   bulkDeleteCards = bulkDeleteCardsApi,
+  reverseCards = reverseCardsApi,
   confirmFn = typeof window !== "undefined"
     ? window.confirm.bind(window)
     : () => false,
@@ -69,7 +72,7 @@ export default function CardManager({
   const tts = useTts();
   const { courseId } = useParams();
   const location = useLocation();
-  const { courseName = "", ownerId = null, courseLang = null } = location.state ?? {};
+  const { courseName = "", ownerId = null, courseLang = null, questionLangDefault = null, answerLangDefault = null } = location.state ?? {};
   const canSpeak = Boolean(courseLang && tts.isAvailable(courseLang));
 
   const { user } = useAppContext();
@@ -229,6 +232,22 @@ export default function CardManager({
     }
   }
 
+  async function onReverse() {
+    resetStatus();
+    try {
+      const result = await reverseCards({ courseId });
+      if (result.created > 0) {
+        const refreshed = await fetchCards(courseId);
+        setCards(refreshed);
+        setStatus(t("cards.status.reversed", { count: result.created }));
+      } else {
+        setStatus(t("cards.status.allReversed"));
+      }
+    } catch {
+      setError(t("errors.generic"));
+    }
+  }
+
   if (cards === null && !error) return <p>{t("cards.loading")}</p>;
 
   const title = t("cards.title", { courseName });
@@ -253,6 +272,9 @@ export default function CardManager({
           </button>
           <button type="button" onClick={onDeleteAll}>
             {t("cards.action.deleteAll")}
+          </button>
+          <button type="button" onClick={onReverse}>
+            {t("cards.action.addReverse")}
           </button>
         </div>
       )}
@@ -348,7 +370,7 @@ export default function CardManager({
                                 type="button"
                                 className="speak-btn"
                                 aria-label={t("cards.speak")}
-                                onClick={() => tts.speak(card.question, courseLang)}
+                                onClick={() => tts.speak(card.question, card.question_lang ?? questionLangDefault ?? courseLang)}
                               >🔊</button>
                             )}
                           </td>
@@ -359,7 +381,7 @@ export default function CardManager({
                                 type="button"
                                 className="speak-btn"
                                 aria-label={t("cards.speak")}
-                                onClick={() => tts.speak(card.answer, courseLang)}
+                                onClick={() => tts.speak(card.answer, card.answer_lang ?? answerLangDefault ?? courseLang)}
                               >🔊</button>
                             )}
                           </td>
@@ -397,7 +419,7 @@ export default function CardManager({
       {canEdit && (
         <Link
           to={`/courses/${courseId}/import`}
-          state={{ courseId, courseName, ownerId, courseLang }}
+          state={{ courseId, courseName, ownerId, courseLang, questionLangDefault, answerLangDefault }}
         >
           {t("import.title")}
         </Link>

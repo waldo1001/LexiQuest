@@ -48,6 +48,7 @@ function setup({
   updateCard,
   deleteCard,
   bulkDeleteCards,
+  reverseCards,
   confirmFn,
   lang = "en",
   currentUser = { id: OWNER_ID, name: "Lex", isAdmin: false },
@@ -55,13 +56,15 @@ function setup({
   courseName = COURSE_NAME,
   ownerId = OWNER_ID,
   courseLang = null,
+  questionLangDefault = null,
+  answerLangDefault = null,
   tts,
 } = {}) {
   return render(
     <AppProvider initialLang={lang} initialUser={currentUser} tts={tts}>
       <MemoryRouter
         initialEntries={[
-          { pathname: `/courses/${courseId}/cards`, state: { courseName, ownerId, courseLang } },
+          { pathname: `/courses/${courseId}/cards`, state: { courseName, ownerId, courseLang, questionLangDefault, answerLangDefault } },
         ]}
       >
         <Routes>
@@ -74,6 +77,7 @@ function setup({
                 updateCard={updateCard ?? vi.fn()}
                 deleteCard={deleteCard ?? vi.fn()}
                 bulkDeleteCards={bulkDeleteCards ?? vi.fn().mockResolvedValue({ deleted: 0 })}
+                reverseCards={reverseCards ?? vi.fn().mockResolvedValue({ created: 0, skipped: 0 })}
                 confirmFn={confirmFn ?? vi.fn(() => false)}
               />
             }
@@ -372,6 +376,62 @@ describe("CardManager", () => {
   });
 });
 
+describe("CardManager — Reverse cards", () => {
+  it("shows 'Add reverse cards' button for course owner", async () => {
+    setup();
+    await screen.findByText("What is a dog?");
+    expect(screen.getByRole("button", { name: /add reverse cards/i })).toBeInTheDocument();
+  });
+
+  it("hides 'Add reverse cards' for read-only viewer", async () => {
+    setup({ currentUser: { id: OTHER_ID, name: "Mats", isAdmin: false } });
+    await screen.findByText("What is a dog?");
+    expect(screen.queryByRole("button", { name: /add reverse cards/i })).toBeNull();
+  });
+
+  it("clicking 'Add reverse cards' calls the API, refreshes, shows status", async () => {
+    const reverseCards = vi.fn().mockResolvedValue({ created: 2, skipped: 0 });
+    const refreshedCards = [
+      ...SEED_CARDS,
+      { ...SEED_CARDS[0], id: "rev-1", question: "le chien", answer: "What is a dog?", reverse_of: "card-1" },
+      { ...SEED_CARDS[1], id: "rev-2", question: "le chat", answer: "What is a cat?", reverse_of: "card-2" },
+    ];
+    const fetchCards = vi.fn()
+      .mockResolvedValueOnce(SEED_CARDS)
+      .mockResolvedValueOnce(refreshedCards);
+    const user = userEvent.setup();
+    setup({ fetchCards, reverseCards });
+
+    await screen.findByText("What is a dog?");
+    await user.click(screen.getByRole("button", { name: /add reverse cards/i }));
+
+    expect(reverseCards).toHaveBeenCalledWith({ courseId: COURSE_ID });
+    expect(await screen.findByText(/added 2 reverse cards/i)).toBeInTheDocument();
+  });
+
+  it("shows 'all reversed' status when created=0", async () => {
+    const reverseCards = vi.fn().mockResolvedValue({ created: 0, skipped: 2 });
+    const user = userEvent.setup();
+    setup({ reverseCards });
+
+    await screen.findByText("What is a dog?");
+    await user.click(screen.getByRole("button", { name: /add reverse cards/i }));
+
+    expect(await screen.findByText(/all cards already have reverses/i)).toBeInTheDocument();
+  });
+
+  it("shows error when reverse API fails", async () => {
+    const reverseCards = vi.fn().mockRejectedValue(new Error("boom"));
+    const user = userEvent.setup();
+    setup({ reverseCards });
+
+    await screen.findByText("What is a dog?");
+    await user.click(screen.getByRole("button", { name: /add reverse cards/i }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
+});
+
 describe("CardManager — TTS speak buttons", () => {
   const defaultFetch = vi.fn().mockResolvedValue(SEED_CARDS);
 
@@ -398,5 +458,55 @@ describe("CardManager — TTS speak buttons", () => {
     await userEvent.click(speakBtns[0]);
     expect(tts.lastSpoken?.lang).toBe("fr-FR");
     expect(tts.lastSpoken?.text).toBeTruthy();
+  });
+
+  it("speak button uses card.question_lang for question and card.answer_lang for answer (AC10)", async () => {
+    const cardsWithLang = [
+      {
+        ...SEED_CARDS[0],
+        question: "the dog",
+        answer: "le chien",
+        question_lang: "en",
+        answer_lang: "fr-FR",
+      },
+    ];
+    const tts = createFakeTts({ available: true });
+    setup({ fetchCards: vi.fn().mockResolvedValue(cardsWithLang), courseLang: "fr-FR", tts });
+    await screen.findByText("the dog");
+    const speakBtns = screen.getAllByRole("button", { name: /Speak/i });
+    // First speak button is on the question column
+    await userEvent.click(speakBtns[0]);
+    expect(tts.lastSpoken).toMatchObject({ text: "the dog", lang: "en" });
+    // Second speak button is on the answer column
+    await userEvent.click(speakBtns[1]);
+    expect(tts.lastSpoken).toMatchObject({ text: "le chien", lang: "fr-FR" });
+  });
+
+  it("speak button falls back to courseLang when per-side lang is null (AC10b)", async () => {
+    const tts = createFakeTts({ available: true });
+    setup({ fetchCards: defaultFetch, courseLang: "fr-FR", tts });
+    await screen.findByText("What is a dog?");
+    const speakBtns = screen.getAllByRole("button", { name: /Speak/i });
+    await userEvent.click(speakBtns[0]);
+    expect(tts.lastSpoken?.lang).toBe("fr-FR");
+  });
+
+  it("speak button uses course-level lang defaults when card has no per-side lang", async () => {
+    const tts = createFakeTts({ available: true });
+    setup({
+      fetchCards: defaultFetch,
+      courseLang: "fr-FR",
+      questionLangDefault: "fr",
+      answerLangDefault: "nl",
+      tts,
+    });
+    await screen.findByText("What is a dog?");
+    const speakBtns = screen.getAllByRole("button", { name: /Speak/i });
+    // Question: card has no question_lang → falls back to questionLangDefault "fr"
+    await userEvent.click(speakBtns[0]);
+    expect(tts.lastSpoken?.lang).toBe("fr");
+    // Answer: card has no answer_lang → falls back to answerLangDefault "nl"
+    await userEvent.click(speakBtns[1]);
+    expect(tts.lastSpoken?.lang).toBe("nl");
   });
 });
