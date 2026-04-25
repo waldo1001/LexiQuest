@@ -1,7 +1,10 @@
 import type { Entity } from "../shared/table-storage.js";
+import { type GameType, GAME_TYPES } from "../shared/card-priority.js";
 
 export type SessionMode = "self_grade" | "mcq" | "mixed" | "ask";
 const SESSION_MODES = new Set<SessionMode>(["self_grade", "mcq", "mixed", "ask"]);
+
+export type { GameType };
 
 export interface SessionRow extends Entity {
   partitionKey: string; // = user_id
@@ -9,6 +12,8 @@ export interface SessionRow extends Entity {
   user_id: string;
   course_id: string;
   mode: SessionMode;
+  game_type: GameType;
+  card_limit: number | null;
   started_at: string;
   ended_at: string | null;
   cards_studied: number;
@@ -20,6 +25,8 @@ export interface SessionRow extends Entity {
 export interface SessionCreateBody {
   courseId: string;
   mode: SessionMode;
+  gameType: GameType;
+  cardLimit: number | null;
 }
 
 export function validateSessionCreate(
@@ -37,7 +44,28 @@ export function validateSessionCreate(
     return { ok: false, error: "mode must be one of: self_grade, mcq, mixed, ask" };
   }
 
-  return { ok: true, value: { courseId: src.courseId.trim(), mode: src.mode as SessionMode } };
+  const gameType: GameType = (src.gameType as GameType) ?? "classic";
+  if (!GAME_TYPES.has(gameType)) {
+    return { ok: false, error: "gameType must be one of: classic, boss_round, speed_round, review_blitz" };
+  }
+
+  let cardLimit: number | null = null;
+  if (src.cardLimit !== undefined && src.cardLimit !== null) {
+    if (typeof src.cardLimit !== "number" || src.cardLimit <= 0) {
+      return { ok: false, error: "cardLimit must be a positive number" };
+    }
+    cardLimit = src.cardLimit;
+  }
+
+  return {
+    ok: true,
+    value: {
+      courseId: src.courseId.trim(),
+      mode: src.mode as SessionMode,
+      gameType,
+      cardLimit,
+    },
+  };
 }
 
 export interface SessionProfile {
@@ -45,6 +73,8 @@ export interface SessionProfile {
   user_id: string;
   course_id: string;
   mode: SessionMode;
+  game_type: GameType;
+  card_limit: number | null;
   started_at: string;
   ended_at: string | null;
   cards_studied: number;
@@ -59,6 +89,8 @@ export function sessionProfile(row: SessionRow): SessionProfile {
     user_id: row.user_id,
     course_id: row.course_id,
     mode: row.mode,
+    game_type: (row as Record<string, unknown>).game_type as GameType ?? "classic",
+    card_limit: (row as Record<string, unknown>).card_limit as number ?? null,
     started_at: row.started_at,
     ended_at: row.ended_at ?? null,
     cards_studied: row.cards_studied,

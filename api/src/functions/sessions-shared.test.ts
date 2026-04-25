@@ -68,6 +68,54 @@ describe("makeSessionRowKey / rowKeyToId", () => {
   });
 });
 
+describe("validateSessionCreate — gameType and cardLimit", () => {
+  it("accepts body with gameType and cardLimit", () => {
+    const r = validateSessionCreate({ courseId: "c1", mode: "self_grade", gameType: "boss_round", cardLimit: 20 });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.gameType).toBe("boss_round");
+      expect(r.value.cardLimit).toBe(20);
+    }
+  });
+
+  it("defaults missing gameType to classic", () => {
+    const r = validateSessionCreate({ courseId: "c1", mode: "self_grade" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.gameType).toBe("classic");
+  });
+
+  it("defaults missing cardLimit to null", () => {
+    const r = validateSessionCreate({ courseId: "c1", mode: "self_grade" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.cardLimit).toBeNull();
+  });
+
+  it("rejects invalid gameType", () => {
+    const r = validateSessionCreate({ courseId: "c1", mode: "self_grade", gameType: "bad" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/gameType/);
+  });
+
+  it("rejects negative cardLimit", () => {
+    const r = validateSessionCreate({ courseId: "c1", mode: "self_grade", cardLimit: -5 });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/cardLimit/);
+  });
+
+  it("rejects zero cardLimit", () => {
+    const r = validateSessionCreate({ courseId: "c1", mode: "self_grade", cardLimit: 0 });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/cardLimit/);
+  });
+
+  it("accepts all valid game types", () => {
+    for (const gt of ["classic", "boss_round", "speed_round", "review_blitz"] as const) {
+      const r = validateSessionCreate({ courseId: "c1", mode: "self_grade", gameType: gt });
+      expect(r.ok).toBe(true);
+    }
+  });
+});
+
 describe("sessionProfile", () => {
   const row: SessionRow = {
     partitionKey: "u-lex",
@@ -75,6 +123,8 @@ describe("sessionProfile", () => {
     user_id: "u-lex",
     course_id: "c1",
     mode: "self_grade",
+    game_type: "boss_round",
+    card_limit: 15,
     started_at: "2026-04-22T10:00:00.000Z",
     ended_at: null,
     cards_studied: 5,
@@ -83,16 +133,37 @@ describe("sessionProfile", () => {
     duration_seconds: 120,
   };
 
-  it("maps row to profile, extracting id from rowKey", () => {
+  it("maps row to profile including game_type and card_limit", () => {
     const p = sessionProfile(row);
     expect(p.id).toBe("sess-1");
     expect(p.user_id).toBe("u-lex");
     expect(p.course_id).toBe("c1");
     expect(p.mode).toBe("self_grade");
+    expect(p.game_type).toBe("boss_round");
+    expect(p.card_limit).toBe(15);
     expect(p.ended_at).toBeNull();
     expect(p.cards_studied).toBe(5);
     expect(p.cards_correct).toBe(3);
     expect(p.xp_earned).toBe(0);
     expect(p.duration_seconds).toBe(120);
+  });
+
+  it("defaults missing game_type to classic and card_limit to null", () => {
+    const legacyRow: SessionRow = {
+      partitionKey: "u-lex",
+      rowKey: "2026-04-22T10:00:00.000Z_sess-2",
+      user_id: "u-lex",
+      course_id: "c1",
+      mode: "self_grade",
+      started_at: "2026-04-22T10:00:00.000Z",
+      ended_at: null,
+      cards_studied: 0,
+      cards_correct: 0,
+      xp_earned: 0,
+      duration_seconds: 0,
+    } as SessionRow;
+    const p = sessionProfile(legacyRow);
+    expect(p.game_type).toBe("classic");
+    expect(p.card_limit).toBeNull();
   });
 });
