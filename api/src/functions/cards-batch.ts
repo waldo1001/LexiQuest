@@ -26,6 +26,8 @@ interface BatchCardInput {
   answer: string;
   distractors?: string[];
   hint?: string | null;
+  question_lang?: string | null;
+  answer_lang?: string | null;
 }
 
 function validateBody(
@@ -119,6 +121,9 @@ export function makeCardsBatchHandler(deps: CardsBatchDeps): HttpHandler {
         next_review_at: nowIso,
         created_at: nowIso,
         upload_id: uploadId,
+        question_lang: input.question_lang ?? null,
+        answer_lang: input.answer_lang ?? null,
+        reverse_of: null,
       };
       await deps.tables.upsert<CardRow>("cards", row);
       created.push(row);

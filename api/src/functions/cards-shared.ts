@@ -1,8 +1,11 @@
 import type { Entity } from "../shared/table-storage.js";
 
-export type CardSource = "manual" | "photo" | "ai_import";
+export type CardSource = "manual" | "photo" | "ai_import" | "reverse";
 
-const CARD_SOURCES = new Set<CardSource>(["manual", "photo", "ai_import"]);
+const CARD_SOURCES = new Set<CardSource>(["manual", "photo", "ai_import", "reverse"]);
+
+/** BCP-47 shape check — reused from courses-shared.ts */
+const BCP47_RE = /^[a-z]{2,3}(-[A-Z]{2})?$/;
 
 export interface CardRow extends Entity {
   partitionKey: string; // = course_id
@@ -19,6 +22,9 @@ export interface CardRow extends Entity {
   next_review_at: string; // ISO datetime
   created_at: string;     // ISO datetime
   upload_id?: string | null; // groups cards created in one batch import; null/absent for manual cards
+  question_lang?: string | null; // BCP-47 language code for the question side; null = use course language
+  answer_lang?: string | null;   // BCP-47 language code for the answer side; null = use course language
+  reverse_of?: string | null;    // rowKey of the forward card this was generated from; null = not a reverse
 }
 
 export interface CardCreateBody {
@@ -28,6 +34,8 @@ export interface CardCreateBody {
   hint?: string | null;
   distractors?: string[];
   source?: CardSource;
+  question_lang?: string | null;
+  answer_lang?: string | null;
 }
 
 export interface CardPatchBody {
@@ -35,6 +43,8 @@ export interface CardPatchBody {
   answer?: string;
   hint?: string | null;
   distractors?: string[];
+  question_lang?: string | null;
+  answer_lang?: string | null;
 }
 
 export type CardProfile = {
@@ -51,6 +61,9 @@ export type CardProfile = {
   next_review_at: string;
   created_at: string;
   upload_id: string | null;
+  question_lang: string | null;
+  answer_lang: string | null;
+  reverse_of: string | null;
 };
 
 export function validateCardCreate(
@@ -91,6 +104,24 @@ export function validateCardCreate(
   const distractors =
     Array.isArray(src.distractors) ? (src.distractors as string[]) : [];
 
+  const question_lang = src.question_lang === undefined || src.question_lang === null
+    ? null
+    : typeof src.question_lang === "string" && BCP47_RE.test(src.question_lang)
+      ? src.question_lang
+      : "__invalid__";
+  if (question_lang === "__invalid__") {
+    return { ok: false, error: "question_lang must be a valid BCP-47 code (e.g. en, fr-FR)" };
+  }
+
+  const answer_lang = src.answer_lang === undefined || src.answer_lang === null
+    ? null
+    : typeof src.answer_lang === "string" && BCP47_RE.test(src.answer_lang)
+      ? src.answer_lang
+      : "__invalid__";
+  if (answer_lang === "__invalid__") {
+    return { ok: false, error: "answer_lang must be a valid BCP-47 code (e.g. en, fr-FR)" };
+  }
+
   return {
     ok: true,
     value: {
@@ -100,6 +131,8 @@ export function validateCardCreate(
       hint,
       distractors,
       source,
+      question_lang,
+      answer_lang,
     },
   };
 }
@@ -138,6 +171,24 @@ export function validateCardPatch(
       ? (src.distractors as string[])
       : [];
   }
+  if ("question_lang" in src) {
+    if (src.question_lang === null || src.question_lang === undefined) {
+      patch.question_lang = null;
+    } else if (typeof src.question_lang === "string" && BCP47_RE.test(src.question_lang)) {
+      patch.question_lang = src.question_lang;
+    } else {
+      return { ok: false, error: "question_lang must be a valid BCP-47 code (e.g. en, fr-FR)" };
+    }
+  }
+  if ("answer_lang" in src) {
+    if (src.answer_lang === null || src.answer_lang === undefined) {
+      patch.answer_lang = null;
+    } else if (typeof src.answer_lang === "string" && BCP47_RE.test(src.answer_lang)) {
+      patch.answer_lang = src.answer_lang;
+    } else {
+      return { ok: false, error: "answer_lang must be a valid BCP-47 code (e.g. en, fr-FR)" };
+    }
+  }
 
   return { ok: true, patch };
 }
@@ -157,5 +208,35 @@ export function cardProfile(row: CardRow): CardProfile {
     next_review_at: row.next_review_at,
     created_at: row.created_at,
     upload_id: row.upload_id ?? null,
+    question_lang: row.question_lang ?? null,
+    answer_lang: row.answer_lang ?? null,
+    reverse_of: row.reverse_of ?? null,
+  };
+}
+
+export function buildReverseCard(
+  forward: CardRow,
+  opts: { id: string; nowIso: string },
+): CardRow {
+  const answer = forward.answer;
+  const question = answer.includes("|") ? answer.split("|")[0] : answer;
+  return {
+    partitionKey: forward.partitionKey,
+    rowKey: opts.id,
+    course_id: forward.course_id,
+    question,
+    answer: forward.question,
+    distractors: [],
+    hint: null,
+    source: "reverse",
+    sm2_ease: 2.5,
+    sm2_interval: 0,
+    sm2_reps: 0,
+    next_review_at: opts.nowIso,
+    created_at: opts.nowIso,
+    upload_id: forward.upload_id ?? null,
+    question_lang: forward.answer_lang ?? null,
+    answer_lang: forward.question_lang ?? null,
+    reverse_of: forward.rowKey,
   };
 }

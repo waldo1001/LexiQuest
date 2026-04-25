@@ -80,6 +80,9 @@ export function makeCardsHandler(deps: CardsDeps): HttpHandler {
       next_review_at: nowIso,
       created_at: nowIso,
       upload_id: null,
+      question_lang: value.question_lang ?? null,
+      answer_lang: value.answer_lang ?? null,
+      reverse_of: null,
     };
     await deps.tables.upsert<CardRow>("cards", row);
 

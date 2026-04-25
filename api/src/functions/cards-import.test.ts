@@ -250,6 +250,20 @@ describe("POST /api/cards/import", () => {
     expect(res.status).toBe(200);
   });
 
+  it("AC18: candidates include question_lang and answer_lang from Claude", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = [
+      { question: "the dog", answer: "le chien", distractors: ["le chat", "le cheval"], question_lang: "en", answer_lang: "fr-FR" },
+    ];
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+    expect(res.status).toBe(200);
+    const body = res.jsonBody as Record<string, unknown>;
+    const candidates = body.candidates as Array<Record<string, unknown>>;
+    expect(candidates[0].question_lang).toBe("en");
+    expect(candidates[0].answer_lang).toBe("fr-FR");
+  });
+
   it("AC17: skips caller's own row during cross-user scan (continue branch)", async () => {
     // u-mats is the caller; u-lex owns the course
     // Seed u-mats FIRST so the scanner hits u-mats before u-lex, triggering the continue
@@ -263,5 +277,56 @@ describe("POST /api/cards/import", () => {
 
     const res = await makeCardsImportHandler(deps)(makeReq(matsCookie, validBody), ctx);
     expect(res.status).toBe(403); // u-mats is not the owner (403), but scan did run and found the course
+  });
+
+  it("AC19: passes questionLang and answerLang to extractCards when provided", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const body = { ...validBody, questionLang: "fr", answerLang: "nl" };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(200);
+
+    const input = deps.claude.extractCardsInputs[0];
+    expect(input.questionLang).toBe("fr");
+    expect(input.answerLang).toBe("nl");
+  });
+
+  it("AC20: omits questionLang/answerLang when not provided", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+
+    const input = deps.claude.extractCardsInputs[0];
+    expect(input.questionLang).toBeNull();
+    expect(input.answerLang).toBeNull();
+  });
+
+  it("AC21: rejects invalid questionLang (non-BCP-47)", async () => {
+    await seedCourse(deps);
+    const body = { ...validBody, questionLang: "not-valid-123" };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(400);
+  });
+
+  it("AC22: rejects invalid answerLang (non-BCP-47)", async () => {
+    await seedCourse(deps);
+    const body = { ...validBody, answerLang: "!!!" };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(400);
+  });
+
+  it("AC23: accepts empty string questionLang/answerLang (means not specified)", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const body = { ...validBody, questionLang: "", answerLang: "" };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(200);
+
+    const input = deps.claude.extractCardsInputs[0];
+    expect(input.questionLang).toBeNull();
+    expect(input.answerLang).toBeNull();
   });
 });

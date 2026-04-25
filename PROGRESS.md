@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 17 complete (all 5 slices done). Tagged `phase-17-done`.
+- **Current phase**: Phase 18 — Bidirectional cards (slice 1 of 5 done).
 - **Last tag**: `phase-17-done`
-- **Next up**: All 17 phases complete — see Design.md §7 for deferred v2 items.
+- **Next up**: Phase 18 slices 2–5.
 
 ---
 
@@ -233,3 +233,13 @@ populates 4 users + current year. See
 - ✅ Slice 3 — `GET /api/export` + download button
 - ✅ Slice 4 — Mobile UX polish (bottom nav, swipe gestures, tap targets, dark mode)
 - ✅ Slice 5 — Final error-handling pass (banners, offline detection)
+
+---
+
+## Phase 18 — Bidirectional cards
+
+- ✅ Slice 1 — Schema + pure reverse builder (`reverse_of`, `CardSource="reverse"`, `buildReverseCard`)
+- ⬜ Slice 2 — `POST /api/cards/reverse` + Card Manager button
+- ⬜ Slice 3 — Bidirectional toggle on Import Review
+- ⬜ Slice 4 — Course-level `bidirectional` default
+- ⬜ Slice 5 — Card Manager pairing UI + linked delete
