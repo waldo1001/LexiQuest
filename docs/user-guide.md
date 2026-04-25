@@ -2,7 +2,7 @@
 
 For family members using the running app.
 
-Current state: **Phase 17 complete — all 17 phases done.** This guide fills in from Phase 3
+Current state: **Phase 18 complete — bidirectional cards.** This guide fills in from Phase 3
 onward (first login + dashboard) and gets sections added per phase:
 
 - **Logging in** (Phase 3): tap your avatar, enter password, you land on
@@ -57,7 +57,12 @@ onward (first login + dashboard) and gets sections added per phase:
   cards have distractors.
 - **Photo import** (Phase 12): from the Card Manager, click "Import cards
   from photo". Choose a photo of a vocab sheet (or take one with the
-  camera). Click "Extract cards" — Claude reads the photo and returns a
+  camera). If your course has a language set, two dropdowns appear:
+  **Question language** and **Answer language** — pick the language of
+  each side so the 🔊 buttons speak the right voice later. Defaults:
+  question = course language, answer = your UI language. For single-
+  language content (e.g. history notes in French), set both to the same
+  language. Click "Extract cards" — Claude reads the photo and returns a
   list of question/answer/distractor candidates (this takes 5–15 seconds).
   On the Review screen, every extracted card is shown with a checkbox
   (all ticked by default). Untick cards you don't want, edit any field
@@ -105,6 +110,31 @@ onward (first login + dashboard) and gets sections added per phase:
   - **Display theme** — System default, Light, or Dark.
   - **Export my data** — downloads `lexiquest-{name}-{date}.json` containing
     all your courses, cards, sessions, and attempts.
+- **Per-side TTS pronunciation** (post-v1): when you import cards via
+  photo into a language course, Claude now tags each side with its
+  language (e.g. question = French, answer = Dutch). The 🔊 buttons
+  and auto-speak use the correct voice for each side instead of speaking
+  everything in the course language. You can also set **default per-side
+  languages on the course itself** (edit the course → Question language /
+  Answer language dropdowns). These defaults act as a safety net: any
+  card without explicit per-side tags inherits the course defaults. For
+  example, set "Frans" to question=fr, answer=nl and all cards — old
+  imports, manual additions, and new imports — get the right TTS voice
+  automatically.
+- **Bidirectional cards** (Phase 18): when you create or edit a course,
+  tick "Cards study both directions" to make it bidirectional. Every card
+  you add (manually, via photo import, or AI) will automatically get a
+  reverse companion — if the forward card is "the dog → le chien", the
+  reverse becomes "le chien → the dog". Each direction has its own SM-2
+  schedule so you learn both ways independently. In the Card Manager,
+  paired cards show a ↔ badge next to the question; hover it to see which
+  card it's paired with. When you delete a paired card, a second prompt
+  asks whether to also delete the partner — say yes to remove both, no to
+  remove only the one you chose. You can also use "Add reverse cards" in
+  the Card Manager toolbar to retroactively create reverses for all
+  existing cards in a course (idempotent — already-reversed cards are
+  skipped). During photo import, a "Also create reverse cards" checkbox
+  (on by default for language courses) lets you opt in or out per batch.
 - **Studying with swipe** (Phase 17): on touch screens you can swipe the
   card instead of tapping buttons — swipe right to mark "Knew it", swipe
   left for "Didn't know". Only active when the answer is shown.

@@ -3,6 +3,20 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-04-25 (Phase 18 — Bidirectional cards)
+
+- Added `reverse_of` field to `CardRow`/`CardProfile` and `"reverse"` to `CardSource`. Pure `buildReverseCard()` swaps Q↔A, applies pipe-split (first alternative only), swaps per-side languages, sets `source="reverse"`. 8 new shared tests. Phase 18 Slice 1.
+- Added `POST /api/cards/reverse`: bulk-generates reverse cards for a course; idempotent (skips cards that already have reverses). Returns `{ created, skipped }`. 11 tests. Phase 18 Slice 2.
+- Added `bidirectional` flag to `CourseRow`, `CourseCreateBody`, `CoursePatchBody`, `courseProfile()`. When a course is bidirectional, `POST /api/cards` and `POST /api/cards/batch` auto-create reverse cards alongside forward cards. Import Review screen gains a "Also create reverse cards" checkbox (defaults on when course language differs from UI language). CourseList create/edit forms gain bidirectional toggle. 13 new API tests, 9 new frontend tests. Phase 18 Slices 3–4.
+- Card Manager pairing UI: ↔ badge with tooltip ("Paired with: {question}") on forward/reverse cards. Linked delete: deleting a paired card shows a second confirm asking whether to also delete the partner; confirming deletes both, declining deletes only the chosen card. 8 new frontend tests. New i18n keys: `cards.badge.paired`, `cards.confirm.deleteAlsoReverse`, `cards.confirm.deleteAlsoForward` (EN + NL). Phase 18 Slice 5 — **Phase 18 complete**.
+
+## 2026-04-25 (post-v1 — per-side card language for TTS)
+
+- Added `question_lang` and `answer_lang` fields to `CardRow`, `CardProfile`, `CardCreateBody`, `CardPatchBody` with BCP-47 validation. `cardProfile` defaults missing fields to `null` for legacy rows. `parseCards` normalizes missing per-side language from Claude JSON to `null`. `cards-batch` and `cards` handlers persist the fields; `cards-id` merges them on PATCH. 14 new API tests. See [plans/done/per-side-card-language.md](plans/done/per-side-card-language.md).
+- Updated `StudySession` and `CardManager` TTS calls to use `card.question_lang ?? courseLang` for the question side and `card.answer_lang ?? courseLang` for the answer side, both for auto-speak and manual speak buttons. 6 new frontend tests.
+- Added language picker dropdowns to `PhotoImport` screen: when a course has a language set, two `<select>` elements let the user specify question-side and answer-side languages (defaults: course language / UI language). Values pass through `POST /api/cards/import` → Claude prompt → candidates → `ImportReview` → `batchCreateCards`. `cards-import.ts` validates optional `questionLang`/`answerLang` as BCP-47. Claude prompt now uses explicit languages when provided instead of guessing. 13 new tests (8 frontend, 5 API). New i18n keys: `import.questionLang`, `import.answerLang`, `import.langNone` (EN + NL).
+- Added course-level per-side language defaults (`question_lang_default`, `answer_lang_default`) to `CourseRow` and `courseProfile`. The TTS fallback chain is now `card.question_lang ?? questionLangDefault ?? courseLang` — this fixes pronunciation for ALL cards (old imports, manual cards) without patching individual rows. Course edit form gains two dropdowns for the new fields (visible only for language courses). `PhotoImport` defaults from course-level defaults when available. 12 new API tests, 3 new frontend tests.
+
 ## 2026-04-25 (post-v1 — flexible card deletion)
 
 - Added `upload_id` grouping to AI-imported cards: `POST /api/cards/batch` now mints one `upload_id` per request and stamps it on every created card; the response shape becomes `{ upload_id, cards: [...] }`. Manual `POST /api/cards` writes `upload_id: null`. `cardProfile` coerces missing `upload_id` to `null` so legacy rows render under "Manual cards". 7 new api tests. See [plans/done/post-v1-card-delete-flexibility.md](plans/done/post-v1-card-delete-flexibility.md).

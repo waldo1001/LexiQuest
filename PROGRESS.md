@@ -13,9 +13,9 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Phase 18 — Bidirectional cards (slice 1 of 5 done).
+- **Current phase**: Phase 18 — Bidirectional cards — **complete**.
 - **Last tag**: `phase-17-done`
-- **Next up**: Phase 18 slices 2–5.
+- **Next up**: Tag `phase-18-done`; see [Design.md §7](Design.md) for deferred v2 items.
 
 ---
 
