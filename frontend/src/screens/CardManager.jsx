@@ -105,6 +105,21 @@ export default function CardManager({
 
   const groups = useMemo(() => (cards ? groupByUpload(cards) : []), [cards]);
 
+  const partnerMap = useMemo(() => {
+    if (!cards) return new Map();
+    const map = new Map();
+    for (const card of cards) {
+      if (card.reverse_of) {
+        const forward = cards.find((c) => c.id === card.reverse_of);
+        if (forward) {
+          map.set(card.id, forward);
+          map.set(forward.id, card);
+        }
+      }
+    }
+    return map;
+  }, [cards]);
+
   function resetStatus() {
     setStatus(null);
     setError(null);
@@ -173,10 +188,23 @@ export default function CardManager({
 
   async function onDelete(card) {
     if (!confirmFn(t("cards.confirm.delete"))) return;
+    const partner = partnerMap.get(card.id);
+    let deletePartner = false;
+    if (partner) {
+      const msg = card.reverse_of
+        ? t("cards.confirm.deleteAlsoForward")
+        : t("cards.confirm.deleteAlsoReverse");
+      deletePartner = confirmFn(msg);
+    }
     resetStatus();
     try {
       await deleteCard(card.id, courseId);
-      setCards((prev) => (prev ?? []).filter((c) => c.id !== card.id));
+      const removedIds = [card.id];
+      if (deletePartner) {
+        await deleteCard(partner.id, courseId);
+        removedIds.push(partner.id);
+      }
+      setCards((prev) => (prev ?? []).filter((c) => !removedIds.includes(c.id)));
       setStatus(t("cards.status.deleted"));
     } catch {
       setError(t("errors.generic"));
@@ -365,6 +393,9 @@ export default function CardManager({
                         <>
                           <td>
                             {card.question}
+                            {partnerMap.has(card.id) && (
+                              <span className="badge-pair" title={t("cards.badge.paired", { question: partnerMap.get(card.id).question })}>↔</span>
+                            )}
                             {canSpeak && (
                               <button
                                 type="button"

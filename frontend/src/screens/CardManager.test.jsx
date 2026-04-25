@@ -432,6 +432,160 @@ describe("CardManager — Reverse cards", () => {
   });
 });
 
+describe("CardManager — Pairing UI + linked delete", () => {
+  const PAIRED_CARDS = [
+    {
+      id: "card-fwd",
+      course_id: COURSE_ID,
+      question: "the dog",
+      answer: "le chien",
+      distractors: [],
+      hint: null,
+      source: "manual",
+      reverse_of: null,
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: "2026-04-22T09:00:00Z",
+      created_at: "2026-04-22T09:00:00Z",
+    },
+    {
+      id: "card-rev",
+      course_id: COURSE_ID,
+      question: "le chien",
+      answer: "the dog",
+      distractors: [],
+      hint: null,
+      source: "reverse",
+      reverse_of: "card-fwd",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: "2026-04-22T09:00:00Z",
+      created_at: "2026-04-22T09:00:00Z",
+    },
+    {
+      id: "card-solo",
+      course_id: COURSE_ID,
+      question: "What is a cat?",
+      answer: "le chat",
+      distractors: [],
+      hint: null,
+      source: "manual",
+      reverse_of: null,
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: "2026-04-22T09:00:00Z",
+      created_at: "2026-04-22T09:00:00Z",
+    },
+  ];
+
+  it("shows ↔ badge on both forward and reverse cards in a pair", async () => {
+    setup({ fetchCards: vi.fn().mockResolvedValue(PAIRED_CARDS) });
+    await screen.findAllByText("the dog");
+    const badges = screen.getAllByText("↔");
+    expect(badges).toHaveLength(2); // forward + reverse, not solo
+  });
+
+  it("does not show ↔ badge on standalone cards", async () => {
+    const soloOnly = [PAIRED_CARDS[2]]; // just card-solo
+    setup({ fetchCards: vi.fn().mockResolvedValue(soloOnly) });
+    await screen.findByText("What is a cat?");
+    expect(screen.queryByText("↔")).toBeNull();
+  });
+
+  it("tooltip on ↔ badge names the partner question", async () => {
+    setup({ fetchCards: vi.fn().mockResolvedValue(PAIRED_CARDS) });
+    await screen.findAllByText("the dog");
+    const badges = screen.getAllByText("↔");
+    const titles = badges.map((b) => b.getAttribute("title"));
+    // Forward card's badge should reference the reverse card's question
+    expect(titles.some((t) => t && t.includes("le chien"))).toBe(true);
+    // Reverse card's badge should reference the forward card's question
+    expect(titles.some((t) => t && t.includes("the dog"))).toBe(true);
+  });
+
+  it("deleting forward with reverse shows second confirm about reverse", async () => {
+    const confirmFn = vi.fn()
+      .mockReturnValueOnce(true)   // basic confirm
+      .mockReturnValueOnce(false); // linked confirm → decline
+    const deleteCard = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    setup({
+      fetchCards: vi.fn().mockResolvedValue(PAIRED_CARDS),
+      deleteCard,
+      confirmFn,
+    });
+
+    await screen.findAllByText("the dog");
+    const deleteButtons = screen.getAllByRole("button", { name: /^delete$/i });
+    await user.click(deleteButtons[0]); // forward card
+
+    expect(confirmFn).toHaveBeenCalledTimes(2);
+    expect(confirmFn.mock.calls[1][0]).toMatch(/reverse/i);
+  });
+
+  it("deleting reverse with forward shows second confirm about forward", async () => {
+    const confirmFn = vi.fn()
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false);
+    const deleteCard = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    setup({
+      fetchCards: vi.fn().mockResolvedValue(PAIRED_CARDS),
+      deleteCard,
+      confirmFn,
+    });
+
+    await screen.findAllByText("the dog");
+    const deleteButtons = screen.getAllByRole("button", { name: /^delete$/i });
+    await user.click(deleteButtons[1]); // reverse card
+
+    expect(confirmFn).toHaveBeenCalledTimes(2);
+    expect(confirmFn.mock.calls[1][0]).toMatch(/forward/i);
+  });
+
+  it("confirming linked delete calls deleteCard for both cards", async () => {
+    const confirmFn = vi.fn(() => true);
+    const deleteCard = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    setup({
+      fetchCards: vi.fn().mockResolvedValue(PAIRED_CARDS),
+      deleteCard,
+      confirmFn,
+    });
+
+    await screen.findAllByText("the dog");
+    const deleteButtons = screen.getAllByRole("button", { name: /^delete$/i });
+    await user.click(deleteButtons[0]); // delete forward
+
+    expect(deleteCard).toHaveBeenCalledTimes(2);
+    expect(deleteCard).toHaveBeenCalledWith("card-fwd", COURSE_ID);
+    expect(deleteCard).toHaveBeenCalledWith("card-rev", COURSE_ID);
+  });
+
+  it("declining linked delete calls deleteCard for chosen only", async () => {
+    const confirmFn = vi.fn()
+      .mockReturnValueOnce(true)   // basic confirm → yes
+      .mockReturnValueOnce(false); // linked confirm → no
+    const deleteCard = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    setup({
+      fetchCards: vi.fn().mockResolvedValue(PAIRED_CARDS),
+      deleteCard,
+      confirmFn,
+    });
+
+    await screen.findAllByText("the dog");
+    const deleteButtons = screen.getAllByRole("button", { name: /^delete$/i });
+    await user.click(deleteButtons[0]); // delete forward, decline partner
+
+    expect(deleteCard).toHaveBeenCalledTimes(1);
+    expect(deleteCard).toHaveBeenCalledWith("card-fwd", COURSE_ID);
+  });
+});
+
 describe("CardManager — TTS speak buttons", () => {
   const defaultFetch = vi.fn().mockResolvedValue(SEED_CARDS);
 
@@ -472,7 +626,7 @@ describe("CardManager — TTS speak buttons", () => {
     ];
     const tts = createFakeTts({ available: true });
     setup({ fetchCards: vi.fn().mockResolvedValue(cardsWithLang), courseLang: "fr-FR", tts });
-    await screen.findByText("the dog");
+    await screen.findAllByText("the dog");
     const speakBtns = screen.getAllByRole("button", { name: /Speak/i });
     // First speak button is on the question column
     await userEvent.click(speakBtns[0]);
