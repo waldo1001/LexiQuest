@@ -5,5 +5,6 @@
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "COOKIE_SECURE": "false",
     "ANTHROPIC_API_KEY": "sk-ant-REPLACE_WITH_REAL_KEY"
-  }
+  },
+  "_comment_export_all_script": "Set AZURE_STORAGE_CONNECTION_STRING_SOURCE in your shell (NOT here) when running `npm run export-all -- --yes` against prod. Kept out of this file deliberately so the script can never accidentally read from the dev configuration."
 }

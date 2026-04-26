@@ -15,7 +15,8 @@
     "test:contract": "vitest run '**/__contract__/**'",
     "test:meta": "vitest run '**/__meta__/**'",
     "typecheck": "tsc -p tsconfig.test.json",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "export-all": "tsx scripts/export-all.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",

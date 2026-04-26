@@ -34,3 +34,6 @@ __azurite*
 __blobstorage__
 __queuestorage__
 azurite-debug.log
+
+# Snapshot exports — contain real password hashes; never commit, even on a public repo
+backups/
