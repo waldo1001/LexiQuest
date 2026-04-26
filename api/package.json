@@ -16,7 +16,8 @@
     "test:meta": "vitest run '**/__meta__/**'",
     "typecheck": "tsc -p tsconfig.test.json",
     "seed": "tsx scripts/seed.ts",
-    "export-all": "tsx scripts/export-all.ts"
+    "export-all": "tsx scripts/export-all.ts",
+    "import-local": "tsx scripts/import-local.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",

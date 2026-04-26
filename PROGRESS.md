@@ -281,6 +281,6 @@ Plan: [docs/plans/deployment-and-live-to-dev-snapshot.md](docs/plans/deployment-
 - ✅ Slice 1 — `connection-string-guard` helper (6 tests, 100% coverage)
 - ✅ Slice 2 — `snapshot-payload` builder (6 tests, 100% coverage)
 - ✅ Slice 3 — `export-all` script + npm wiring + `.gitignore` (v8-ignored, integration-verified against Azurite)
-- ⬜ Slice 4 — `import-local` script + npm wiring (uses Slice 1 latch)
+- ✅ Slice 4 — `import-local` script + npm wiring (v8-ignored, safety-latched via Slice 1, idempotent against Azurite)
 - ⬜ Slice 5 — `docs/deployment.md` runbook
 - ⬜ Slice 6 — Pre-public-GitHub safety gate
