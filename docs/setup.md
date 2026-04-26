@@ -60,7 +60,7 @@ Fill in:
 | Variable | What | Example value for local dev |
 |----------|------|---------------------------|
 | `AZURE_STORAGE_CONNECTION_STRING` | Where to find the database | `UseDevelopmentStorage=true` |
-| `PASSWORD_WALDO` | Seed password for Waldo (admin / supervisor — hidden from picker) | any string |
+| `PASSWORD_WALDO` | Seed password for Waldo (admin / supervisor) | any string |
 | `PASSWORD_LEX` | Seed password for Lex | any string |
 | `PASSWORD_MATS` | Seed password for Mats | any string |
 | `PASSWORD_BEN` | Seed password for Ben | any string |
@@ -116,12 +116,11 @@ rm -rf /tmp/azurite && azurite --silent --location /tmp/azurite
 Creates the family accounts and the current school year. Requires
 Azurite running and `.env` filled in.
 
-The seed roster:
+The seed roster (all six appear in the picker, alphabetically):
 
-- **Waldo** — admin / supervisor. Hidden from the student picker, but
-  still able to log in for admin tasks (creating users, etc.).
-- **Lex, Mats, Ben, Kaat, Amaryllis** — student accounts shown in the
-  picker, alphabetically.
+- **Waldo** — admin / supervisor. Creates new users and manages
+  settings via the admin panel.
+- **Lex, Mats, Ben, Kaat, Amaryllis** — student accounts.
 
 ```sh
 cd api && npm run seed

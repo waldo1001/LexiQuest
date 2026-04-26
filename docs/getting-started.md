@@ -103,9 +103,8 @@ Leave this running in its own terminal tab. It listens on ports
 
 ### 3c. Seed the database
 
-This creates the family user accounts — Waldo (admin / supervisor,
-hidden from the picker) plus five students (Lex, Mats, Ben, Kaat,
-Amaryllis):
+This creates the family user accounts — Waldo (admin / supervisor)
+plus five students (Lex, Mats, Ben, Kaat, Amaryllis):
 
 ```sh
 cd api && npm run seed
@@ -130,13 +129,9 @@ swa start http://localhost:5173 --api-location api
 
 Wait ~10 seconds, then open **http://localhost:4280** in your browser.
 
-You should see the login screen with five student avatars
-(Amaryllis, Ben, Kaat, Lex, Mats — alphabetically). Waldo is not
-listed; the supervisor account is hidden from the picker. Click one,
-enter the password you put in `.env`, and you're in.
-
-To log in as Waldo for admin tasks: the seed output prints all six
-UUIDs — copy Waldo's and visit `/login/<waldo-uuid>` directly. The
+You should see the login screen with all six avatars
+(Amaryllis, Ben, Kaat, Lex, Mats, Waldo — alphabetically). Click
+yours, enter the password you put in `.env`, and you're in. Waldo's
 admin panel at `/admin` is gated by `is_admin` after login.
 
 ### Troubleshooting

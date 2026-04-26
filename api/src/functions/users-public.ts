@@ -16,7 +16,6 @@ export function makeUsersPublicHandler(
   return async (): Promise<HttpResponseInit> => {
     const rows = await deps.tables.listByPartition<UserRow>("users", "users");
     const projected = rows
-      .filter((r) => r.is_admin !== true)
       .map((r) => ({
         id: r.rowKey,
         name: r.name,

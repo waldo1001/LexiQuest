@@ -1,5 +1,11 @@
 # Plan — Seed users: hide Waldo as supervisor, add Kaat and Amaryllis
 
+> **Update — 2026-04-27**: the "hide Waldo from the picker" half of
+> this plan was reverted by user decision. Waldo now appears in the
+> picker alongside Lex, Mats, Ben, Kaat, Amaryllis. The seed-roster
+> half (adding Kaat and Amaryllis) shipped and stands. See changelog
+> entries for 2026-04-26 (original ship) and 2026-04-27 (revert).
+
 ## Context
 
 The four seeded family users today are **Waldo (admin), Lex, Mats, Ben**.

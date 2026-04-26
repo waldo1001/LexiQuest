@@ -3,10 +3,10 @@
 A personal, AI-powered gamified learning platform for the Wauters family.
 Students (Lex, Mats, Ben, Kaat, Amaryllis) study course material using
 flashcards with spaced repetition, gamification, and AI-assisted card
-creation from photos. Waldo is the parent / supervisor account — kept
-for admin tasks but hidden from the student picker. The app name is
-dynamic: LexiQuest / MatsQuest / BenQuest / KaatQuest / AmaryllisQuest,
-based on who is logged in.
+creation from photos. Waldo is the parent / supervisor account (admin
+role for managing users); he also appears on the picker alongside the
+five students. The app name is dynamic: LexiQuest / MatsQuest /
+BenQuest / KaatQuest / AmaryllisQuest, based on who is logged in.
 
 **Status**: All 17 phases complete + Phase 18 (Bidirectional cards) + Gaming mode + Per-upload stats. PWA installable on iOS/Android, bottom nav, swipe gestures in study, dark mode, data export (`GET /api/export` → JSON download), offline banner. Bidirectional cards: courses can auto-create reverse cards (Q↔A swapped, independent SM-2 schedules), with pairing UI and linked delete in Card Manager. Gaming mode: pre-session setup screen with game type picker (Classic/Boss Round/Speed Round/Review Blitz), card count limiter, smart priority scoring, XP multipliers, speed round timer. Per-upload stats: mastery, accuracy, and study history per import — accessible from Card Manager. Also live: Leaderboard + Compare (Phase 16), Stats UI (Phase 15), full stats API (Phase 14), AI card import (Phase 12), MCQ mode (Phase 13), TTS (Phase 11), XP/streaks/badges (Phase 10), SM-2 (Phase 8). Tagged `phase-17-done`. See [Design.md §7](Design.md) for deferred v2 items.
 
@@ -28,8 +28,7 @@ based on who is logged in.
 - A real-time multiplayer game
 - Offline-sync-capable (PWA shell caching only)
 - A registration-based service — admin (Waldo) creates the family
-  student accounts (Lex, Mats, Ben, Kaat, Amaryllis); Waldo himself
-  stays out of the student picker
+  accounts (Lex, Mats, Ben, Kaat, Amaryllis, plus Waldo himself)
 
 ## Stack (see [Design.md §4](Design.md))
 

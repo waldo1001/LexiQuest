@@ -60,7 +60,7 @@ settings. Add:
 | `AZURE_STORAGE_CONNECTION_STRING` | Storage account connection string (Storage account → Access keys → key1 connection string) |
 | `SESSION_SECRET` | Fresh 32-byte random — `openssl rand -hex 32`. **Do not** reuse the dev value |
 | `ANTHROPIC_API_KEY` | Real Anthropic API key (`sk-ant-…`) |
-| `PASSWORD_WALDO` | Production password for Waldo (admin / supervisor — hidden from picker) |
+| `PASSWORD_WALDO` | Production password for Waldo (admin / supervisor) |
 | `PASSWORD_LEX` | Production password for Lex |
 | `PASSWORD_MATS` | Production password for Mats |
 | `PASSWORD_BEN` | Production password for Ben |
@@ -73,9 +73,9 @@ we want over HTTPS.
 ### 1d. Seed prod once
 
 The family accounts and the current school year are created via the
-seed script. Roster: **Waldo** (admin / supervisor — hidden from the
-student picker) plus **Lex, Mats, Ben, Kaat, Amaryllis** (students,
-shown in the picker alphabetically).
+seed script. Roster: **Waldo** (admin / supervisor) plus **Lex, Mats,
+Ben, Kaat, Amaryllis** (students). All six appear in the picker
+alphabetically.
 
 Run it locally with prod creds in your shell — never commit them, and
 unset them when done.
@@ -131,10 +131,10 @@ Mats / Ben.
    ```
 
 3. **Verify on the live URL.** Open the app — Kaat and Amaryllis
-   should appear in the picker (alphabetically), and Waldo should
-   not (he is filtered out as an admin). Log in once as each new
-   user with the password from step 1 to confirm the row was created
-   and the hash matches.
+   should appear in the picker (alphabetically, alongside Waldo and
+   the existing three students). Log in once as each new user with
+   the password from step 1 to confirm the row was created and the
+   hash matches.
 
 4. **Rotate the env-var values out of your shell history**
    (`history -c` if your shell logs them; or use a fresh subshell

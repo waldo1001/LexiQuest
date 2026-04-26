@@ -287,11 +287,16 @@ Plan: [docs/plans/done/deployment-and-live-to-dev-snapshot.md](docs/plans/done/d
 
 ---
 
-## Post-v1 — Seed roster: hide Waldo + add Kaat & Amaryllis
+## Post-v1 — Seed roster: add Kaat & Amaryllis
 
 Plan: [docs/plans/seed-users-kaat-amaryllis.md](docs/plans/seed-users-kaat-amaryllis.md)
 
-- ✅ `SEED_USERS` extended with Kaat (`#f59e0b`, 🐰) and Amaryllis (`#ec4899`, 🌸); Waldo stays as the lone admin
-- ✅ `GET /api/users/public` filters `is_admin === true` rows so Waldo is hidden from the student picker
-- ✅ Tests: 6 new RED tests across `seed.test.ts` (10 total) and `users-public.test.ts` (7 total); 100% coverage on both touched source files
-- ✅ Docs: `docs/setup.md` env-var table + seeding narrative; `docs/deployment.md` §1c table, §1d shell block, new §1e "Adding new family users to live (delta seed)"; `README.md` student roster + dynamic-name list
+- ✅ `SEED_USERS` extended with Kaat (`#f59e0b`, 🐰) and Amaryllis (`#ec4899`, 🌸); Waldo remains the lone admin
+- ✅ Tests: 4 new tests in `seed.test.ts` (10 total) covering full roster + per-user spec assertions; 100% coverage on `seed.ts`
+- ✅ Docs: `docs/setup.md`, `docs/getting-started.md`, `docs/deployment.md` (§1c/§1d/§1e), `README.md`, `.env.example`, local-smoke skill — all six users (Waldo + 5 students) listed and shown on the picker
+
+**Follow-up (2026-04-27)**: the original plan also filtered admin
+users out of `GET /api/users/public` so Waldo would not appear in the
+student picker. Reverted by user decision — Waldo stays in the picker
+alongside the five students. Filter removed; tests and docs updated to
+match.
