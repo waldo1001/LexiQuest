@@ -283,4 +283,4 @@ Plan: [docs/plans/deployment-and-live-to-dev-snapshot.md](docs/plans/deployment-
 - ✅ Slice 3 — `export-all` script + npm wiring + `.gitignore` (v8-ignored, integration-verified against Azurite)
 - ✅ Slice 4 — `import-local` script + npm wiring (v8-ignored, safety-latched via Slice 1, idempotent against Azurite)
 - ✅ Slice 5 — `docs/deployment.md` runbook (links from `setup.md`)
-- ⬜ Slice 6 — Pre-public-GitHub safety gate
+- ✅ Slice 6 — Pre-public-GitHub safety gate (run + documented in changelog; pre-existing `npm audit` highs in `frontend/` dev-deps surfaced as a separate follow-up)
