@@ -276,7 +276,7 @@ See [docs/plans/done/gaming-mode.md](docs/plans/done/gaming-mode.md).
 
 ## Post-v1 — Deployment runbook + live→dev snapshot
 
-Plan: [docs/plans/deployment-and-live-to-dev-snapshot.md](docs/plans/deployment-and-live-to-dev-snapshot.md)
+Plan: [docs/plans/done/deployment-and-live-to-dev-snapshot.md](docs/plans/done/deployment-and-live-to-dev-snapshot.md)
 
 - ✅ Slice 1 — `connection-string-guard` helper (6 tests, 100% coverage)
 - ✅ Slice 2 — `snapshot-payload` builder (6 tests, 100% coverage)
