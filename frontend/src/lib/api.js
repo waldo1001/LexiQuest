@@ -593,6 +593,22 @@ export async function batchCreateCards(body, { fetchFn = fetch } = {}) {
 }
 
 /**
+ * @param {{ courseId: string, uploadId: string, uploadName: string }} body
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<{ updated: number }>}
+ */
+export async function renameUpload(body, { fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/cards/upload-name", {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error(`PATCH /api/cards/upload-name failed: ${response.status}`);
+  return response.json();
+}
+
+/**
  * @param {{ range?: string }} [params]
  * @param {{ fetchFn?: typeof fetch }} [options]
  * @returns {Promise<{ users: object[] }>}
@@ -640,6 +656,19 @@ export async function fetchCourseStats({ courseId, range = "30d" }, { fetchFn = 
   if (response.status === 401) throw new Error("unauthorized");
   if (response.status === 404) throw new Error("not_found");
   if (!response.ok) throw new Error(`GET /api/stats/course failed: ${response.status}`);
+  return response.json();
+}
+
+/**
+ * @param {{ courseId: string, range?: string }} params
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<{ uploads: object[] }>}
+ */
+export async function fetchUploadStats({ courseId, range = "30d" }, { fetchFn = fetch } = {}) {
+  const response = await fetchFn(`/api/stats/course/${courseId}/uploads?range=${range}`, { credentials: "include" });
+  if (response.status === 401) throw new Error("unauthorized");
+  if (response.status === 404) throw new Error("not_found");
+  if (!response.ok) throw new Error(`GET /api/stats/course/uploads failed: ${response.status}`);
   return response.json();
 }
 

@@ -32,6 +32,7 @@ import {
   fetchCourseStats,
   fetchLeaderboard,
   fetchHeatmap,
+  fetchUploadStats,
 } from "./api.js";
 
 function ok(body) {
@@ -921,6 +922,24 @@ describe("fetchHeatmap", () => {
   });
   it("throws on non-ok", async () => {
     await expect(fetchHeatmap({ userId: "u1" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) })).rejects.toThrow(/500/);
+  });
+});
+
+describe("fetchUploadStats", () => {
+  it("GETs /api/stats/course/:courseId/uploads with range", async () => {
+    const data = { uploads: [] };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    expect(await fetchUploadStats({ courseId: "c1", range: "7d" }, { fetchFn })).toEqual(data);
+    expect(fetchFn).toHaveBeenCalledWith("/api/stats/course/c1/uploads?range=7d", expect.anything());
+  });
+  it("throws 'unauthorized' on 401", async () => {
+    await expect(fetchUploadStats({ courseId: "c1" }, { fetchFn: vi.fn().mockResolvedValue(fail(401)) })).rejects.toThrow("unauthorized");
+  });
+  it("throws 'not_found' on 404", async () => {
+    await expect(fetchUploadStats({ courseId: "c1" }, { fetchFn: vi.fn().mockResolvedValue(fail(404)) })).rejects.toThrow("not_found");
+  });
+  it("throws on non-ok", async () => {
+    await expect(fetchUploadStats({ courseId: "c1" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) })).rejects.toThrow(/500/);
   });
 });
 
