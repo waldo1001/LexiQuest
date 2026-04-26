@@ -16,6 +16,7 @@
     "test:meta": "vitest run '**/__meta__/**'",
     "typecheck": "tsc -p tsconfig.test.json",
     "seed": "tsx scripts/seed.ts",
+    "reset-password": "tsx scripts/reset-password.ts",
     "export-all": "tsx scripts/export-all.ts",
     "import-local": "tsx scripts/import-local.ts"
   },

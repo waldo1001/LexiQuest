@@ -300,3 +300,14 @@ users out of `GET /api/users/public` so Waldo would not appear in the
 student picker. Reverted by user decision — Waldo stays in the picker
 alongside the five students. Filter removed; tests and docs updated to
 match.
+
+---
+
+## Post-v1 — Local-dev password recovery (`reset-password` script)
+
+Plan: [docs/plans/i-can-t-log-into-mighty-eagle.md](docs/plans/i-can-t-log-into-mighty-eagle.md)
+
+- ✅ `api/src/shared/reset-password.ts` — single + bulk; `UserNotFoundError`, `MissingPasswordError`, `BulkNoOpError`
+- ✅ Tests: 11 new tests in `reset-password.test.ts`; 100% line/branch/fn coverage on `reset-password.ts`
+- ✅ Runner: `api/scripts/reset-password.ts` — `/* v8 ignore */`; Azurite-only via `isAzuriteConnectionString`; argv `--name/--password` + `RESET_PASSWORD` env; bulk reads `PASSWORD_<NAME>` env vars (mirrors seed)
+- ✅ Wired as `npm run reset-password` in `api/package.json`
