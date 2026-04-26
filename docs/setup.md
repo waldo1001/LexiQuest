@@ -172,14 +172,9 @@ Static Web App → Configuration → Application settings).
 
 ## Azure production deployment
 
-Push to `main` triggers GitHub Actions → deploys to Azure Static Web Apps.
-The workflow file is `.github/workflows/azure-static-web-apps.yml`.
+Full operator runbook — including one-time Azure setup, day-to-day
+deploy, and the live → dev snapshot workflow — lives in
+[deployment.md](deployment.md).
 
-Required GitHub secret: `AZURE_STATIC_WEB_APPS_API_TOKEN` (from the Azure
-portal SWA resource → Manage deployment token).
-
-Required Azure SWA app settings:
-- `AZURE_STORAGE_CONNECTION_STRING` — real Azure Storage connection string
-- `SESSION_SECRET` — 32+ byte random string
-- `ANTHROPIC_API_KEY` — Anthropic API key
-- `COOKIE_SECURE` — leave unset (defaults to secure)
+TL;DR: push to `main` triggers GitHub Actions → deploys to Azure Static
+Web Apps. The workflow file is `.github/workflows/azure-static-web-apps.yml`.
