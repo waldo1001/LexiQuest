@@ -84,6 +84,8 @@ PASSWORD_WALDO=pick-something
 PASSWORD_LEX=pick-something
 PASSWORD_MATS=pick-something
 PASSWORD_BEN=pick-something
+PASSWORD_KAAT=pick-something
+PASSWORD_AMARYLLIS=pick-something
 SESSION_SECRET=any-random-string-at-least-32-characters-long
 ```
 
@@ -101,14 +103,16 @@ Leave this running in its own terminal tab. It listens on ports
 
 ### 3c. Seed the database
 
-This creates the 4 family user accounts:
+This creates the family user accounts — Waldo (admin / supervisor,
+hidden from the picker) plus five students (Lex, Mats, Ben, Kaat,
+Amaryllis):
 
 ```sh
 cd api && npm run seed
 ```
 
-You should see output listing 4 user IDs. You only need to do this once
-(or after wiping `/tmp/azurite`).
+You should see output listing six user IDs. You only need to do this
+once (or after wiping `/tmp/azurite`).
 
 ### 3d. Start the app
 
@@ -126,8 +130,14 @@ swa start http://localhost:5173 --api-location api
 
 Wait ~10 seconds, then open **http://localhost:4280** in your browser.
 
-You should see the login screen with 4 family avatars. Click one, enter
-the password you put in `.env`, and you're in.
+You should see the login screen with five student avatars
+(Amaryllis, Ben, Kaat, Lex, Mats — alphabetically). Waldo is not
+listed; the supervisor account is hidden from the picker. Click one,
+enter the password you put in `.env`, and you're in.
+
+To log in as Waldo for admin tasks: the seed output prints all six
+UUIDs — copy Waldo's and visit `/login/<waldo-uuid>` directly. The
+admin panel at `/admin` is gated by `is_admin` after login.
 
 ### Troubleshooting
 

@@ -104,4 +104,39 @@ describe("GET /api/users/public", () => {
     const names = (res.jsonBody as { name: string }[]).map((u) => u.name);
     expect(names).toEqual(["Alice", "Mats", "Zoe"]);
   });
+
+  it("excludes admin users from the picker", async () => {
+    await tables.upsert<UserRow>(
+      "users",
+      userRow("u-admin", "Waldo", { is_admin: true }),
+    );
+    await tables.upsert<UserRow>("users", userRow("u-kid1", "Kaat"));
+    await tables.upsert<UserRow>("users", userRow("u-kid2", "Amaryllis"));
+    const res = (await makeUsersPublicHandler({ tables })(
+      req,
+      ctx,
+    )) as HttpResponseInit;
+    const names = (res.jsonBody as { name: string }[]).map((u) => u.name);
+    expect(names).toEqual(["Amaryllis", "Kaat"]);
+  });
+
+  it("alphabetical sort still holds when admins are interleaved", async () => {
+    await tables.upsert<UserRow>(
+      "users",
+      userRow("u1", "Waldo", { is_admin: true }),
+    );
+    await tables.upsert<UserRow>("users", userRow("u2", "Zoe"));
+    await tables.upsert<UserRow>("users", userRow("u3", "Alice"));
+    await tables.upsert<UserRow>(
+      "users",
+      userRow("u4", "Adminssen", { is_admin: true }),
+    );
+    await tables.upsert<UserRow>("users", userRow("u5", "Mats"));
+    const res = (await makeUsersPublicHandler({ tables })(
+      req,
+      ctx,
+    )) as HttpResponseInit;
+    const names = (res.jsonBody as { name: string }[]).map((u) => u.name);
+    expect(names).toEqual(["Alice", "Mats", "Zoe"]);
+  });
 });

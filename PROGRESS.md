@@ -284,3 +284,14 @@ Plan: [docs/plans/done/deployment-and-live-to-dev-snapshot.md](docs/plans/done/d
 - ✅ Slice 4 — `import-local` script + npm wiring (v8-ignored, safety-latched via Slice 1, idempotent against Azurite)
 - ✅ Slice 5 — `docs/deployment.md` runbook (links from `setup.md`)
 - ✅ Slice 6 — Pre-public-GitHub safety gate (run + documented in changelog; pre-existing `npm audit` highs in `frontend/` dev-deps surfaced as a separate follow-up)
+
+---
+
+## Post-v1 — Seed roster: hide Waldo + add Kaat & Amaryllis
+
+Plan: [docs/plans/seed-users-kaat-amaryllis.md](docs/plans/seed-users-kaat-amaryllis.md)
+
+- ✅ `SEED_USERS` extended with Kaat (`#f59e0b`, 🐰) and Amaryllis (`#ec4899`, 🌸); Waldo stays as the lone admin
+- ✅ `GET /api/users/public` filters `is_admin === true` rows so Waldo is hidden from the student picker
+- ✅ Tests: 6 new RED tests across `seed.test.ts` (10 total) and `users-public.test.ts` (7 total); 100% coverage on both touched source files
+- ✅ Docs: `docs/setup.md` env-var table + seeding narrative; `docs/deployment.md` §1c table, §1d shell block, new §1e "Adding new family users to live (delta seed)"; `README.md` student roster + dynamic-name list

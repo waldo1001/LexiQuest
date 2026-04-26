@@ -47,6 +47,8 @@ export const SEED_USERS: readonly SeedUserSpec[] = [
   { name: "Lex", is_admin: false, color: "#16a34a", avatar_emoji: "🐯" },
   { name: "Mats", is_admin: false, color: "#dc2626", avatar_emoji: "🐻" },
   { name: "Ben", is_admin: false, color: "#9333ea", avatar_emoji: "🐼" },
+  { name: "Kaat", is_admin: false, color: "#f59e0b", avatar_emoji: "🐰" },
+  { name: "Amaryllis", is_admin: false, color: "#ec4899", avatar_emoji: "🌸" },
 ];
 
 export class SeedMissingPasswordError extends Error {

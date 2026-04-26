@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { SeedMissingPasswordError, seed, type UserRow, type YearRow } from "./seed.js";
+import {
+  SEED_USERS,
+  SeedMissingPasswordError,
+  seed,
+  type UserRow,
+  type YearRow,
+} from "./seed.js";
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakePasswordHasher } from "../../testing/fake-password-hasher.js";
 import { FakeClock } from "../../testing/fake-clock.js";
@@ -10,6 +16,8 @@ const passwords: Record<string, string> = {
   Lex: "lpw",
   Mats: "mpw",
   Ben: "bpw",
+  Kaat: "kpw",
+  Amaryllis: "apw",
 };
 
 function make(partial: { random?: FakeRandom; clock?: FakeClock } = {}) {
@@ -19,21 +27,53 @@ function make(partial: { random?: FakeRandom; clock?: FakeClock } = {}) {
     clock: partial.clock ?? new FakeClock("2026-04-22T09:00:00Z"),
     random:
       partial.random ??
-      new FakeRandom(["u-waldo", "u-lex", "u-mats", "u-ben", "y-2025-2026"]),
+      new FakeRandom([
+        "u-waldo",
+        "u-lex",
+        "u-mats",
+        "u-ben",
+        "u-kaat",
+        "u-amaryllis",
+        "y-2025-2026",
+      ]),
     getPassword: (name: string) => passwords[name],
   };
 }
 
 describe("seed", () => {
-  it("inserts 4 users when run against an empty store", async () => {
+  it("inserts the full family roster when run against an empty store", async () => {
     const deps = make();
     const res = await seed(deps);
-    expect(res.users).toHaveLength(4);
+    expect(res.users).toHaveLength(6);
     expect(res.users.every((u) => u.created)).toBe(true);
     const rows = await deps.tables.listByPartition<UserRow>("users", "users");
     expect(rows.map((r) => r.name).sort()).toEqual(
-      ["Ben", "Lex", "Mats", "Waldo"],
+      ["Amaryllis", "Ben", "Kaat", "Lex", "Mats", "Waldo"],
     );
+  });
+
+  it("SEED_USERS lists Waldo as the only admin", () => {
+    const names = SEED_USERS.map((s) => s.name).sort();
+    expect(names).toEqual(["Amaryllis", "Ben", "Kaat", "Lex", "Mats", "Waldo"]);
+    const admins = SEED_USERS.filter((s) => s.is_admin);
+    expect(admins).toHaveLength(1);
+    expect(admins[0]!.name).toBe("Waldo");
+  });
+
+  it("Kaat seed spec: amber colour, rabbit emoji, not admin", () => {
+    const kaat = SEED_USERS.find((s) => s.name === "Kaat");
+    expect(kaat).toBeDefined();
+    expect(kaat!.is_admin).toBe(false);
+    expect(kaat!.color).toBe("#f59e0b");
+    expect(kaat!.avatar_emoji).toBe("🐰");
+  });
+
+  it("Amaryllis seed spec: pink colour, blossom emoji, not admin", () => {
+    const amaryllis = SEED_USERS.find((s) => s.name === "Amaryllis");
+    expect(amaryllis).toBeDefined();
+    expect(amaryllis!.is_admin).toBe(false);
+    expect(amaryllis!.color).toBe("#ec4899");
+    expect(amaryllis!.avatar_emoji).toBe("🌸");
   });
 
   it("inserts a current year row", async () => {
@@ -87,6 +127,8 @@ describe("seed", () => {
       "u-lex",
       "u-mats",
       "u-ben",
+      "u-kaat",
+      "u-amaryllis",
       "y-1",
       // nothing scripted for re-run; should NOT be consumed
     ]);
@@ -117,7 +159,7 @@ describe("seed", () => {
     const err = await seed(deps).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(SeedMissingPasswordError);
     const e = err as SeedMissingPasswordError;
-    expect(e.message).not.toMatch(/waldo|lex|mats|ben/i);
-    expect(e.message).not.toMatch(/wpw|lpw|mpw|bpw/);
+    expect(e.message).not.toMatch(/waldo|lex|mats|ben|kaat|amaryllis/i);
+    expect(e.message).not.toMatch(/wpw|lpw|mpw|bpw|kpw|apw/);
   });
 });

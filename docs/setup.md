@@ -60,10 +60,12 @@ Fill in:
 | Variable | What | Example value for local dev |
 |----------|------|---------------------------|
 | `AZURE_STORAGE_CONNECTION_STRING` | Where to find the database | `UseDevelopmentStorage=true` |
-| `PASSWORD_WALDO` | Seed password for Waldo | any string |
+| `PASSWORD_WALDO` | Seed password for Waldo (admin / supervisor — hidden from picker) | any string |
 | `PASSWORD_LEX` | Seed password for Lex | any string |
 | `PASSWORD_MATS` | Seed password for Mats | any string |
 | `PASSWORD_BEN` | Seed password for Ben | any string |
+| `PASSWORD_KAAT` | Seed password for Kaat | any string |
+| `PASSWORD_AMARYLLIS` | Seed password for Amaryllis | any string |
 | `SESSION_SECRET` | HMAC key for session cookies | 32+ random chars |
 | `ANTHROPIC_API_KEY` | AI card import (optional, costs money) | `sk-ant-...` or leave blank |
 
@@ -111,14 +113,22 @@ rm -rf /tmp/azurite && azurite --silent --location /tmp/azurite
 
 ## Seeding users
 
-Creates the 4 family accounts (Waldo, Lex, Mats, Ben) and the current
-school year. Requires Azurite running and `.env` filled in.
+Creates the family accounts and the current school year. Requires
+Azurite running and `.env` filled in.
+
+The seed roster:
+
+- **Waldo** — admin / supervisor. Hidden from the student picker, but
+  still able to log in for admin tasks (creating users, etc.).
+- **Lex, Mats, Ben, Kaat, Amaryllis** — student accounts shown in the
+  picker, alphabetically.
 
 ```sh
 cd api && npm run seed
 ```
 
-Output lists 4 UUIDs. Idempotent — safe to re-run.
+Output lists six UUIDs (one per seeded user). Idempotent — safe to
+re-run; existing rows are detected by `name` and left alone.
 
 ## Full-stack local run
 

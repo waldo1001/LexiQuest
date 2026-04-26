@@ -78,7 +78,7 @@ AZURITE_PID=$!
 sleep 2
 ```
 
-## Step 2 — Seed 4 test users + current year
+## Step 2 — Seed test users + current year
 
 Run the seed script against Azurite:
 
@@ -87,12 +87,14 @@ STORAGE_CONNECTION_STRING="UseDevelopmentStorage=true" \
   SEED_PASSWORD_LEX="smoke-lex" \
   SEED_PASSWORD_MATS="smoke-mats" \
   SEED_PASSWORD_BEN="smoke-ben" \
+  SEED_PASSWORD_KAAT="smoke-kaat" \
+  SEED_PASSWORD_AMARYLLIS="smoke-amaryllis" \
   SEED_PASSWORD_WALDO="smoke-waldo" \
   node scripts/seed.js
 ```
 
-Expect output listing the 4 user UUIDs and confirmation of year
-`2025-2026`. No duplicates on re-run.
+Expect output listing the six user UUIDs (Waldo + five students) and
+confirmation of year `2025-2026`. No duplicates on re-run.
 
 ## Step 3 — Boot `swa start`
 
