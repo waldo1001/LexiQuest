@@ -82,6 +82,8 @@ export function makeCardsIdHandler(deps: CardsIdDeps): HttpHandler {
       answer: patch.answer ?? card.answer,
       hint: patch.hint === undefined ? card.hint : patch.hint,
       distractors: patch.distractors ?? card.distractors,
+      question_lang: patch.question_lang === undefined ? (card.question_lang ?? null) : patch.question_lang,
+      answer_lang: patch.answer_lang === undefined ? (card.answer_lang ?? null) : patch.answer_lang,
     };
     await deps.tables.upsert<CardRow>("cards", merged);
 

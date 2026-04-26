@@ -276,7 +276,7 @@ describe("CardManager", () => {
     ];
     setup({ fetchCards: vi.fn().mockResolvedValue(grouped) });
     await screen.findByText(/manual cards/i);
-    const buttons = screen.getAllByRole("button", { name: /delete this upload/i });
+    const buttons = screen.getAllByTitle(/delete this upload/i);
     expect(buttons.length).toBe(1); // only on the upl-A group
   });
 
@@ -293,7 +293,7 @@ describe("CardManager", () => {
     });
 
     await screen.findByText(/upload — /i);
-    await user.click(screen.getByRole("button", { name: /delete this upload/i }));
+    await user.click(screen.getByTitle(/delete this upload/i));
 
     expect(bulkDeleteCards).toHaveBeenCalledWith({ courseId: COURSE_ID, uploadId: "upl-A" });
     // group disappears from UI
@@ -332,8 +332,8 @@ describe("CardManager", () => {
       currentUser: { id: OTHER_ID, name: "Mats", isAdmin: false },
       fetchCards: vi.fn().mockResolvedValue(grouped),
     });
-    await screen.findByText("What is a dog?");
-    expect(screen.queryByRole("button", { name: /delete this upload/i })).toBeNull();
+    await screen.findByText(/upload — /i);
+    expect(screen.queryByTitle(/delete this upload/i)).toBeNull();
     expect(screen.queryByRole("button", { name: /delete all cards/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /delete selected/i })).toBeNull();
   });
@@ -350,11 +350,12 @@ describe("CardManager", () => {
       confirmFn: vi.fn(() => true),
     });
 
-    await screen.findByText("What is a dog?");
-    await user.click(screen.getByRole("button", { name: /delete this upload/i }));
+    await screen.findByText(/upload — /i);
+    await user.click(screen.getByTitle(/delete this upload/i));
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
-    expect(screen.getByText("What is a dog?")).toBeInTheDocument();
+    // Group header still present (cards not removed due to error)
+    expect(screen.getByText(/upload — /i)).toBeInTheDocument();
   });
 
   it("CM-BULK8: declined confirm on Delete all does nothing", async () => {
@@ -366,6 +367,22 @@ describe("CardManager", () => {
     await user.click(screen.getByRole("button", { name: /delete all cards/i }));
 
     expect(bulkDeleteCards).not.toHaveBeenCalled();
+  });
+
+  it("CM-UPLOAD: shows 'Upload stats' link when uploads exist", async () => {
+    const grouped = [
+      { ...SEED_CARDS[0], upload_id: "upl-A", source: "ai_import" },
+    ];
+    setup({ fetchCards: vi.fn().mockResolvedValue(grouped) });
+    await screen.findByText(/upload — /i);
+    const link = screen.getByTestId("upload-stats-link");
+    expect(link).toHaveAttribute("href", `/stats/course/${COURSE_ID}/uploads`);
+  });
+
+  it("CM-UPLOAD-NONE: hides 'Upload stats' link when no uploads", async () => {
+    setup();
+    await screen.findByText("What is a dog?");
+    expect(screen.queryByTestId("upload-stats-link")).toBeNull();
   });
 
   it("CM12: back link navigates to /courses", async () => {

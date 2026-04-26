@@ -62,8 +62,8 @@ export function makeStatsUserHandler(deps: StatsUserDeps): HttpHandler {
     const badgesEarned = settings.badges ?? [];
 
     const totalSessions = allUserSessions.length;
-    const totalCardsStudied = allUserSessions.reduce((sum, s) => sum + (s as { cards_studied: number }).cards_studied, 0);
-    const totalMinutes = allUserSessions.reduce((sum, s) => sum + (s as { duration_seconds: number }).duration_seconds, 0) / 60;
+    const totalCardsStudied = allUserSessions.reduce((sum, s) => sum + (s as unknown as { cards_studied: number }).cards_studied, 0);
+    const totalMinutes = allUserSessions.reduce((sum, s) => sum + (s as unknown as { duration_seconds: number }).duration_seconds, 0) / 60;
 
     // Trend data (ranged)
     const sessionsByDay = groupByDay(rangedSessions, (s) => s.started_at);
@@ -104,7 +104,7 @@ export function makeStatsUserHandler(deps: StatsUserDeps): HttpHandler {
     const hourCounts = new Array<number>(24).fill(0);
     for (const attempt of rangedAttempts) {
       const h = new Date(attempt.timestamp).getUTCHours();
-      hourCounts[h]++;
+      hourCounts[h] = (hourCounts[h] ?? 0) + 1;
     }
     const hourOfDay = hourCounts.map((attempts, hour) => ({ hour, attempts }));
 

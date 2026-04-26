@@ -42,7 +42,7 @@ export function makeSessionsHandler(deps: SessionsDeps): HttpHandler {
     if (!result.ok) {
       return { status: 400, jsonBody: { error: result.error } };
     }
-    const { courseId, mode, gameType, cardLimit } = result.value;
+    const { courseId, mode, gameType, cardLimit, uploadId } = result.value;
 
     // Verify the course exists (scan the caller's partition then all)
     const course = await findCourseById(deps.tables, auth.auth.userId, courseId);
@@ -54,7 +54,15 @@ export function makeSessionsHandler(deps: SessionsDeps): HttpHandler {
     const nowIso = now.toISOString();
 
     // Build queue using priority algorithm
-    const allCards = await deps.tables.listByPartition<CardRow>("cards", courseId);
+    let allCards = await deps.tables.listByPartition<CardRow>("cards", courseId);
+    // Filter to specific upload if requested
+    if (uploadId) {
+      allCards = allCards.filter((c) => c.upload_id === uploadId);
+    }
+    // MCQ mode: only include cards that have enough distractors for MCQ rendering
+    if (mode === "mcq") {
+      allCards = allCards.filter((c) => Array.isArray(c.distractors) && c.distractors.length >= 2);
+    }
     const queue = buildQueue(allCards, {
       gameType,
       cardLimit,

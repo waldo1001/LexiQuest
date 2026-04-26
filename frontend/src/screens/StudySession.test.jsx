@@ -1,10 +1,23 @@
-import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, within, fireEvent, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import StudySession from "./StudySession.jsx";
 import { AppProvider } from "../context/AppContext.jsx";
 import { createFakeTts } from "../testing/fake-tts.js";
+
+function ResultsStub() {
+  const { state } = useLocation();
+  return (
+    <div>
+      <h1>Results</h1>
+      <span data-testid="rs-studied">{state?.cards_studied ?? "?"}</span>
+      <span data-testid="rs-correct">{state?.cards_correct ?? "?"}</span>
+      <span data-testid="rs-duration">{state?.duration_seconds ?? "?"}</span>
+      <span data-testid="rs-xp">{state?.xp_earned ?? "?"}</span>
+    </div>
+  );
+}
 
 const CARDS_WITH_DISTRACTORS = [
   {
@@ -81,7 +94,7 @@ function setup({
             }
           />
           <Route path="/courses" element={<h1>Courses</h1>} />
-          <Route path="/courses/:courseId/results" element={<h1>Results</h1>} />
+          <Route path="/courses/:courseId/results" element={<ResultsStub />} />
         </Routes>
       </MemoryRouter>
     </AppProvider>,
@@ -169,9 +182,15 @@ describe("StudySession — grading", () => {
 });
 
 describe("StudySession — session completion", () => {
-  it("calls postAttempts and closeSession on completion, then navigates to results", async () => {
+  it("calls postAttempts and closeSession on completion, then navigates to results with stats", async () => {
     const postAttempts = vi.fn().mockResolvedValue({ logged: 2 });
-    const closeSession = vi.fn().mockResolvedValue({ ended_at: "2026-04-22T10:05:00Z" });
+    const closeSession = vi.fn().mockResolvedValue({
+      ended_at: "2026-04-22T10:05:00Z",
+      cards_studied: 2,
+      cards_correct: 2,
+      duration_seconds: 45,
+      xp_earned: 30,
+    });
     setup({ postAttempts, closeSession });
 
     await screen.findByText("What is a dog?");
@@ -194,6 +213,11 @@ describe("StudySession — session completion", () => {
     expect(attemptCall.items[0].correct).toBe(true);
 
     await screen.findByText("Results");
+    // Stats from closeSession response are forwarded to results screen
+    expect(screen.getByTestId("rs-studied")).toHaveTextContent("2");
+    expect(screen.getByTestId("rs-correct")).toHaveTextContent("2");
+    expect(screen.getByTestId("rs-duration")).toHaveTextContent("45");
+    expect(screen.getByTestId("rs-xp")).toHaveTextContent("30");
   });
 
   it("cards_correct count excludes retry attempts", async () => {
@@ -326,7 +350,8 @@ describe("StudySession — MCQ mode", () => {
   });
 
   it("MCQ2: clicking the correct answer grades correct and advances", async () => {
-    const user = userEvent.setup();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const postAttempts = vi.fn().mockResolvedValue({ logged: 1 });
     const closeSession = vi.fn().mockResolvedValue({ ended_at: "now" });
     setupMcq({ postAttempts, closeSession });
@@ -334,14 +359,19 @@ describe("StudySession — MCQ mode", () => {
     await screen.findByText("What is a dog?");
     await user.click(screen.getByRole("button", { name: "le chien" }));
 
+    // MCQ reveal phase — green/red shown for 1.2s
+    vi.advanceTimersByTime(1300);
+
     await waitFor(() => expect(postAttempts).toHaveBeenCalledOnce());
     const attempt = postAttempts.mock.calls[0][0].items[0];
     expect(attempt.correct).toBe(true);
     expect(attempt.mode).toBe("mcq");
+    vi.useRealTimers();
   });
 
   it("MCQ3: clicking a wrong choice grades incorrect", async () => {
-    const user = userEvent.setup();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const postAttempts = vi.fn().mockResolvedValue({ logged: 1 });
     const closeSession = vi.fn().mockResolvedValue({ ended_at: "now" });
     setupMcq({ postAttempts, closeSession });
@@ -349,17 +379,22 @@ describe("StudySession — MCQ mode", () => {
     await screen.findByText("What is a dog?");
     await user.click(screen.getByRole("button", { name: "le chat" }));
 
+    // Advance past MCQ reveal
+    vi.advanceTimersByTime(1300);
+
     await waitFor(() => {
       // After wrong answer, card goes to retry pile and re-appears
       expect(screen.getByText("What is a dog?")).toBeInTheDocument();
     });
     // Click correct this time to finish
     await user.click(screen.getByRole("button", { name: "le chien" }));
+    vi.advanceTimersByTime(1300);
     await waitFor(() => expect(postAttempts).toHaveBeenCalledOnce());
     const attempts = postAttempts.mock.calls[0][0].items;
     expect(attempts[0].correct).toBe(false);
     expect(attempts[0].mode).toBe("mcq");
     expect(attempts[1].correct).toBe(true);
+    vi.useRealTimers();
   });
 
   it("MCQ4: self_grade mode shows Show answer even if card has distractors", async () => {
@@ -543,6 +578,51 @@ describe("StudySession — game type features", () => {
     expect(startSession).toHaveBeenCalledWith(
       expect.objectContaining({ gameType: "boss_round", cardLimit: 10 }),
     );
+  });
+
+  it("speed round MCQ choices stay stable across timer re-renders", async () => {
+    let shuffleCount = 0;
+    const trackingShuffle = (arr) => { shuffleCount++; return arr; };
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS_WITH_DISTRACTORS });
+    setup({ startSession, gameType: "speed_round", mode: "mcq", shuffleFn: trackingShuffle });
+
+    await screen.findByText("What is a dog?");
+    const initialCount = shuffleCount;
+
+    // Wait for the real timer to tick — remaining changes from 60→59 after ~1s
+    await waitFor(() => {
+      expect(screen.getByTestId("speed-timer").textContent).not.toContain("60");
+    }, { timeout: 3000 });
+
+    // Without memoization, shuffleFn would be called again on each timer re-render
+    expect(shuffleCount).toBe(initialCount);
+  }, 10000);
+
+  it("MCQ choices re-shuffle when card changes", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    let shuffleCount = 0;
+    const trackingShuffle = (arr) => { shuffleCount++; return arr; };
+    const twoCards = [
+      { ...CARDS_WITH_DISTRACTORS[0] },
+      { id: "card-2", course_id: "c-french", question: "What is a cat?", answer: "le chat", distractors: ["le chien", "le cheval"], sm2_ease: 2.5, sm2_interval: 0, sm2_reps: 0, next_review_at: "2026-04-22T09:00:00Z" },
+    ];
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: twoCards });
+    const postAttempts = vi.fn().mockResolvedValue({ logged: 2 });
+    const closeSession = vi.fn().mockResolvedValue({ ended_at: "now" });
+    setup({ startSession, postAttempts, closeSession, mode: "mcq", shuffleFn: trackingShuffle });
+
+    await screen.findByText("What is a dog?");
+    const afterFirstCard = shuffleCount;
+
+    // Click correct answer — enters MCQ_REVEAL, then advance past reveal timer
+    await user.click(screen.getByRole("button", { name: "le chien" }));
+    await act(async () => { vi.advanceTimersByTime(1300); });
+    await screen.findByText("What is a cat?");
+
+    // shuffleFn should have been called again for the second card
+    expect(shuffleCount).toBeGreaterThan(afterFirstCard);
+    vi.useRealTimers();
   });
 
   it("speed round has no retry pile — wrong cards not re-shown", async () => {

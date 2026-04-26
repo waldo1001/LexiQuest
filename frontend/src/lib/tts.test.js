@@ -9,11 +9,13 @@ class FakeUtterance {
   }
 }
 
-function makeSynth({ voices = [] } = {}) {
+function makeSynth({ voices = [], speaking = false, pending = false } = {}) {
   return {
     getVoices: () => voices,
     speak: vi.fn(),
     cancel: vi.fn(),
+    speaking,
+    pending,
     onvoiceschanged: null,
   };
 }
@@ -102,11 +104,24 @@ describe("createTts — speak", () => {
     expect(synth.speak).not.toHaveBeenCalled();
   });
 
-  it("cancels current speech then speaks the utterance (AC7)", () => {
-    const synth = makeSynth({ voices: FR });
+  it("cancels current speech then speaks the utterance when speaking (AC7)", () => {
+    const synth = makeSynth({ voices: FR, speaking: true });
     createTts(synth, FakeUtterance).speak("bonjour", "fr-FR");
     expect(synth.cancel).toHaveBeenCalledOnce();
     expect(synth.speak).toHaveBeenCalledOnce();
+  });
+
+  it("skips cancel when nothing is speaking or pending (AC7b)", () => {
+    const synth = makeSynth({ voices: FR, speaking: false, pending: false });
+    createTts(synth, FakeUtterance).speak("bonjour", "fr-FR");
+    expect(synth.cancel).not.toHaveBeenCalled();
+    expect(synth.speak).toHaveBeenCalledOnce();
+  });
+
+  it("cancels when utterance is pending but not yet speaking (AC7c)", () => {
+    const synth = makeSynth({ voices: FR, pending: true });
+    createTts(synth, FakeUtterance).speak("bonjour", "fr-FR");
+    expect(synth.cancel).toHaveBeenCalledOnce();
   });
 
   it("sets correct lang and default rate on the utterance (AC8)", () => {

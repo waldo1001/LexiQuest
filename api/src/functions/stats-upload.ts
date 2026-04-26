@@ -98,7 +98,7 @@ export function makeStatsUploadHandler(deps: StatsUploadDeps): HttpHandler {
     for (const [uploadId, cards] of uploadGroups) {
       const distribution = { new: 0, learning: 0, young: 0, mature: 0, mastered: 0 };
       let easeSum = 0;
-      let earliest = cards[0].created_at;
+      let earliest = cards[0]!.created_at;
       let uploadName: string | null = null;
 
       for (const card of cards) {

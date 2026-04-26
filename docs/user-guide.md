@@ -108,6 +108,13 @@ onward (first login + dashboard) and gets sections added per phase:
     chart), sessions over time, and the card struggle list — the top 20
     cards ranked by fail count. This tells you which cards to spend extra
     time on.
+  - **Upload Stats** (`/stats/course/:courseId/uploads`): per-upload
+    breakdown within a course. Each photo or AI import is shown as a
+    section with: card count, mastery distribution bar chart, attempt
+    count, accuracy percentage, and last studied date. Use the range
+    selector (7d / 30d / 90d / 1y / All) to filter. Access via the
+    "Upload stats" link in the Card Manager (visible when the course has
+    at least one upload).
 - **Leaderboard** (Phase 16): XP ranking for the whole family.
   - Go to `/leaderboard`. Choose a period: 7 days, 30 days, or All time.
     The list shows everyone ranked by XP, with their avatar, name, and XP

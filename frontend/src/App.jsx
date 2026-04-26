@@ -16,6 +16,7 @@ import ImportReview from "./screens/ImportReview.jsx";
 import FamilyDashboard from "./screens/FamilyDashboard.jsx";
 import UserStats from "./screens/UserStats.jsx";
 import CourseStats from "./screens/CourseStats.jsx";
+import UploadStats from "./screens/UploadStats.jsx";
 import Leaderboard from "./screens/Leaderboard.jsx";
 import CompareView from "./screens/CompareView.jsx";
 import { AppProvider } from "./context/AppContext.jsx";
@@ -48,6 +49,7 @@ export default function App({ tts = _tts }) {
           <Route path="/family" element={<FamilyDashboard />} />
           <Route path="/stats/user/:userId" element={<UserStats />} />
           <Route path="/stats/course/:courseId" element={<CourseStats />} />
+          <Route path="/stats/course/:courseId/uploads" element={<UploadStats />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/compare" element={<CompareView />} />
           <Route

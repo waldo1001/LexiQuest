@@ -250,6 +250,46 @@ describe("PUT /api/cards/:id", () => {
     expect(stored?.upload_id).toBe("upload-xyz");
   });
 
+  it("PUT merges question_lang and answer_lang from patch", async () => {
+    const res = (await makeCardsIdHandler(deps)(
+      makeReq(validCookie(deps, OWNER_ID), {
+        method: "PUT",
+        params: { id: CARD_ID },
+        query: { courseId: COURSE_ID },
+        body: { question_lang: "en", answer_lang: "fr-FR" },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(200);
+    const body = res.jsonBody as { question_lang: string | null; answer_lang: string | null };
+    expect(body.question_lang).toBe("en");
+    expect(body.answer_lang).toBe("fr-FR");
+
+    const stored = await deps.tables.getById<CardRow>("cards", COURSE_ID, CARD_ID);
+    expect(stored?.question_lang).toBe("en");
+    expect(stored?.answer_lang).toBe("fr-FR");
+  });
+
+  it("PUT preserves existing per-side lang when patch omits them", async () => {
+    await deps.tables.upsert("cards", makeCard(COURSE_ID, CARD_ID, {
+      question_lang: "nl",
+      answer_lang: "fr",
+    }));
+    const res = (await makeCardsIdHandler(deps)(
+      makeReq(validCookie(deps, OWNER_ID), {
+        method: "PUT",
+        params: { id: CARD_ID },
+        query: { courseId: COURSE_ID },
+        body: { question: "New Q?" },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(200);
+    const body = res.jsonBody as { question_lang: string | null; answer_lang: string | null };
+    expect(body.question_lang).toBe("nl");
+    expect(body.answer_lang).toBe("fr");
+  });
+
   it("returns 400 on invalid patch body", async () => {
     const res = (await makeCardsIdHandler(deps)(
       makeReq(validCookie(deps, OWNER_ID), {

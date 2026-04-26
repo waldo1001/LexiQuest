@@ -22,6 +22,7 @@ export interface CardRow extends Entity {
   next_review_at: string; // ISO datetime
   created_at: string;     // ISO datetime
   upload_id?: string | null; // groups cards created in one batch import; null/absent for manual cards
+  upload_name?: string | null; // user-assigned name for this upload group; null = auto-generated timestamp label
   question_lang?: string | null; // BCP-47 language code for the question side; null = use course language
   answer_lang?: string | null;   // BCP-47 language code for the answer side; null = use course language
   reverse_of?: string | null;    // rowKey of the forward card this was generated from; null = not a reverse
@@ -61,6 +62,7 @@ export type CardProfile = {
   next_review_at: string;
   created_at: string;
   upload_id: string | null;
+  upload_name: string | null;
   question_lang: string | null;
   answer_lang: string | null;
   reverse_of: string | null;
@@ -208,6 +210,7 @@ export function cardProfile(row: CardRow): CardProfile {
     next_review_at: row.next_review_at,
     created_at: row.created_at,
     upload_id: row.upload_id ?? null,
+    upload_name: row.upload_name ?? null,
     question_lang: row.question_lang ?? null,
     answer_lang: row.answer_lang ?? null,
     reverse_of: row.reverse_of ?? null,
@@ -219,7 +222,7 @@ export function buildReverseCard(
   opts: { id: string; nowIso: string },
 ): CardRow {
   const answer = forward.answer;
-  const question = answer.includes("|") ? answer.split("|")[0] : answer;
+  const question = answer.includes("|") ? answer.split("|")[0]! : answer;
   return {
     partitionKey: forward.partitionKey,
     rowKey: opts.id,

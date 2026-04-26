@@ -3,6 +3,12 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-04-26
+
+- Fixed speed round MCQ choices reshuffling on every timer tick by memoizing `mcqChoices` with `useMemo` keyed to card ID. 2 new tests. See [plans/done/bugfix-mcq-reshuffle-speed-round.md](plans/done/bugfix-mcq-reshuffle-speed-round.md).
+- Changed PhotoImport so both "Speak questions in" and "Speak answers in" default to the user's UI language instead of question defaulting to course language. See [plans/done/post-v1-import-lang-default.md](plans/done/post-v1-import-lang-default.md).
+- Added per-upload stats: `GET /api/stats/course/{courseId}/uploads` endpoint (17 API tests), `UploadStats.jsx` screen (9 tests), privacy meta-test, frontend API wrapper (4 tests), CardManager link, 16 i18n keys (EN + NL). Route: `/stats/course/:courseId/uploads`.
+
 ## 2026-04-25 (post-v1 — Gaming mode: session length + game types)
 
 - Added `card-priority.ts` with `scoreCard()` (0.7× overdue + 0.3× mastery) and `buildQueue()` supporting all 4 game types. 17 tests, 97% branch coverage. See [plans/done/gaming-mode.md](plans/done/gaming-mode.md).

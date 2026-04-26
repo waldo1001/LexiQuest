@@ -4,14 +4,18 @@ export interface CardCandidate {
   question: string;
   answer: string;
   distractors: [string, string];
+  question_lang: string | null;
+  answer_lang: string | null;
 }
 
 export interface ExtractCardsInput {
   imageBase64: string;
-  mimeType: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+  mimeType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "application/pdf";
   courseName: string;
   courseLanguage: string | null;
   uiLanguage: string;
+  questionLang?: string | null;
+  answerLang?: string | null;
 }
 
 export interface EnrichInput {
@@ -58,7 +62,13 @@ export function parseCards(raw: string): CardCandidate[] {
   if (!Array.isArray(parsed)) {
     throw new ClaudeJsonParseError("Expected a JSON array", stripped);
   }
-  return parsed as CardCandidate[];
+  return (parsed as Array<Record<string, unknown>>).map((item) => ({
+    question: item.question as string,
+    answer: item.answer as string,
+    distractors: item.distractors as [string, string],
+    question_lang: (item.question_lang as string) ?? null,
+    answer_lang: (item.answer_lang as string) ?? null,
+  }));
 }
 
 /* v8 ignore start */
@@ -71,11 +81,27 @@ export function createClaudeClient(apiKey: string): ClaudeClient {
         ? `Course language: ${input.courseLanguage}`
         : "Course language: not specified";
 
+      const hasExplicitLangs = Boolean(input.questionLang || input.answerLang);
+
+      const langFields = hasExplicitLangs
+        ? `\n- question_lang: always "${input.questionLang}" (the user told us the question side is in this language)
+- answer_lang: always "${input.answerLang}" (the user told us the answer side is in this language)`
+        : input.courseLanguage
+          ? `\n- question_lang: the BCP-47 code of the language the question text is actually written in (e.g. "fr", "nl", "en")
+- answer_lang: the BCP-47 code of the language the answer text is actually written in (e.g. "fr", "nl", "en")`
+          : "";
+
+      const langExample = hasExplicitLangs
+        ? `,"question_lang":"${input.questionLang}","answer_lang":"${input.answerLang}"`
+        : input.courseLanguage
+          ? `,"question_lang":"...","answer_lang":"..."`
+          : "";
+
       const prompt = `You are extracting study cards from a student's study material.
 For each learnable item, return:
 - question: the prompt side
 - answer: the correct response (use | for valid alternatives)
-- distractors: exactly 2 plausible-but-wrong alternatives of the same type/category, never valid synonyms
+- distractors: exactly 2 plausible-but-wrong alternatives of the same type/category, never valid synonyms${langFields}
 
 Context:
 - Course name: ${input.courseName}
@@ -83,25 +109,34 @@ Context:
 - User UI language: ${input.uiLanguage}
 
 Return JSON only — no prose, no markdown fences:
-[{"question":"...","answer":"...","distractors":["...","..."]}]`;
+[{"question":"...","answer":"...","distractors":["...","..."]${langExample}}]`;
+
+      const isPdf = input.mimeType === "application/pdf";
+      const fileBlock = isPdf
+        ? {
+            type: "document" as const,
+            source: {
+              type: "base64" as const,
+              media_type: "application/pdf" as const,
+              data: input.imageBase64,
+            },
+          }
+        : {
+            type: "image" as const,
+            source: {
+              type: "base64" as const,
+              media_type: input.mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+              data: input.imageBase64,
+            },
+          };
 
       const msg = await client.messages.create({
         model: MODEL,
-        max_tokens: 2048,
+        max_tokens: 4096,
         messages: [
           {
             role: "user",
-            content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: input.mimeType,
-                  data: input.imageBase64,
-                },
-              },
-              { type: "text", text: prompt },
-            ],
+            content: [fileBlock, { type: "text", text: prompt }],
           },
         ],
       });

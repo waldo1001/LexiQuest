@@ -13,7 +13,7 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 ## Status summary
 
-- **Current phase**: Post-v1 features (gaming mode complete).
+- **Current phase**: Post-v1 features (gaming mode + per-upload stats complete).
 - **Last tag**: `phase-17-done`
 - **Next up**: See [Design.md §7](Design.md) for deferred v2 items.
 
@@ -262,3 +262,12 @@ populates 4 users + current year. See
 **`/local-smoke`** — PASS 2026-04-25: Azurite boot, seed, login + HttpOnly cookie, `/api/me`, wrong-password 401, SPA fallback all PASS. AI import probe skipped (no ANTHROPIC_API_KEY).
 
 See [docs/plans/done/gaming-mode.md](docs/plans/done/gaming-mode.md).
+
+---
+
+## Post-v1 — Per-upload stats
+
+- ✅ Slice 1 — API handler `stats-upload.ts` (17 tests, 91%+ coverage)
+- ✅ Slice 2 — Privacy meta-test in `stats-privacy.test.ts`
+- ✅ Slice 3 — Frontend API wrapper + i18n (4 tests, 16 i18n keys EN+NL)
+- ✅ Slice 4 — `UploadStats.jsx` screen + routing + CardManager link (11 tests)

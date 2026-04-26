@@ -26,11 +26,22 @@ const VALID_MIME_TYPES = new Set([
   "image/png",
   "image/webp",
   "image/gif",
+  "application/pdf",
 ]);
+
+const BCP47_RE = /^[a-z]{2,3}(-[A-Z][a-zA-Z]{1,7})?$/;
+
+interface ValidatedImportBody {
+  courseId: string;
+  imageBase64: string;
+  mimeType: ExtractCardsInput["mimeType"];
+  questionLang?: string;
+  answerLang?: string;
+}
 
 function validateBody(
   body: unknown,
-): { ok: true; courseId: string; imageBase64: string; mimeType: ExtractCardsInput["mimeType"] } | { ok: false; error: string } {
+): { ok: true } & ValidatedImportBody | { ok: false; error: string } {
   if (body === null || typeof body !== "object") {
     return { ok: false, error: "body must be an object" };
   }
@@ -42,14 +53,29 @@ function validateBody(
     return { ok: false, error: "imageBase64 is required" };
   }
   if (typeof src.mimeType !== "string" || !VALID_MIME_TYPES.has(src.mimeType)) {
-    return { ok: false, error: "mimeType must be image/jpeg, image/png, image/webp, or image/gif" };
+    return { ok: false, error: "mimeType must be image/jpeg, image/png, image/webp, image/gif, or application/pdf" };
   }
-  return {
-    ok: true,
+
+  const result: ValidatedImportBody = {
     courseId: src.courseId.trim(),
     imageBase64: src.imageBase64,
     mimeType: src.mimeType as ExtractCardsInput["mimeType"],
   };
+
+  if (typeof src.questionLang === "string" && src.questionLang.length > 0) {
+    if (!BCP47_RE.test(src.questionLang)) {
+      return { ok: false, error: "questionLang must be a valid BCP-47 code (e.g. en, fr, nl)" };
+    }
+    result.questionLang = src.questionLang;
+  }
+  if (typeof src.answerLang === "string" && src.answerLang.length > 0) {
+    if (!BCP47_RE.test(src.answerLang)) {
+      return { ok: false, error: "answerLang must be a valid BCP-47 code (e.g. en, fr, nl)" };
+    }
+    result.answerLang = src.answerLang;
+  }
+
+  return { ok: true, ...result };
 }
 
 async function findCourseById(
@@ -83,7 +109,7 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
     if (!validated.ok) {
       return { status: 400, jsonBody: { error: validated.error } };
     }
-    const { courseId, imageBase64, mimeType } = validated;
+    const { courseId, imageBase64, mimeType, questionLang, answerLang } = validated;
 
     const course = await findCourseById(deps.tables, auth.auth.userId, courseId);
     if (!course) {
@@ -106,6 +132,8 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
         courseName: course.name,
         courseLanguage: course.language,
         uiLanguage,
+        questionLang: questionLang ?? null,
+        answerLang: answerLang ?? null,
       });
       return { status: 200, jsonBody: { candidates } };
     } catch (err) {

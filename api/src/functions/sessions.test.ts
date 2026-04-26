@@ -346,10 +346,10 @@ describe("POST /api/sessions", () => {
     expect(res.status).toBe(400);
   });
 
-  it("boss_round with no hard cards returns empty array", async () => {
+  it("boss_round with no hard cards backfills to available cards", async () => {
     deps = makeDeps(["sess-1"], [[]]);
     await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
-    // Card with high ease (not hard)
+    // Card with high ease (not hard) — gets backfilled
     await deps.tables.upsert<CardRow>("cards", makeCard("c1", "easy", {
       sm2_ease: 2.5,
       sm2_reps: 3,
@@ -365,7 +365,8 @@ describe("POST /api/sessions", () => {
 
     expect(res.status).toBe(200);
     const body = res.jsonBody as { cards: unknown[] };
-    expect(body.cards).toHaveLength(0);
+    // No hard cards in primary, but backfill adds available cards up to limit
+    expect(body.cards).toHaveLength(1);
   });
 
   it("review_blitz with no overdue cards returns empty array", async () => {
@@ -407,5 +408,45 @@ describe("POST /api/sessions", () => {
 
     const hackerSessions = await deps.tables.listByPartition<SessionRow>("sessions", "u-hacker");
     expect(hackerSessions).toHaveLength(0);
+  });
+
+  it("mcq mode only returns cards with >= 2 distractors", async () => {
+    deps = makeDeps(["sess-1"], [[0]]);
+    await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
+    // Card with distractors (MCQ-capable)
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-mcq", {
+      distractors: ["d1", "d2", "d3"],
+    }));
+    // Card without distractors (not MCQ-capable)
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-plain", {
+      distractors: [],
+    }));
+
+    const res = (await makeSessionsHandler(deps)(
+      makeReq(validCookie(deps, "u-lex"), { body: { courseId: "c1", mode: "mcq" } }),
+      ctx,
+    )) as HttpResponseInit;
+
+    const body = res.jsonBody as { cards: Array<{ id: string }> };
+    expect(body.cards).toHaveLength(1);
+    expect(body.cards[0]?.id).toBe("card-mcq");
+  });
+
+  it("uploadId filters cards to only that upload group", async () => {
+    deps = makeDeps(["sess-1"], [[0, 1]]);
+    await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-a", { upload_id: "up-1" }));
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-b", { upload_id: "up-1" }));
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-c", { upload_id: "up-2" }));
+
+    const res = (await makeSessionsHandler(deps)(
+      makeReq(validCookie(deps, "u-lex"), { body: { courseId: "c1", mode: "self_grade", uploadId: "up-1" } }),
+      ctx,
+    )) as HttpResponseInit;
+
+    const body = res.jsonBody as { cards: Array<{ id: string }> };
+    expect(body.cards).toHaveLength(2);
+    const ids = body.cards.map((c) => c.id).sort();
+    expect(ids).toEqual(["card-a", "card-b"]);
   });
 });

@@ -20,6 +20,7 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
   );
   const defaultBidir = Boolean(courseLang && user?.ui_language && courseLang !== user.ui_language);
   const [bidirectional, setBidirectional] = useState(defaultBidir);
+  const [uploadName, setUploadName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -38,7 +39,7 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
     setError(null);
 
     try {
-      await batchCreateCards({
+      const body = {
         courseId,
         bidirectional,
         cards: selected.map((c) => ({
@@ -48,7 +49,9 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
           question_lang: c.question_lang ?? null,
           answer_lang: c.answer_lang ?? null,
         })),
-      });
+      };
+      if (uploadName.trim()) body.uploadName = uploadName.trim();
+      await batchCreateCards(body);
       navigate(`/courses/${courseId}/cards`);
     } catch {
       setError(t("import.error.generic"));
@@ -83,6 +86,16 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
           onChange={(e) => setBidirectional(e.target.checked)}
         />
         {t("review.bidirectional")}
+      </label>
+
+      <label>
+        {t("review.uploadName")}
+        <input
+          type="text"
+          value={uploadName}
+          onChange={(e) => setUploadName(e.target.value)}
+          placeholder={t("review.uploadName.placeholder")}
+        />
       </label>
 
       <ul>

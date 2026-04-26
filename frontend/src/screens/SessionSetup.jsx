@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { fetchCards as fetchCardsApi } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
 
 const GAME_TYPES = [
@@ -17,7 +18,10 @@ const MODES = [
   { value: "mixed", labelKey: "courses.modePicker.mixed" },
 ];
 
-export default function SessionSetup() {
+/**
+ * @param {{ fetchCards?: typeof fetchCardsApi }} props
+ */
+export default function SessionSetup({ fetchCards = fetchCardsApi }) {
   const t = useT();
   const navigate = useNavigate();
   const { courseId } = useParams();
@@ -33,6 +37,41 @@ export default function SessionSetup() {
   const [gameType, setGameType] = useState("classic");
   const [cardLimit, setCardLimit] = useState(20);
   const [mode, setMode] = useState(defaultMode === "ask" ? "self_grade" : defaultMode);
+  const [uploadId, setUploadId] = useState(null);
+  const [uploads, setUploads] = useState([]);
+
+  // Fetch cards to build upload list
+  useEffect(() => {
+    if (!courseId) return;
+    let cancelled = false;
+    fetchCards(courseId)
+      .then((cards) => {
+        if (cancelled) return;
+        const groups = new Map();
+        for (const c of cards) {
+          if (!c.upload_id) continue;
+          let g = groups.get(c.upload_id);
+          if (!g) {
+            g = { uploadId: c.upload_id, name: c.upload_name ?? null, count: 0, earliest: c.created_at };
+            groups.set(c.upload_id, g);
+          }
+          g.count++;
+          if (c.upload_name && !g.name) g.name = c.upload_name;
+          if (c.created_at && c.created_at < g.earliest) g.earliest = c.created_at;
+        }
+        const sorted = [...groups.values()].sort((a, b) => (a.earliest < b.earliest ? 1 : -1));
+        setUploads(sorted);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [courseId, fetchCards]);
+
+  function formatDate(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")} ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+  }
 
   function handleStart() {
     navigate(`/courses/${courseId}/study`, {
@@ -40,6 +79,7 @@ export default function SessionSetup() {
         gameType,
         cardLimit,
         mode,
+        uploadId,
         courseName,
         courseLang,
         questionLangDefault,
@@ -82,6 +122,24 @@ export default function SessionSetup() {
           ))}
         </div>
       </section>
+
+      {uploads.length > 0 && (
+        <section>
+          <h2>{t("setup.upload")}</h2>
+          <select
+            data-testid="upload-picker"
+            value={uploadId ?? ""}
+            onChange={(e) => setUploadId(e.target.value || null)}
+          >
+            <option value="">{t("setup.upload.all")}</option>
+            {uploads.map((up) => (
+              <option key={up.uploadId} value={up.uploadId}>
+                {up.name ?? formatDate(up.earliest)} ({up.count})
+              </option>
+            ))}
+          </select>
+        </section>
+      )}
 
       {defaultMode === "ask" && (
         <section>

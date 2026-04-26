@@ -2,20 +2,38 @@ import { useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { importCards as importCardsApi } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
+import { useAppContext } from "../context/AppContext.jsx";
+
+const LANG_OPTIONS = [
+  { value: "", labelKey: "import.langNone" },
+  { value: "en", label: "English" },
+  { value: "nl", label: "Nederlands" },
+  { value: "fr", label: "Français" },
+  { value: "de", label: "Deutsch" },
+  { value: "es", label: "Español" },
+];
+
+/** Strip region suffix: "fr-FR" → "fr" */
+function baseTag(code) {
+  return code ? code.split("-")[0] : "";
+}
 
 /**
  * @param {{ importCards?: typeof importCardsApi }} props
  */
 export default function PhotoImport({ importCards = importCardsApi }) {
   const t = useT();
+  const { lang: uiLang } = useAppContext();
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { courseName = "", ownerId = null } = location.state ?? {};
+  const { courseName = "", ownerId = null, courseLang = null, questionLangDefault = null, answerLangDefault = null } = location.state ?? {};
 
   const fileRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [questionLang, setQuestionLang] = useState(() => courseLang ? (questionLangDefault ?? baseTag(uiLang)) : "");
+  const [answerLang, setAnswerLang] = useState(() => courseLang ? (answerLangDefault ?? baseTag(uiLang)) : "");
 
   async function handleExtract() {
     const file = fileRef.current?.files?.[0];
@@ -30,8 +48,13 @@ export default function PhotoImport({ importCards = importCardsApi }) {
     try {
       const base64 = await readAsBase64(file);
       /* v8 ignore next */
-      const mimeType = file.type || "image/jpeg";
-      const result = await importCards({ courseId, imageBase64: base64, mimeType });
+      const mimeType = file.type || (file.name?.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
+      const payload = { courseId, imageBase64: base64, mimeType };
+      if (courseLang) {
+        payload.questionLang = questionLang;
+        payload.answerLang = answerLang;
+      }
+      const result = await importCards(payload);
 
       navigate(`/courses/${courseId}/import/review`, {
         state: {
@@ -69,11 +92,35 @@ export default function PhotoImport({ importCards = importCardsApi }) {
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
-            capture="environment"
+            accept="image/*,application/pdf"
           />
         </label>
       </div>
+
+      {courseLang && (
+        <div>
+          <label>
+            {t("import.questionLang")}
+            <select value={questionLang} onChange={(e) => setQuestionLang(e.target.value)}>
+              {LANG_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label ?? t(o.labelKey)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            {t("import.answerLang")}
+            <select value={answerLang} onChange={(e) => setAnswerLang(e.target.value)}>
+              {LANG_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label ?? t(o.labelKey)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
 
       {error && <p role="alert">{error}</p>}
 

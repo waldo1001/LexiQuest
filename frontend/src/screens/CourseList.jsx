@@ -325,8 +325,17 @@ export default function CourseList({
                 </form>
               ) : (
                 <>
-                  <span>{course.emoji}</span>
-                  <span>{course.name}</span>
+                  <div className="card-header">
+                    <h2><span>{course.emoji}</span> <span>{course.name}</span></h2>
+                    <div className="card-header-actions">
+                      <button type="button" className="btn-icon" aria-label={t("courses.action.edit")} onClick={() => startEdit(course)}>
+                        ✏️
+                      </button>
+                      <button type="button" className="btn-icon btn-icon-danger" aria-label={t("courses.action.delete")} onClick={() => onDelete(course)}>
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
                   <Link
                     className="btn btn-primary"
                     to={`/courses/${course.id}/setup`}
@@ -353,12 +362,6 @@ export default function CourseList({
                         : t("courses.action.enrich")}
                     </button>
                   )}
-                  <button type="button" className="btn btn-ghost" onClick={() => startEdit(course)}>
-                    {t("courses.action.edit")}
-                  </button>
-                  <button type="button" className="btn btn-danger" onClick={() => onDelete(course)}>
-                    {t("courses.action.delete")}
-                  </button>
                 </>
               )}
             </article>

@@ -32,7 +32,7 @@ interface BatchCardInput {
 
 function validateBody(
   body: unknown,
-): { ok: true; courseId: string; cards: BatchCardInput[]; bidirectional: boolean } | { ok: false; error: string } {
+): { ok: true; courseId: string; cards: BatchCardInput[]; bidirectional: boolean; uploadName: string | null } | { ok: false; error: string } {
   if (body === null || typeof body !== "object") {
     return { ok: false, error: "body must be an object" };
   }
@@ -55,7 +55,10 @@ function validateBody(
     }
   }
   const bidirectional = src.bidirectional === true;
-  return { ok: true, courseId: src.courseId.trim(), cards: src.cards as BatchCardInput[], bidirectional };
+  const uploadName = typeof src.uploadName === "string" && src.uploadName.trim().length > 0
+    ? src.uploadName.trim()
+    : null;
+  return { ok: true, courseId: src.courseId.trim(), cards: src.cards as BatchCardInput[], bidirectional, uploadName };
 }
 
 async function findCourseById(
@@ -89,7 +92,7 @@ export function makeCardsBatchHandler(deps: CardsBatchDeps): HttpHandler {
     if (!validated.ok) {
       return { status: 400, jsonBody: { error: validated.error } };
     }
-    const { courseId, cards, bidirectional } = validated;
+    const { courseId, cards, bidirectional, uploadName } = validated;
 
     const course = await findCourseById(deps.tables, auth.auth.userId, courseId);
     if (!course) {
@@ -122,6 +125,7 @@ export function makeCardsBatchHandler(deps: CardsBatchDeps): HttpHandler {
         next_review_at: nowIso,
         created_at: nowIso,
         upload_id: uploadId,
+        upload_name: uploadName,
         question_lang: input.question_lang ?? null,
         answer_lang: input.answer_lang ?? null,
         reverse_of: null,
@@ -143,6 +147,54 @@ export function makeCardsBatchHandler(deps: CardsBatchDeps): HttpHandler {
   };
 }
 
+export function makeUploadRenameHandler(deps: CardsBatchDeps): HttpHandler {
+  return async (req: HttpRequest): Promise<HttpResponseInit> => {
+    if ((req.method ?? "PATCH").toUpperCase() !== "PATCH") {
+      return { status: 405, jsonBody: { error: "method not allowed" } };
+    }
+
+    const auth = requireAuth(req, deps);
+    if (!auth.ok) return auth.response;
+
+    const body = await req.json().catch(() => null);
+    if (body === null || typeof body !== "object") {
+      return { status: 400, jsonBody: { error: "body must be an object" } };
+    }
+    const src = body as Record<string, unknown>;
+    if (typeof src.courseId !== "string" || src.courseId.trim().length === 0) {
+      return { status: 400, jsonBody: { error: "courseId is required" } };
+    }
+    if (typeof src.uploadId !== "string" || src.uploadId.trim().length === 0) {
+      return { status: 400, jsonBody: { error: "uploadId is required" } };
+    }
+    if (typeof src.uploadName !== "string" || src.uploadName.trim().length === 0) {
+      return { status: 400, jsonBody: { error: "uploadName is required" } };
+    }
+
+    const courseId = src.courseId.trim();
+    const uploadId = src.uploadId.trim();
+    const uploadName = src.uploadName.trim();
+
+    const course = await findCourseById(deps.tables, auth.auth.userId, courseId);
+    if (!course) {
+      return { status: 404, jsonBody: { error: "course not found" } };
+    }
+    const isOwner = course.user_id === auth.auth.userId;
+    if (!isOwner && !auth.auth.isAdmin) {
+      return { status: 403, jsonBody: { error: "forbidden" } };
+    }
+
+    const allCards = await deps.tables.listByPartition<CardRow>("cards", courseId);
+    const matching = allCards.filter((c) => c.upload_id === uploadId);
+    for (const card of matching) {
+      card.upload_name = uploadName;
+      await deps.tables.upsert<CardRow>("cards", card);
+    }
+
+    return { status: 200, jsonBody: { updated: matching.length } };
+  };
+}
+
 /* v8 ignore start */
 export function registerCardsBatch(deps: CardsBatchDeps): void {
   app.http("cards-batch", {
@@ -150,6 +202,12 @@ export function registerCardsBatch(deps: CardsBatchDeps): void {
     methods: ["POST"],
     authLevel: "anonymous",
     handler: makeCardsBatchHandler(deps),
+  });
+  app.http("cards-upload-rename", {
+    route: "cards/upload-name",
+    methods: ["PATCH"],
+    authLevel: "anonymous",
+    handler: makeUploadRenameHandler(deps),
   });
 }
 /* v8 ignore stop */

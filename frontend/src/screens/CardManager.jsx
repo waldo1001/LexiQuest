@@ -7,6 +7,7 @@ import {
   deleteCard as deleteCardApi,
   bulkDeleteCards as bulkDeleteCardsApi,
   reverseCards as reverseCardsApi,
+  renameUpload as renameUploadApi,
 } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
 import { useAppContext, useTts } from "../context/AppContext.jsx";
@@ -20,10 +21,11 @@ function groupByUpload(cards) {
     const key = c.upload_id ?? MANUAL_KEY;
     let g = groups.get(key);
     if (!g) {
-      g = { key, uploadId: c.upload_id ?? null, cards: [], earliest: c.created_at };
+      g = { key, uploadId: c.upload_id ?? null, uploadName: c.upload_name ?? null, cards: [], earliest: c.created_at };
       groups.set(key, g);
     }
     g.cards.push(c);
+    if (c.upload_name && !g.uploadName) g.uploadName = c.upload_name;
     if (c.created_at && c.created_at < g.earliest) g.earliest = c.created_at;
   }
   // Manual group always first; uploads sorted by earliest created_at desc.
@@ -54,6 +56,7 @@ function formatDate(iso) {
  *   deleteCard?: typeof deleteCardApi,
  *   bulkDeleteCards?: typeof bulkDeleteCardsApi,
  *   reverseCards?: typeof reverseCardsApi,
+ *   renameUpload?: typeof renameUploadApi,
  *   confirmFn?: (msg: string) => boolean,
  * }} props
  */
@@ -64,6 +67,7 @@ export default function CardManager({
   deleteCard = deleteCardApi,
   bulkDeleteCards = bulkDeleteCardsApi,
   reverseCards = reverseCardsApi,
+  renameUpload = renameUploadApi,
   confirmFn = typeof window !== "undefined"
     ? window.confirm.bind(window)
     : () => false,
@@ -73,13 +77,15 @@ export default function CardManager({
   const { courseId } = useParams();
   const location = useLocation();
   const { courseName = "", ownerId = null, courseLang = null, questionLangDefault = null, answerLangDefault = null } = location.state ?? {};
-  const canSpeak = Boolean(courseLang && tts.isAvailable(courseLang));
+  const ttsAvailable = Boolean(courseLang && tts.isAvailable(courseLang));
 
   const { user } = useAppContext();
   const canEdit =
     user !== null && (user.id === ownerId || user.isAdmin === true);
 
   const [cards, setCards] = useState(null);
+  const [speechOn, setSpeechOn] = useState(true);
+  const canSpeak = ttsAvailable && speechOn;
   const [status, setStatus] = useState(null);
   const [error, setError] = useState(null);
   const [showNew, setShowNew] = useState(false);
@@ -87,6 +93,9 @@ export default function CardManager({
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
+  const [expandedGroups, setExpandedGroups] = useState(() => new Set([MANUAL_KEY]));
+  const [renamingUploadId, setRenamingUploadId] = useState(null);
+  const [renameValue, setRenameValue] = useState("");
 
   useEffect(() => {
     if (!courseId) return;
@@ -276,13 +285,68 @@ export default function CardManager({
     }
   }
 
+  function toggleGroup(key) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function startRename(group) {
+    setRenamingUploadId(group.uploadId);
+    setRenameValue(group.uploadName ?? "");
+  }
+
+  async function onSaveRename(uploadId) {
+    if (!renameValue.trim()) return;
+    resetStatus();
+    try {
+      await renameUpload({ courseId, uploadId, uploadName: renameValue.trim() });
+      setCards((prev) =>
+        (prev ?? []).map((c) =>
+          c.upload_id === uploadId ? { ...c, upload_name: renameValue.trim() } : c,
+        ),
+      );
+      setRenamingUploadId(null);
+      setStatus(t("cards.status.renamed"));
+    } catch {
+      setError(t("errors.generic"));
+    }
+  }
+
   if (cards === null && !error) return <p>{t("cards.loading")}</p>;
 
   const title = t("cards.title", { courseName });
 
   return (
     <main>
-      <h1>{title}</h1>
+      <div className="page-header">
+        <h1>{title}</h1>
+        <div className="page-header-actions">
+          {groups.some((g) => g.uploadId !== null) && (
+            <Link
+              to={`/stats/course/${courseId}/uploads`}
+              state={{ courseName }}
+              className="btn btn-ghost"
+              data-testid="upload-stats-link"
+            >
+              {t("stats.upload.link")}
+            </Link>
+          )}
+          {ttsAvailable && (
+            <button
+              className={`speak-toggle ${speechOn ? "on" : "off"}`}
+              aria-label={t("study.toggleSpeech")}
+              data-testid="speech-toggle"
+              onClick={() => setSpeechOn((v) => !v)}
+            >
+              {speechOn ? "\uD83D\uDD0A" : "\uD83D\uDD07"}
+            </button>
+          )}
+        </div>
+      </div>
 
       {status && <p role="status">{status}</p>}
       {error && <p role="alert">{error}</p>}
@@ -308,24 +372,59 @@ export default function CardManager({
       )}
 
       {groups.map((group) => {
+        const isRenaming = renamingUploadId !== null && renamingUploadId === group.uploadId;
+        const isManual = group.uploadId === null;
+        const isExpanded = expandedGroups.has(group.key);
         const label =
-          group.uploadId === null
+          isManual
             ? t("cards.group.manual")
-            : t("cards.group.upload", {
-                date: formatDate(group.earliest),
-                count: group.cards.length,
-              });
+            : group.uploadName
+              ? `${group.uploadName} (${group.cards.length})`
+              : t("cards.group.upload", {
+                  date: formatDate(group.earliest),
+                  count: group.cards.length,
+                });
         return (
-          <section key={group.key}>
-            <h2>{label}</h2>
-            {canEdit && group.uploadId !== null && (
-              <button
-                type="button"
-                onClick={() => onDeleteUpload(group)}
-              >
-                {t("cards.action.deleteUpload")}
-              </button>
+          <section key={group.key} className={`card-group ${isExpanded ? "expanded" : "collapsed"}`}>
+            {isRenaming ? (
+              <div className="rename-row">
+                <input
+                  data-testid="rename-input"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && onSaveRename(group.uploadId)}
+                />
+                <button type="button" onClick={() => onSaveRename(group.uploadId)}>
+                  {t("cards.action.save")}
+                </button>
+                <button type="button" onClick={() => setRenamingUploadId(null)}>
+                  {t("cards.action.cancel")}
+                </button>
+              </div>
+            ) : (
+              <div className="card-group-header" role="button" tabIndex={0} onClick={() => toggleGroup(group.key)} onKeyDown={(e) => e.key === "Enter" && toggleGroup(group.key)}>
+                <span className="card-group-chevron">{isExpanded ? "▾" : "▸"}</span>
+                <h2>{label}</h2>
+                {canEdit && !isManual && (
+                  <div className="card-group-actions">
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      data-testid="rename-btn"
+                      onClick={(e) => { e.stopPropagation(); startRename(group); }}
+                      title={t("cards.action.rename")}
+                    >✏️</button>
+                    <button
+                      type="button"
+                      className="btn-icon btn-icon-danger"
+                      onClick={(e) => { e.stopPropagation(); onDeleteUpload(group); }}
+                      title={t("cards.action.deleteUpload")}
+                    >🗑️</button>
+                  </div>
+                )}
+              </div>
             )}
+            {isExpanded && (
             <table>
               <thead>
                 <tr>
@@ -434,6 +533,7 @@ export default function CardManager({
                 })}
               </tbody>
             </table>
+            )}
           </section>
         );
       })}

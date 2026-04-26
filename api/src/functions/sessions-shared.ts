@@ -27,6 +27,7 @@ export interface SessionCreateBody {
   mode: SessionMode;
   gameType: GameType;
   cardLimit: number | null;
+  uploadId: string | null;
 }
 
 export function validateSessionCreate(
@@ -57,6 +58,10 @@ export function validateSessionCreate(
     cardLimit = src.cardLimit;
   }
 
+  const uploadId = typeof src.uploadId === "string" && src.uploadId.trim().length > 0
+    ? src.uploadId.trim()
+    : null;
+
   return {
     ok: true,
     value: {
@@ -64,6 +69,7 @@ export function validateSessionCreate(
       mode: src.mode as SessionMode,
       gameType,
       cardLimit,
+      uploadId,
     },
   };
 }
@@ -89,8 +95,8 @@ export function sessionProfile(row: SessionRow): SessionProfile {
     user_id: row.user_id,
     course_id: row.course_id,
     mode: row.mode,
-    game_type: (row as Record<string, unknown>).game_type as GameType ?? "classic",
-    card_limit: (row as Record<string, unknown>).card_limit as number ?? null,
+    game_type: (row as unknown as Record<string, unknown>).game_type as GameType ?? "classic",
+    card_limit: (row as unknown as Record<string, unknown>).card_limit as number ?? null,
     started_at: row.started_at,
     ended_at: row.ended_at ?? null,
     cards_studied: row.cards_studied,

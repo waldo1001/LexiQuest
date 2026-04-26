@@ -16,6 +16,32 @@ const OVERDUE_WEIGHT = 0.7;
 const MASTERY_WEIGHT = 0.3;
 const BOSS_EASE_THRESHOLD = 2.0;
 
+/**
+ * How well the user knows this card. Higher = better known.
+ * Used to backfill when the primary pool can't fill cardLimit —
+ * weakest cards (lowest score) are added first.
+ */
+function knowledgeScore(card: CardRow): number {
+  if (card.sm2_reps === 0) return 0; // never studied = least known
+  return card.sm2_ease * Math.log2(card.sm2_reps + 1);
+}
+
+/**
+ * Fill remaining slots (up to `limit`) from cards not already selected,
+ * ordered weakest-first so the user always reviews what they know least.
+ */
+function backfillWeakest(
+  allCards: CardRow[],
+  selectedKeys: Set<string>,
+  limit: number,
+): CardRow[] {
+  const needed = limit - selectedKeys.size;
+  if (needed <= 0) return [];
+  const pool = allCards.filter((c) => !selectedKeys.has(c.rowKey));
+  pool.sort((a, b) => knowledgeScore(a) - knowledgeScore(b));
+  return pool.slice(0, needed);
+}
+
 export function scoreCard(card: CardRow, now: Date): number {
   const dueMs = new Date(card.next_review_at).getTime();
   const nowMs = now.getTime();
@@ -63,7 +89,11 @@ function buildClassic(cards: CardRow[], opts: QueueOptions): CardRow[] {
   const remaining = opts.cardLimit - selectedDue.length;
   const selectedNew = newCards.slice(0, remaining);
 
-  return opts.shuffle([...selectedDue, ...selectedNew]);
+  const primary = [...selectedDue, ...selectedNew];
+  const selectedKeys = new Set(primary.map((c) => c.rowKey));
+  const backfill = backfillWeakest(cards, selectedKeys, opts.cardLimit);
+
+  return opts.shuffle([...primary, ...backfill]);
 }
 
 function buildBossRound(cards: CardRow[], opts: QueueOptions): CardRow[] {
@@ -74,7 +104,13 @@ function buildBossRound(cards: CardRow[], opts: QueueOptions): CardRow[] {
   );
   hard.sort((a, b) => a.sm2_ease - b.sm2_ease);
   const limit = opts.cardLimit ?? hard.length;
-  return hard.slice(0, limit);
+  const primary = hard.slice(0, limit);
+
+  if (opts.cardLimit !== null) {
+    const selectedKeys = new Set(primary.map((c) => c.rowKey));
+    return [...primary, ...backfillWeakest(cards, selectedKeys, opts.cardLimit)];
+  }
+  return primary;
 }
 
 function buildSpeedRound(cards: CardRow[], opts: QueueOptions): CardRow[] {
@@ -92,8 +128,12 @@ function buildSpeedRound(cards: CardRow[], opts: QueueOptions): CardRow[] {
   const remaining = limit - selectedDue.length;
   const selectedNew = newCards.slice(0, remaining);
 
-  // No shuffle for speed round — sorted by priority
-  return [...selectedDue, ...selectedNew].slice(0, limit);
+  const primary = [...selectedDue, ...selectedNew].slice(0, limit);
+  const selectedKeys = new Set(primary.map((c) => c.rowKey));
+  const backfill = backfillWeakest(cards, selectedKeys, limit);
+
+  // No shuffle for speed round — sorted by priority, then backfill by weakness
+  return [...primary, ...backfill];
 }
 
 function buildReviewBlitz(cards: CardRow[], opts: QueueOptions): CardRow[] {
@@ -109,5 +149,11 @@ function buildReviewBlitz(cards: CardRow[], opts: QueueOptions): CardRow[] {
     return aMs - bMs; // earlier = more overdue
   });
   const limit = opts.cardLimit ?? overdue.length;
-  return overdue.slice(0, limit);
+  const primary = overdue.slice(0, limit);
+
+  if (opts.cardLimit !== null) {
+    const selectedKeys = new Set(primary.map((c) => c.rowKey));
+    return [...primary, ...backfillWeakest(cards, selectedKeys, opts.cardLimit)];
+  }
+  return primary;
 }

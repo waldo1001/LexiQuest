@@ -70,9 +70,9 @@ export function makeLeaderboardHandler(deps: LeaderboardDeps): HttpHandler {
 
     const rankings = [...entries].sort((a, b) => b.xp - a.xp);
 
-    const mostAccurate = entries.reduce((best, e) => (e.accuracy > best.accuracy ? e : best), entries[0]);
-    const longestStreak = entries.reduce((best, e) => (e.streak > best.streak ? e : best), entries[0]);
-    const mostSessions = entries.reduce((best, e) => (e.sessions > best.sessions ? e : best), entries[0]);
+    const mostAccurate = entries.reduce<LeaderboardEntry | undefined>((best, e) => (!best || e.accuracy > best.accuracy ? e : best), undefined);
+    const longestStreak = entries.reduce<LeaderboardEntry | undefined>((best, e) => (!best || e.streak > best.streak ? e : best), undefined);
+    const mostSessions = entries.reduce<LeaderboardEntry | undefined>((best, e) => (!best || e.sessions > best.sessions ? e : best), undefined);
 
     return {
       status: 200,

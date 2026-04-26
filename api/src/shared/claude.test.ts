@@ -58,4 +58,20 @@ describe("parseCards", () => {
   it("returns empty array for empty JSON array (AC3)", () => {
     expect(parseCards("[]")).toEqual([]);
   });
+
+  it("surfaces question_lang and answer_lang from Claude JSON (AC-lang1)", () => {
+    const raw = JSON.stringify([
+      { question: "the dog", answer: "le chien", distractors: ["le chat", "le cheval"], question_lang: "en", answer_lang: "fr-FR" },
+    ]);
+    const result = parseCards(raw);
+    expect(result[0].question_lang).toBe("en");
+    expect(result[0].answer_lang).toBe("fr-FR");
+  });
+
+  it("defaults missing question_lang and answer_lang to null (AC-lang2)", () => {
+    const raw = '[{"question":"Q","answer":"A","distractors":["X","Y"]}]';
+    const result = parseCards(raw);
+    expect(result[0].question_lang).toBeNull();
+    expect(result[0].answer_lang).toBeNull();
+  });
 });

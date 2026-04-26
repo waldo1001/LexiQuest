@@ -171,7 +171,7 @@ describe("buildQueue — classic", () => {
 describe("buildQueue — boss_round", () => {
   const now = new Date("2026-01-15T12:00:00Z");
 
-  it("only includes cards with ease < 2.0", () => {
+  it("only includes cards with ease < 2.0 (no backfill when cardLimit=null)", () => {
     const hard = makeCard({
       rowKey: "hard",
       sm2_ease: 1.5,
@@ -186,7 +186,7 @@ describe("buildQueue — boss_round", () => {
     });
     const result = buildQueue([hard, easy], {
       gameType: "boss_round",
-      cardLimit: 20,
+      cardLimit: null,
       now,
       shuffle: noopShuffle,
     });
@@ -194,7 +194,7 @@ describe("buildQueue — boss_round", () => {
     expect(result[0].rowKey).toBe("hard");
   });
 
-  it("excludes new cards", () => {
+  it("excludes new cards from primary selection (no backfill when cardLimit=null)", () => {
     const newHard = makeCard({
       rowKey: "new-hard",
       sm2_ease: 1.3,
@@ -203,7 +203,7 @@ describe("buildQueue — boss_round", () => {
     });
     const result = buildQueue([newHard], {
       gameType: "boss_round",
-      cardLimit: 20,
+      cardLimit: null,
       now,
       shuffle: noopShuffle,
     });
@@ -228,7 +228,7 @@ describe("buildQueue — boss_round", () => {
     expect(result).toHaveLength(5);
   });
 
-  it("returns empty when no hard cards exist", () => {
+  it("returns empty when no hard cards exist and cardLimit=null", () => {
     const easy = makeCard({
       rowKey: "easy",
       sm2_ease: 2.5,
@@ -237,7 +237,7 @@ describe("buildQueue — boss_round", () => {
     });
     const result = buildQueue([easy], {
       gameType: "boss_round",
-      cardLimit: 20,
+      cardLimit: null,
       now,
       shuffle: noopShuffle,
     });
@@ -288,7 +288,7 @@ describe("buildQueue — speed_round", () => {
 describe("buildQueue — review_blitz", () => {
   const now = new Date("2026-01-15T12:00:00Z");
 
-  it("only includes overdue cards, sorted most-overdue-first", () => {
+  it("primary selection is only overdue cards, sorted most-overdue-first", () => {
     const veryOverdue = makeCard({
       rowKey: "very-overdue",
       next_review_at: new Date("2026-01-01T12:00:00Z").toISOString(),
@@ -311,7 +311,7 @@ describe("buildQueue — review_blitz", () => {
     });
     const result = buildQueue([slightlyOverdue, notDue, veryOverdue, newCard], {
       gameType: "review_blitz",
-      cardLimit: 20,
+      cardLimit: null,
       now,
       shuffle: noopShuffle,
     });
@@ -337,7 +337,7 @@ describe("buildQueue — review_blitz", () => {
     expect(result).toHaveLength(5);
   });
 
-  it("excludes new cards even if overdue", () => {
+  it("excludes new cards from primary selection (cardLimit=null)", () => {
     const overdueNew = makeCard({
       rowKey: "overdue-new",
       sm2_reps: 0,
@@ -345,11 +345,179 @@ describe("buildQueue — review_blitz", () => {
     });
     const result = buildQueue([overdueNew], {
       gameType: "review_blitz",
+      cardLimit: null,
+      now,
+      shuffle: noopShuffle,
+    });
+    // review_blitz primary selection includes overdue cards with reps > 0 only
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe("backfill — always fill to cardLimit", () => {
+  const now = new Date("2026-01-15T12:00:00Z");
+
+  // Helper: create a not-yet-due card with given ease/reps (the "backfill pool")
+  function futureCard(id: string, ease: number, reps: number): CardRow {
+    return makeCard({
+      rowKey: id,
+      sm2_ease: ease,
+      sm2_reps: reps,
+      next_review_at: new Date("2026-02-01T12:00:00Z").toISOString(),
+    });
+  }
+
+  it("classic backfills to cardLimit when not enough due + new cards", () => {
+    const due = [
+      makeCard({ rowKey: "due-1", next_review_at: "2026-01-10T12:00:00Z", sm2_reps: 2 }),
+    ];
+    const newCards = [
+      makeCard({ rowKey: "new-1", next_review_at: "2026-01-20T12:00:00Z", sm2_reps: 0 }),
+    ];
+    const future = [
+      futureCard("future-easy", 2.5, 10),
+      futureCard("future-hard", 1.4, 5),
+      futureCard("future-medium", 2.0, 3),
+    ];
+    const result = buildQueue([...due, ...newCards, ...future], {
+      gameType: "classic",
+      cardLimit: 5,
+      now,
+      shuffle: noopShuffle,
+    });
+    expect(result).toHaveLength(5);
+  });
+
+  it("classic with cardLimit=null does NOT backfill (backward compat)", () => {
+    const due = [
+      makeCard({ rowKey: "due-1", next_review_at: "2026-01-10T12:00:00Z", sm2_reps: 2 }),
+    ];
+    const future = [
+      futureCard("future-1", 2.5, 10),
+      futureCard("future-2", 2.5, 10),
+    ];
+    const result = buildQueue([...due, ...future], {
+      gameType: "classic",
+      cardLimit: null,
+      now,
+      shuffle: noopShuffle,
+    });
+    // Only the 1 due card — future cards are NOT backfilled
+    expect(result).toHaveLength(1);
+  });
+
+  it("backfill orders weakest first: new > low ease > high ease", () => {
+    // Only backfill cards, no due/new in the normal sense
+    const cards = [
+      futureCard("easy-veteran", 2.5, 10),   // best known
+      futureCard("hard-practiced", 1.4, 5),  // weaker
+      futureCard("never-studied", 2.5, 0),   // weakest (never studied)
+      futureCard("medium", 2.0, 3),
+    ];
+    const result = buildQueue(cards, {
+      gameType: "classic",
+      cardLimit: 4,
+      now,
+      shuffle: noopShuffle,
+    });
+    expect(result).toHaveLength(4);
+    // With noopShuffle the primary (empty due, 1 new = never-studied) comes first,
+    // then backfill in weakness order
+    const ids = result.map((c) => c.rowKey);
+    // never-studied is picked as "new card" by classic (reps=0, future) and goes into primary
+    // Backfill fills remaining 3 in weakness order: hard > medium > easy
+    const backfillIds = ids.slice(1); // skip the new card
+    expect(backfillIds).toEqual(["hard-practiced", "medium", "easy-veteran"]);
+  });
+
+  it("speed_round backfills to cardLimit", () => {
+    const due = [
+      makeCard({ rowKey: "due-1", next_review_at: "2026-01-10T12:00:00Z", sm2_reps: 2 }),
+    ];
+    const future = [
+      futureCard("future-hard", 1.4, 5),
+      futureCard("future-easy", 2.5, 10),
+    ];
+    const result = buildQueue([...due, ...future], {
+      gameType: "speed_round",
+      cardLimit: 3,
+      now,
+      shuffle: noopShuffle,
+    });
+    expect(result).toHaveLength(3);
+  });
+
+  it("boss_round backfills to cardLimit when not enough hard cards", () => {
+    const hard = makeCard({
+      rowKey: "hard",
+      sm2_ease: 1.5,
+      next_review_at: "2026-01-10T12:00:00Z",
+      sm2_reps: 2,
+    });
+    const notHard = [
+      futureCard("medium", 2.0, 3),
+      futureCard("easy", 2.5, 10),
+    ];
+    const result = buildQueue([hard, ...notHard], {
+      gameType: "boss_round",
+      cardLimit: 3,
+      now,
+      shuffle: noopShuffle,
+    });
+    expect(result).toHaveLength(3);
+    // Hard card first (primary), then backfill by weakness
+    expect(result[0].rowKey).toBe("hard");
+    expect(result[1].rowKey).toBe("medium");
+    expect(result[2].rowKey).toBe("easy");
+  });
+
+  it("review_blitz backfills to cardLimit when not enough overdue", () => {
+    const overdue = makeCard({
+      rowKey: "overdue",
+      next_review_at: "2026-01-10T12:00:00Z",
+      sm2_reps: 2,
+    });
+    const future = [
+      futureCard("future-hard", 1.4, 5),
+      futureCard("future-easy", 2.5, 10),
+    ];
+    const result = buildQueue([overdue, ...future], {
+      gameType: "review_blitz",
+      cardLimit: 3,
+      now,
+      shuffle: noopShuffle,
+    });
+    expect(result).toHaveLength(3);
+    expect(result[0].rowKey).toBe("overdue");
+  });
+
+  it("returns all cards when total cards < cardLimit", () => {
+    const cards = [
+      makeCard({ rowKey: "due-1", next_review_at: "2026-01-10T12:00:00Z", sm2_reps: 2 }),
+      futureCard("future-1", 2.0, 3),
+    ];
+    const result = buildQueue(cards, {
+      gameType: "classic",
       cardLimit: 20,
       now,
       shuffle: noopShuffle,
     });
-    // review_blitz includes overdue cards with reps > 0 only
-    expect(result).toHaveLength(0);
+    expect(result).toHaveLength(2); // can't exceed total cards
+  });
+
+  it("boss_round with cardLimit=null does not backfill", () => {
+    const easy = makeCard({
+      rowKey: "easy",
+      sm2_ease: 2.5,
+      next_review_at: "2026-01-10T12:00:00Z",
+      sm2_reps: 2,
+    });
+    const result = buildQueue([easy], {
+      gameType: "boss_round",
+      cardLimit: null,
+      now,
+      shuffle: noopShuffle,
+    });
+    expect(result).toHaveLength(0); // no hard cards, no backfill
   });
 });

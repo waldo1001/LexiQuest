@@ -85,12 +85,12 @@ describe("Dashboard", () => {
     });
   });
 
-  it("AC6: Study button navigates to study route", async () => {
+  it("AC6: Study button navigates to setup route", async () => {
     setup();
     await waitFor(() => screen.getAllByTestId("study-btn")[0]);
     await userEvent.click(screen.getAllByTestId("study-btn")[0]);
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.stringContaining("/study"),
+      expect.stringContaining("/setup"),
       expect.any(Object),
     );
   });

@@ -253,6 +253,29 @@ describe("ImportReview", () => {
     expect(batchCreateCards.mock.calls[0][0].bidirectional).toBe(false);
   });
 
+  it("sends uploadName when filled in", async () => {
+    const user = userEvent.setup();
+    const batchCreateCards = vi.fn().mockResolvedValue({ cards: [] });
+    setup({ batchCreateCards });
+
+    await user.type(screen.getByPlaceholderText(/chapter 3/i), "Unit 5 vocab");
+    await user.click(screen.getByRole("button", { name: /save selected/i }));
+    await waitFor(() => expect(batchCreateCards).toHaveBeenCalledOnce());
+
+    expect(batchCreateCards.mock.calls[0][0].uploadName).toBe("Unit 5 vocab");
+  });
+
+  it("does not send uploadName when left empty", async () => {
+    const user = userEvent.setup();
+    const batchCreateCards = vi.fn().mockResolvedValue({ cards: [] });
+    setup({ batchCreateCards });
+
+    await user.click(screen.getByRole("button", { name: /save selected/i }));
+    await waitFor(() => expect(batchCreateCards).toHaveBeenCalledOnce());
+
+    expect(batchCreateCards.mock.calls[0][0].uploadName).toBeUndefined();
+  });
+
   it("saves card with null distractors as empty array (distractors ?? [] branch)", async () => {
     const user = userEvent.setup();
     const batchCreateCards = vi.fn().mockResolvedValue({ cards: [] });

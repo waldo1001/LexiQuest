@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { HttpRequest, InvocationContext } from "@azure/functions";
-import { makeCardsBatchHandler, type CardsBatchDeps } from "./cards-batch.js";
+import { makeCardsBatchHandler, makeUploadRenameHandler, type CardsBatchDeps } from "./cards-batch.js";
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
@@ -398,5 +398,102 @@ describe("POST /api/cards/batch", () => {
     expect(rev).toBeDefined();
     expect(rev!.question).toBe("le chien");
     expect(rev!.answer).toBe("the dog");
+  });
+
+  it("stores upload_name on created cards when uploadName provided", async () => {
+    await seedUser(deps);
+    await seedCourse(deps);
+    const res = await makeCardsBatchHandler(deps)(
+      makeReq(validCookie(deps), { ...validBody, uploadName: "Chapter 3" }),
+      ctx,
+    );
+    const body = res.jsonBody as { cards: { upload_name: string | null }[] };
+    expect(body.cards[0]?.upload_name).toBe("Chapter 3");
+    expect(body.cards[1]?.upload_name).toBe("Chapter 3");
+  });
+
+  it("upload_name defaults to null when not provided", async () => {
+    await seedUser(deps);
+    await seedCourse(deps);
+    const res = await makeCardsBatchHandler(deps)(
+      makeReq(validCookie(deps), validBody),
+      ctx,
+    );
+    const body = res.jsonBody as { cards: { upload_name: string | null }[] };
+    expect(body.cards[0]?.upload_name).toBeNull();
+  });
+});
+
+describe("PATCH /api/cards/upload-name", () => {
+  let deps: ReturnType<typeof makeDeps>;
+
+  beforeEach(() => {
+    deps = makeDeps();
+  });
+
+  function makeRenameReq(cookie: string | null, body: unknown): HttpRequest {
+    return {
+      method: "PATCH",
+      url: "http://local/api/cards/upload-name",
+      params: {},
+      headers: { get: (n: string) => (n.toLowerCase() === "cookie" ? cookie : null) },
+      query: { get: () => null },
+      json: async () => body,
+    } as unknown as HttpRequest;
+  }
+
+  it("renames all cards in an upload group", async () => {
+    await seedUser(deps);
+    await seedCourse(deps);
+    // Create cards with an upload_id
+    const card1: CardRow = {
+      partitionKey: COURSE_ID, rowKey: "c1", course_id: COURSE_ID,
+      question: "Q1", answer: "A1", distractors: [], hint: null, source: "ai_import",
+      sm2_ease: 2.5, sm2_interval: 0, sm2_reps: 0,
+      next_review_at: NOW, created_at: NOW, upload_id: "up-1", upload_name: null,
+    };
+    const card2: CardRow = { ...card1, rowKey: "c2", question: "Q2", answer: "A2" };
+    await deps.tables.upsert<CardRow>("cards", card1);
+    await deps.tables.upsert<CardRow>("cards", card2);
+
+    const res = await makeUploadRenameHandler(deps)(
+      makeRenameReq(validCookie(deps), { courseId: COURSE_ID, uploadId: "up-1", uploadName: "Chapter 5" }),
+      {} as InvocationContext,
+    );
+    expect(res.status).toBe(200);
+    expect((res.jsonBody as { updated: number }).updated).toBe(2);
+
+    const cards = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
+    expect(cards[0]?.upload_name).toBe("Chapter 5");
+    expect(cards[1]?.upload_name).toBe("Chapter 5");
+  });
+
+  it("returns 401 without auth", async () => {
+    const res = await makeUploadRenameHandler(deps)(
+      makeRenameReq(null, { courseId: COURSE_ID, uploadId: "up-1", uploadName: "X" }),
+      {} as InvocationContext,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 when uploadName is missing", async () => {
+    await seedUser(deps);
+    await seedCourse(deps);
+    const res = await makeUploadRenameHandler(deps)(
+      makeRenameReq(validCookie(deps), { courseId: COURSE_ID, uploadId: "up-1" }),
+      {} as InvocationContext,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 200 with updated=0 for non-existent uploadId", async () => {
+    await seedUser(deps);
+    await seedCourse(deps);
+    const res = await makeUploadRenameHandler(deps)(
+      makeRenameReq(validCookie(deps), { courseId: COURSE_ID, uploadId: "ghost", uploadName: "X" }),
+      {} as InvocationContext,
+    );
+    expect(res.status).toBe(200);
+    expect((res.jsonBody as { updated: number }).updated).toBe(0);
   });
 });

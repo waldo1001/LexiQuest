@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useCallback, useRef, useState } from "react";
+import { useEffect, useReducer, useCallback, useRef, useState, useMemo } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   startSession as startSessionApi,
@@ -40,6 +40,7 @@ const PHASE = {
   EMPTY: "empty",
   QUESTION: "question",
   ANSWER: "answer",
+  MCQ_REVEAL: "mcq_reveal",
   FINISHING: "finishing",
   ERROR: "error",
 };
@@ -57,6 +58,8 @@ function init() {
     startedAt: null,
     error: null,
     gameType: "classic",
+    mcqPicked: null,   // the choice the user tapped
+    mcqCorrect: null,  // whether it was right
   };
 }
 
@@ -82,6 +85,8 @@ function reducer(state, action) {
     }
     case "SHOW_ANSWER":
       return { ...state, phase: PHASE.ANSWER };
+    case "MCQ_PICK":
+      return { ...state, phase: PHASE.MCQ_REVEAL, mcqPicked: action.picked, mcqCorrect: action.correct };
     case "GRADE": {
       const { correct, responseTimeMs, cardMode = "self_grade", forceFinish = false } = action;
       const card = state.queue[state.cardIndex];
@@ -157,12 +162,14 @@ export default function StudySession({
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { courseName = "", mode = "self_grade", courseLang = null, questionLangDefault = null, answerLangDefault = null, gameType = "classic", cardLimit = null } = location.state ?? {};
+  const { courseName = "", mode = "self_grade", courseLang = null, questionLangDefault = null, answerLangDefault = null, gameType = "classic", cardLimit = null, uploadId = null } = location.state ?? {};
   const isSpeedRound = gameType === "speed_round";
-  const canSpeak = Boolean(courseLang && tts.isAvailable(courseLang));
-  const autoSpeak = canSpeak && Boolean(user?.settings?.auto_speak);
+  const ttsAvailable = Boolean(courseLang && tts.isAvailable(courseLang));
 
   const [state, dispatch] = useReducer(reducer, undefined, init);
+  const [speechOn, setSpeechOn] = useState(true);
+  const canSpeak = ttsAvailable && speechOn;
+  const autoSpeak = canSpeak && Boolean(user?.settings?.auto_speak);
 
   // Speed round timer
   const [timeRemaining, setTimeRemaining] = useState(60);
@@ -198,6 +205,7 @@ export default function StudySession({
     const body = { courseId, mode };
     if (gameType !== "classic") body.gameType = gameType;
     if (cardLimit !== null) body.cardLimit = cardLimit;
+    if (uploadId) body.uploadId = uploadId;
     startSession(body)
       .then((data) => {
         if (!cancelled) dispatch({ type: "LOADED", sessionId: data.sessionId, cards: data.cards, gameType });
@@ -215,9 +223,17 @@ export default function StudySession({
       const cardsStudied = state.totalUnique;
       const cardsCorrect = Object.values(state.firstTryResults).filter(Boolean).length;
       await postAttempts({ sessionId: state.sessionId, items: state.pendingAttempts });
-      await closeSession(state.sessionId, { cards_studied: cardsStudied, cards_correct: cardsCorrect });
+      const result = await closeSession(state.sessionId, { cards_studied: cardsStudied, cards_correct: cardsCorrect });
       navigate(`/courses/${courseId}/results`, {
-        state: { sessionId: state.sessionId, courseName, gameType },
+        state: {
+          sessionId: state.sessionId,
+          courseName,
+          gameType,
+          cards_studied: result.cards_studied ?? cardsStudied,
+          cards_correct: result.cards_correct ?? cardsCorrect,
+          duration_seconds: result.duration_seconds ?? 0,
+          xp_earned: result.xp_earned ?? 0,
+        },
         replace: true,
       });
     } catch {
@@ -244,6 +260,19 @@ export default function StudySession({
     dispatch({ type: "GRADE", correct, responseTimeMs: 0, cardMode });
   }, []);
 
+  const handleMcqPick = useCallback((picked, correct) => {
+    dispatch({ type: "MCQ_PICK", picked, correct });
+  }, []);
+
+  // Auto-advance after MCQ reveal
+  useEffect(() => {
+    if (state.phase !== PHASE.MCQ_REVEAL) return;
+    const timer = setTimeout(() => {
+      handleGrade(state.mcqCorrect, "mcq");
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [state.phase, state.mcqCorrect, handleGrade]);
+
   const touchStartX = useRef(null);
   const handleTouchStart = useCallback((e) => {
     touchStartX.current = e.touches[0].clientX;
@@ -254,6 +283,14 @@ export default function StudySession({
     if (Math.abs(dx) < 60) return;
     handleGrade(dx > 0);
   }, [state.phase, handleGrade]);
+
+  const currentCard = state.queue[state.cardIndex] ?? null;
+  const cardMode = currentCard ? resolveCardMode(currentCard, mode) : "self_grade";
+  const isMcq = cardMode === "mcq";
+  const mcqChoices = useMemo(
+    () => (isMcq && currentCard) ? shuffleFn([currentCard.answer, ...(currentCard.distractors ?? [])]) : null,
+    [currentCard?.id, isMcq], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   if (state.phase === PHASE.LOADING) {
     return <div className="study-session">{t("study.loading")}</div>;
@@ -278,14 +315,9 @@ export default function StudySession({
     return <div className="study-session">{t("study.finishing")}</div>;
   }
 
-  const card = state.queue[state.cardIndex];
+  const card = currentCard;
   const position = state.cardIndex + 1;
   const total = state.queue.length + state.retryPile.length;
-  const cardMode = resolveCardMode(card, mode);
-  const isMcq = cardMode === "mcq";
-  const mcqChoices = isMcq
-    ? shuffleFn([card.answer, ...(card.distractors ?? [])])
-    : null;
 
   return (
     <div className="study-session">
@@ -293,6 +325,16 @@ export default function StudySession({
         {t("study.progress", { current: position, total })}
         {isSpeedRound && (
           <span className="speed-timer" data-testid="speed-timer">{t("study.timer", { seconds: timeRemaining })}</span>
+        )}
+        {ttsAvailable && (
+          <button
+            className={`speak-toggle ${speechOn ? "on" : "off"}`}
+            aria-label={t("study.toggleSpeech")}
+            data-testid="speech-toggle"
+            onClick={() => setSpeechOn((v) => !v)}
+          >
+            {speechOn ? "\uD83D\uDD0A" : "\uD83D\uDD07"}
+          </button>
         )}
       </div>
 
@@ -338,11 +380,25 @@ export default function StudySession({
             <button
               key={choice}
               className="btn btn-ghost"
-              onClick={() => handleGrade(choice === card.answer, "mcq")}
+              onClick={() => handleMcqPick(choice, choice === card.answer)}
             >
               {choice}
             </button>
           ))
+        )}
+        {state.phase === PHASE.MCQ_REVEAL && mcqChoices && (
+          mcqChoices.map((choice) => {
+            const isCorrectAnswer = choice === card.answer;
+            const wasPicked = choice === state.mcqPicked;
+            let cls = "btn btn-ghost mcq-reveal";
+            if (isCorrectAnswer) cls += " mcq-correct";
+            else if (wasPicked) cls += " mcq-wrong";
+            return (
+              <button key={choice} className={cls} disabled>
+                {choice}
+              </button>
+            );
+          })
         )}
         {state.phase === PHASE.ANSWER && (
           <>

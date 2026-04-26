@@ -21,11 +21,19 @@ export const createTts = (speechSynthesis, UtteranceCtor) => {
   const speak = (text, lang, rate = 0.9) => {
     if (!speechSynthesis || !_Ctor) return;
     const trySpeak = () => {
-      speechSynthesis.cancel();
-      const u = new _Ctor(text);
-      u.lang = lang;
-      u.rate = rate;
-      speechSynthesis.speak(u);
+      try {
+        // Only cancel if actively speaking/pending — avoids Safari crash
+        // where cancel() during audio teardown corrupts JSC allocator state
+        if (speechSynthesis.speaking || speechSynthesis.pending) {
+          speechSynthesis.cancel();
+        }
+        const u = new _Ctor(text);
+        u.lang = lang;
+        u.rate = rate;
+        speechSynthesis.speak(u);
+      } catch {
+        // Swallow — TTS is best-effort, never worth crashing for
+      }
     };
     const voices = speechSynthesis.getVoices?.() ?? [];
     if (voices.length === 0) {

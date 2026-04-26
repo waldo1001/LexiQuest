@@ -1,17 +1,18 @@
 # Setup — LexiQuest
 
-How to stand up LexiQuest locally and in Azure. This doc grows per phase.
-Current state: **Phase 1 complete (pending manual `swa start` smoke).**
+How to stand up LexiQuest locally and in Azure.
+
+For the quickest path, see [getting-started.md](getting-started.md). This
+doc covers everything in more detail.
 
 ## Prerequisites
 
-- Node.js 20 or newer (tested on Node 24).
-- npm 10+.
-- For full-stack local runs: the Azure Static Web Apps CLI —
-  `npm install -g @azure/static-web-apps-cli`.
-- For running the api under `func start` directly: Azure Functions
-  Core Tools v4 —
-  `npm install -g azure-functions-core-tools@4 --unsafe-perm true`.
+- **Node.js 20+** (`node -v` to check; tested on Node 24)
+- **npm 10+** (comes with Node)
+- **Azurite** — local Azure Storage emulator: `npm install -g azurite`
+- **SWA CLI** — Azure Static Web Apps emulator: `npm install -g @azure/static-web-apps-cli`
+- **Azure Functions Core Tools v4** (optional — only for `func start`
+  standalone): `npm install -g azure-functions-core-tools@4 --unsafe-perm true`
 
 ## Install
 
@@ -20,114 +21,165 @@ cd frontend && npm install
 cd ../api && npm install
 ```
 
-## Frontend-only dev loop
+## Running tests
+
+Tests are the main dev loop. No database, no server needed.
 
 ```sh
-cd frontend
-npm run dev         # Vite at http://localhost:5173
-npm test            # Vitest + coverage (Tier B global, Tier A for src/lib/)
-npm run test:watch
-npm run build       # -> frontend/dist
+# API (TypeScript, ~200 tests, 90% coverage floor):
+cd api && npm test
+
+# Frontend (JavaScript, ~150 tests, 70% coverage floor):
+cd frontend && npm test
 ```
 
-## API-only dev loop (tests + build; no Functions host)
+### Other test commands
+
+| Command | What it does | Directory |
+|---------|-------------|-----------|
+| `npm run test:watch` | Re-run on file save | `api/` or `frontend/` |
+| `npm run test:meta` | Security invariant tests | `api/` |
+| `npm run test:integration` | Azurite integration tests (needs Azurite running) | `api/` |
+| `npm run test:contract` | Seam contract tests | `api/` |
+| `npm run typecheck` | TypeScript type check (no tests) | `api/` |
+| `npx vitest run path/to/file.test.ts` | Single file | `api/` or `frontend/` |
+
+## Local config files
+
+Two config files are needed for running the full app. Neither is
+committed (`.gitignore`).
+
+### `.env` (repo root)
 
 ```sh
-cd api
-npm test            # Vitest Tier A 90%
-npm run typecheck
-npm run build       # -> api/dist
+cp .env.example .env
 ```
 
-## Full-stack local run
+Fill in:
+
+| Variable | What | Example value for local dev |
+|----------|------|---------------------------|
+| `AZURE_STORAGE_CONNECTION_STRING` | Where to find the database | `UseDevelopmentStorage=true` |
+| `PASSWORD_WALDO` | Seed password for Waldo | any string |
+| `PASSWORD_LEX` | Seed password for Lex | any string |
+| `PASSWORD_MATS` | Seed password for Mats | any string |
+| `PASSWORD_BEN` | Seed password for Ben | any string |
+| `SESSION_SECRET` | HMAC key for session cookies | 32+ random chars |
+| `ANTHROPIC_API_KEY` | AI card import (optional, costs money) | `sk-ant-...` or leave blank |
+
+### `api/local.settings.json`
 
 ```sh
-# Shell 1 — Vite dev server
-cd frontend && npm run dev
-
-# Shell 2 — SWA emulator proxies Vite + starts the Functions host
-cd <repo-root>
-swa start http://localhost:5173 --api-location api
-# -> http://localhost:4280
-#    /       serves the Vite SPA
-#    /api/*  routes to the Azure Functions host (port 7071 internally)
+cp api/local.settings.json.example api/local.settings.json
 ```
 
-A manual smoke: visit `http://localhost:4280`, confirm the `<h1>`
-reads "Hello from LexiQuest" (proving the `/api/hello` round-trip).
-
-## Phase 1 smoke checklist (run once before tagging phase-1-done)
-
-- [ ] `cd frontend && npm test` — all green.
-- [ ] `cd api && npm test` — all green.
-- [ ] `swa start ... --api-location api` shows `<h1>Hello from LexiQuest</h1>`.
-- [ ] Devtools Network tab shows `/api/hello` returned
-      `{"msg":"Hello from LexiQuest"}`.
-- [ ] After Azure SWA is provisioned and
-      `AZURE_STATIC_WEB_APPS_API_TOKEN` is set, a push to `main`
-      auto-deploys within ~5 minutes.
-
-## Azurite (local Table Storage emulator)
-
-Seed + the Azurite-backed `TableStorage` integration test require
-Azurite running locally. Install + boot:
-
-```sh
-npm install -g azurite
-# Storage emulator that LexiQuest's api/ talks to:
-azurite-table --silent --location /tmp/azurite --debug azurite-debug.log
-# runs on localhost:10002 (Table). Default connection string:
-#   UseDevelopmentStorage=true
-```
-
-Opt the integration test into running by setting the env var:
-
-```sh
-export AZURITE_CONNECTION_STRING="UseDevelopmentStorage=true"
-cd api && npm run test:integration
-```
-
-The seed script (Phase 2 Slice 4) uses
-`AZURE_STORAGE_CONNECTION_STRING` (same value works against Azurite
-locally).
-
-## Session cookie `Secure` flag (`COOKIE_SECURE`)
-
-The session cookie is emitted with the `Secure` attribute by default
-(required for production over HTTPS). Browsers drop `Secure` cookies on
-plain HTTP, so for local `swa start` on `http://localhost:4280` you must
-opt out:
-
-```json
-// api/local.settings.json
-"COOKIE_SECURE": "false"
-```
-
-Any value other than the literal string `"false"` (including unset) keeps
-`Secure` on, so production stays safe by default. See
-[api/local.settings.json.example](../api/local.settings.json.example).
-
-## Anthropic API key (Phase 12+)
-
-The AI card import feature requires an Anthropic API key. Add it to
-`api/local.settings.json` (never committed — already in `.gitignore`):
+The example file already has the right values for local dev:
 
 ```json
 {
+  "IsEncrypted": false,
   "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "COOKIE_SECURE": "false",
     "ANTHROPIC_API_KEY": "sk-ant-REPLACE_WITH_REAL_KEY"
   }
 }
 ```
 
-For Azure production, set `ANTHROPIC_API_KEY` in the SWA app settings
-(Azure portal → Static Web App → Configuration → Application settings).
+The important one: `"COOKIE_SECURE": "false"` — without this, the session
+cookie gets the `Secure` flag, which browsers drop on plain HTTP
+(`localhost`).
 
-See `api/local.settings.json.example` for the full local settings template.
+## Azurite (local database)
 
-## Coming in later phases
+Azurite emulates Azure Table Storage on your machine. Start it in its own
+terminal:
 
-- Phase 2: `.env` / `local.settings.json` (real values, **never** committed),
-  Azurite for local Table Storage, `scripts/seed.ts` to create the four
-  family users.
-- Phase 3: `SESSION_SECRET` env var, cookie flags.
+```sh
+azurite --silent --location /tmp/azurite
+```
+
+It listens on ports 10000 (blob), 10001 (queue), 10002 (table). The
+connection string `UseDevelopmentStorage=true` points to it automatically.
+
+To wipe the database and start fresh:
+
+```sh
+rm -rf /tmp/azurite && azurite --silent --location /tmp/azurite
+```
+
+## Seeding users
+
+Creates the 4 family accounts (Waldo, Lex, Mats, Ben) and the current
+school year. Requires Azurite running and `.env` filled in.
+
+```sh
+cd api && npm run seed
+```
+
+Output lists 4 UUIDs. Idempotent — safe to re-run.
+
+## Full-stack local run
+
+**Terminal 1** — Azurite:
+```sh
+azurite --silent --location /tmp/azurite
+```
+
+**Terminal 2** — Frontend:
+```sh
+cd frontend && npm run dev
+```
+
+**Terminal 3** — SWA (the glue):
+```sh
+swa start http://localhost:5173 --api-location api
+```
+
+Open **http://localhost:4280**. Login with any seeded user.
+
+### What `swa start` does
+
+- Proxies `http://localhost:4280/` to the Vite dev server (port 5173)
+- Boots the Azure Functions host for `api/` (port 7071 internally)
+- Routes `/api/*` requests to the Functions host
+- Applies `staticwebapp.config.json` rules (SPA fallback, etc.)
+
+## Session cookie `Secure` flag (`COOKIE_SECURE`)
+
+The session cookie uses the `Secure` attribute by default (required for
+HTTPS in production). Browsers silently drop `Secure` cookies on plain
+HTTP, so for local dev you must set `"COOKIE_SECURE": "false"` in
+`api/local.settings.json`.
+
+Any value other than the literal string `"false"` (including unset) keeps
+`Secure` on. Production stays safe by default.
+
+## Anthropic API key (AI card import)
+
+The photo-to-flashcard feature uses the Anthropic Claude API. Optional —
+everything else works without it.
+
+Add to `api/local.settings.json`:
+
+```json
+"ANTHROPIC_API_KEY": "sk-ant-your-real-key-here"
+```
+
+For Azure production: set it in the SWA app settings (Azure portal →
+Static Web App → Configuration → Application settings).
+
+## Azure production deployment
+
+Push to `main` triggers GitHub Actions → deploys to Azure Static Web Apps.
+The workflow file is `.github/workflows/azure-static-web-apps.yml`.
+
+Required GitHub secret: `AZURE_STATIC_WEB_APPS_API_TOKEN` (from the Azure
+portal SWA resource → Manage deployment token).
+
+Required Azure SWA app settings:
+- `AZURE_STORAGE_CONNECTION_STRING` — real Azure Storage connection string
+- `SESSION_SECRET` — 32+ byte random string
+- `ANTHROPIC_API_KEY` — Anthropic API key
+- `COOKIE_SECURE` — leave unset (defaults to secure)

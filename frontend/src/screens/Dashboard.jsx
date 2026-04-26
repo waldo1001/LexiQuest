@@ -86,18 +86,24 @@ export default function Dashboard({ fetchCourses = fetchCoursesApi }) {
                   className="btn btn-primary"
                   data-testid="study-btn"
                   onClick={() =>
-                    navigate(`/courses/${c.id}/study`, {
+                    navigate(`/courses/${c.id}/setup`, {
                       state: {
-                        courseId: c.id,
                         courseName: c.name,
-                        mode: c.default_mode === "ask" ? "self_grade" : c.default_mode,
+                        defaultMode: c.default_mode ?? "ask",
+                        courseLang: c.language ?? null,
+                        questionLangDefault: c.question_lang_default ?? null,
+                        answerLangDefault: c.answer_lang_default ?? null,
                       },
                     })
                   }
                 >
                   {t("courses.action.study")}
                 </button>
-                <Link className="btn btn-ghost" to={`/courses/${c.id}/cards`}>
+                <Link
+                  className="btn btn-ghost"
+                  to={`/courses/${c.id}/cards`}
+                  state={{ courseName: c.name, ownerId: c.user_id, courseLang: c.language ?? null, questionLangDefault: c.question_lang_default ?? null, answerLangDefault: c.answer_lang_default ?? null }}
+                >
                   {t("courses.action.manageCards")}
                 </Link>
               </div>
