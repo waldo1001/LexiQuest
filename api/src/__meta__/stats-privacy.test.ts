@@ -23,6 +23,7 @@ import { makeStatsCourseHandler } from "../functions/stats-course.js";
 import { makeStatsFamilyHandler } from "../functions/stats-family.js";
 import { makeStatsCompareHandler } from "../functions/stats-family.js";
 import { makeStatsHeatmapHandler } from "../functions/stats-heatmap.js";
+import { makeStatsUploadHandler } from "../functions/stats-upload.js";
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
@@ -216,6 +217,33 @@ describe("stats-privacy (LexiQuest invariant 2) — behavioural", () => {
     seedWorld(deps.tables);
     const handler = makeStatsHeatmapHandler(deps);
     const res = await handler(makeGet(validCookie(deps), `/heatmap/${TARGET_USER}`, { userId: TARGET_USER }), ctx);
+    expect(res.status).toBe(200);
+    expect(hasRawRowField(res.jsonBody, RAW_ROW_FIELDS)).toBe(false);
+  });
+
+  it("stats/course/uploads does not leak raw row fields", async () => {
+    const deps = makeDeps();
+    seedWorld(deps.tables);
+    // Seed a card with upload_id so the response is non-empty
+    deps.tables.upsert("cards", {
+      partitionKey: COURSE_ID,
+      rowKey: "card-1",
+      course_id: COURSE_ID,
+      question: "Q?",
+      answer: "A",
+      distractors: [],
+      hint: null,
+      source: "ai_import",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: NOW,
+      created_at: "2026-04-20T10:00:00.000Z",
+      upload_id: "up-1",
+      upload_name: "Test upload",
+    });
+    const handler = makeStatsUploadHandler(deps);
+    const res = await handler(makeGet(validCookie(deps), `/course/${COURSE_ID}/uploads`, { courseId: COURSE_ID }), ctx);
     expect(res.status).toBe(200);
     expect(hasRawRowField(res.jsonBody, RAW_ROW_FIELDS)).toBe(false);
   });
