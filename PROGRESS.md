@@ -271,3 +271,16 @@ See [docs/plans/done/gaming-mode.md](docs/plans/done/gaming-mode.md).
 - ✅ Slice 2 — Privacy meta-test in `stats-privacy.test.ts`
 - ✅ Slice 3 — Frontend API wrapper + i18n (4 tests, 16 i18n keys EN+NL)
 - ✅ Slice 4 — `UploadStats.jsx` screen + routing + CardManager link (11 tests)
+
+---
+
+## Post-v1 — Deployment runbook + live→dev snapshot
+
+Plan: [docs/plans/deployment-and-live-to-dev-snapshot.md](docs/plans/deployment-and-live-to-dev-snapshot.md)
+
+- ✅ Slice 1 — `connection-string-guard` helper (6 tests, 100% coverage)
+- ⬜ Slice 2 — `snapshot-payload` builder
+- ⬜ Slice 3 — `export-all` script + npm wiring + `.gitignore`
+- ⬜ Slice 4 — `import-local` script + npm wiring (uses Slice 1 latch)
+- ⬜ Slice 5 — `docs/deployment.md` runbook
+- ⬜ Slice 6 — Pre-public-GitHub safety gate

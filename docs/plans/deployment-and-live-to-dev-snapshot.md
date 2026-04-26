@@ -134,6 +134,198 @@ the lazy check during execution.)
 - Staging slot / second SWA environment — useful but not asked for.
 - Programmatic restore (snapshot → prod). Intentionally manual.
 
+## Open questions / assumptions
+
+- **Assumption**: existing [api/scripts/seed.ts](../../api/scripts/seed.ts)
+  is the right precedent — env-driven, `/* v8 ignore */`-wrapped,
+  `AZURE_STORAGE_CONNECTION_STRING` for runtime connect. New scripts
+  follow the same shape. Confirmed by reading the file.
+- **Assumption**: the six tables in scope are `users`, `years`, `courses`,
+  `cards`, `attempts`, `sessions` — i.e. `Object.keys(PARTITIONS) ∪
+  Object.keys(USER_OWNED_PARTITION)` from [api/src/shared/table-partitions.ts](../../api/src/shared/table-partitions.ts).
+  Confirmed by reading the file. If a future table is added, slice 2's
+  AC5 will fail loudly rather than silently drop it.
+- **Assumption**: `backups/` lives at the repo root (sibling of `api/`,
+  `frontend/`, `docs/`), not inside `api/`. Justification: a snapshot is
+  an artefact of operating the whole product, not of the API project.
+- **Question (does not block planning)**: does the Azure resource group
+  / storage account / SWA already exist, or does the Slice 5 runbook
+  document a yet-to-be-executed B1? Either way the slice writes the
+  doc; the *execution* of B1 happens out-of-band by the operator, not
+  inside this TDD cycle.
+- **Question (does not block planning)**: custom domain on SWA is
+  optional (Plan B1 lists it that way). The runbook will mention it as
+  a one-line follow-up, no more.
+
+## TDD Slices
+
+Six slices, each one TDD cycle. Numbered for autonomous execution
+(commit + push per slice). Slices 1–2 are pure unit logic. Slices 3–4
+are integration scripts wrapped in `/* v8 ignore start … end */` (same
+precedent as [api/scripts/seed.ts](../../api/scripts/seed.ts)) — verified
+manually against Azurite. Slices 5–6 are docs + verification with no
+production code.
+
+### Slice 1 — Connection-string guard helper
+
+- **Task**: Add a pure `isAzuriteConnectionString(s)` predicate that
+  returns true only when the input points at Azurite.
+- **Scope IN**: One pure helper + its unit tests.
+- **Scope OUT**: Any caller of the helper (slice 4 wires it in).
+- **Files**:
+  - `api/src/shared/connection-string-guard.ts` (NEW)
+  - `api/src/shared/connection-string-guard.test.ts` (NEW)
+- **Seams**: none (pure).
+- **RED list**:
+  - AC1: `UseDevelopmentStorage=true` (with or without trailing `;`) → true
+    - test name: `"accepts UseDevelopmentStorage shorthand"`
+  - AC2: `DefaultEndpointsProtocol=http;...` containing `127.0.0.1` → true
+    - test name: `"accepts http endpoint pointing at 127.0.0.1"`
+  - AC3: `DefaultEndpointsProtocol=http;...` containing `localhost` → true
+    - test name: `"accepts http endpoint pointing at localhost"`
+  - AC4: `DefaultEndpointsProtocol=https;AccountName=stlexiquest;AccountKey=...` → false
+    - test name: `"rejects a real Azure storage account string"`
+  - AC5: `undefined`, `""`, whitespace-only → false
+    - test name: `"rejects empty or undefined input"`
+  - AC6: an `https://` string that merely *contains* the substring
+    `127.0.0.1` somewhere (e.g. inside an account-name segment) → false
+    - test name: `"rejects an https string that merely contains 127.0.0.1 as a substring"`
+- **Risks**: a too-loose regex or naive `includes("localhost")` lets a
+  non-local https string slip through; pinned by AC6.
+
+### Slice 2 — Snapshot payload builder
+
+- **Task**: Add a pure `buildSnapshotPayload(args)` that takes the six
+  table arrays plus a clock + source label and returns the canonical
+  `{ exportedAt, source, tables: { … } }` shape.
+- **Scope IN**: Pure builder + tests. No I/O.
+- **Scope OUT**: The actual `tables.list` calls (slice 3).
+- **Files**:
+  - `api/src/shared/snapshot-payload.ts` (NEW)
+  - `api/src/shared/snapshot-payload.test.ts` (NEW)
+- **Seams**: clock (passed in as `nowIso: () => string`).
+- **RED list**:
+  - AC1: empty inputs produce a payload with empty arrays for every of the six known tables
+    - test name: `"emits empty arrays for every known table when no entities given"`
+  - AC2: provided entities are placed under their named keys verbatim
+    - test name: `"places entities under their named table keys"`
+  - AC3: `exportedAt` is the value returned by the injected clock
+    - test name: `"stamps exportedAt from the injected clock"`
+  - AC4: `source` is the passed-in label (account name or `"Azurite"`)
+    - test name: `"records the source label verbatim"`
+  - AC5: every key derived from `PARTITIONS ∪ USER_OWNED_PARTITION`
+    appears under `tables` even when its array is omitted from input
+    — no silent drop if a new table is added later
+    - test name: `"includes every known table key even when input array is missing"`
+- **Risks**: a future new table (e.g. badges) silently dropped — AC5
+  pins this by reading the partition map.
+
+### Slice 3 — `npm run export-all` script
+
+- **Task**: Add `api/scripts/export-all.ts` which reads from
+  `AZURE_STORAGE_CONNECTION_STRING_SOURCE`, requires `--yes`, lists
+  every entity from each of the six tables, builds the payload via the
+  slice-2 builder, and writes
+  `backups/lexiquest-<ISO-date>.json`.
+- **Scope IN**:
+  - `api/scripts/export-all.ts` wrapped in `/* v8 ignore start … end */`
+  - `api/package.json` — add `"export-all": "tsx scripts/export-all.ts"`
+  - `.gitignore` — add `backups/`
+  - `api/local.settings.json.example` — add a commented placeholder for
+    `AZURE_STORAGE_CONNECTION_STRING_SOURCE`
+- **Scope OUT**: import side, runbook docs.
+- **Seams**: tables (real `AzureTableStorage` against Azurite).
+- **RED list**: none — script body is `v8-ignore`-wrapped per the
+  established `seed.ts` pattern. The pure helpers it depends on (slices
+  1, 2) carry the unit-test load. **Integration verification**:
+  - With Azurite running and seeded:
+    `AZURE_STORAGE_CONNECTION_STRING_SOURCE=UseDevelopmentStorage=true npm run export-all -- --yes`
+    → file exists, parses as JSON, has all six top-level table arrays,
+    `users` and `cards` non-empty.
+  - Without `--yes` → script refuses, non-zero exit.
+  - Without `AZURE_STORAGE_CONNECTION_STRING_SOURCE` → clear error,
+    non-zero exit.
+- **Risks**: forgetting `--yes` guard would turn the script into a
+  drive-by foot-gun if the env var is set in the shell. Verified
+  manually as above.
+
+### Slice 4 — `npm run import-local` script
+
+- **Task**: Add `api/scripts/import-local.ts` which reads
+  `AZURE_STORAGE_CONNECTION_STRING`, **hard-refuses** unless the slice-1
+  guard says it's Azurite, then for each of the six tables: delete →
+  recreate → bulk insert from the backup file.
+- **Scope IN**:
+  - `api/scripts/import-local.ts` wrapped in `/* v8 ignore start … end */`
+    — uses `isAzuriteConnectionString` from slice 1 as the safety latch
+  - `api/package.json` — add `"import-local": "tsx scripts/import-local.ts"`
+- **Scope OUT**: programmatic restore-to-prod (Part E — out of scope).
+- **Seams**: tables (real `AzureTableStorage` against Azurite); the
+  slice-1 guard provides the safety latch.
+- **RED list**: none for the script body (v8-ignore). The slice-1 guard
+  carries the safety-latch unit tests. **Integration verification**:
+  - Azurite running, dev `AZURE_STORAGE_CONNECTION_STRING`,
+    `npm run import-local -- backups/<file>.json` → exits 0 and table
+    counts match the file.
+  - Re-run the same command immediately → still exits 0 and counts
+    unchanged (idempotency from truncate-before-load).
+  - Set `AZURE_STORAGE_CONNECTION_STRING` to
+    `DefaultEndpointsProtocol=https;AccountName=fake;AccountKey=zzz;EndpointSuffix=core.windows.net`
+    → script refuses with a clear message and non-zero exit.
+- **Risks**: a misconfigured shell session pointing at prod is the
+  catastrophic failure mode; the slice-1 guard is the only thing
+  preventing it — must fail closed.
+
+### Slice 5 — `docs/deployment.md` runbook
+
+- **Task**: Write the operator-facing runbook covering one-time Azure
+  setup (B1), day-to-day deploy (B2), backup + dev-from-live (B3), and
+  the pre-public safety gate reference (Part C). Add a single pointer
+  line to it from `docs/setup.md` so the existing prod-deploy notes
+  there don't go stale.
+- **Scope IN**:
+  - `docs/deployment.md` (NEW)
+  - `docs/setup.md` — add a single pointer line at the top of the
+    "Production deploy" section linking to the new runbook (no content
+    duplication)
+- **Scope OUT**: nightly-backup automation (Part E), staging slot.
+- **Seams**: none.
+- **RED list**: none — pure docs slice. **Verification**:
+  - `/docs-update` keeps changelog/PROGRESS in sync.
+  - Cross-check every secret named in B1 against
+    [.github/workflows/azure-static-web-apps.yml](../../.github/workflows/azure-static-web-apps.yml)
+    — every name must match what the workflow consumes.
+- **Risks**: stale Azure-portal UI flow descriptions; mitigated by
+  preferring `az`-CLI commands and short pointers to MS docs over
+  transcribed click-paths.
+
+### Slice 6 — Pre-public-GitHub safety gate
+
+- **Task**: Run the three Part-C checks against current `HEAD`, record
+  the outcome in [docs/changelog.md](../changelog.md), and confirm
+  `backups/**` is covered by either `.gitignore` (slice 3) or the
+  security-scan blocklist. The visibility flip itself is the user's
+  action, not this slice's.
+- **Scope IN**:
+  - Run `git log --all --full-history -- api/local.settings.json` →
+    expect empty.
+  - Run a full-history secret-pattern scan (`git log --all -p | grep -E
+    'sk-ant-|SESSION_SECRET=|AccountKey='`) → expect empty.
+  - Run `/security-scan` on `HEAD`.
+  - If all clean: append a single changelog bullet recording the result
+    and the date the gate passed.
+  - If `backups/**` not already covered, add it to
+    [.claude/skills/security-scan/SKILL.md](../../.claude/skills/security-scan/SKILL.md).
+- **Scope OUT**: the visibility flip, branch protection rule creation
+  (operator does these in GitHub).
+- **Seams**: none.
+- **RED list**: none. Verification *is* the slice. If any check fails:
+  STOP, surface to user, follow Part C step 2 (rotate keys, document
+  decision) before retrying.
+- **Risks**: a leaked key in a long-forgotten branch. Mitigation is
+  rotation, not history rewrite — documented as the chosen tradeoff in
+  the changelog entry.
+
 ## Verification
 
 End-to-end, in order:
