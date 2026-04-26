@@ -279,7 +279,7 @@ See [docs/plans/done/gaming-mode.md](docs/plans/done/gaming-mode.md).
 Plan: [docs/plans/deployment-and-live-to-dev-snapshot.md](docs/plans/deployment-and-live-to-dev-snapshot.md)
 
 - ✅ Slice 1 — `connection-string-guard` helper (6 tests, 100% coverage)
-- ⬜ Slice 2 — `snapshot-payload` builder
+- ✅ Slice 2 — `snapshot-payload` builder (6 tests, 100% coverage)
 - ⬜ Slice 3 — `export-all` script + npm wiring + `.gitignore`
 - ⬜ Slice 4 — `import-local` script + npm wiring (uses Slice 1 latch)
 - ⬜ Slice 5 — `docs/deployment.md` runbook
