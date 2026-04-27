@@ -5,6 +5,12 @@
   ],
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/*.{css,js,ico,svg,png,webp,woff,woff2}"]
+    "exclude": [
+      "/assets/*",
+      "/icons/*",
+      "/manifest.json",
+      "/*.webmanifest",
+      "/*.{css,js,ico,svg,png,webp,woff,woff2}"
+    ]
   }
 }

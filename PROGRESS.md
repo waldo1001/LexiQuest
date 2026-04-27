@@ -311,3 +311,19 @@ Plan: [docs/plans/i-can-t-log-into-mighty-eagle.md](docs/plans/i-can-t-log-into-
 - ✅ Tests: 11 new tests in `reset-password.test.ts`; 100% line/branch/fn coverage on `reset-password.ts`
 - ✅ Runner: `api/scripts/reset-password.ts` — `/* v8 ignore */`; Azurite-only via `isAzuriteConnectionString`; argv `--name/--password` + `RESET_PASSWORD` env; bulk reads `PASSWORD_<NAME>` env vars (mirrors seed)
 - ✅ Wired as `npm run reset-password` in `api/package.json`
+
+---
+
+## Post-v1 — Online-only PWA (Android-installable home-screen icon)
+
+Plan: [docs/plans/pwa-online-only.md](docs/plans/pwa-online-only.md)
+
+- ✅ Slice 1 — PWA online-only
+  - Tests: PWA-9..12 (manifest icons resolve, split any/maskable, apple-touch-icon, SWA fallback exclusions); PWA-B1..B3 (build-output smoke: manifest, sw.js, valid 192/512 PNGs)
+  - Source icon: `frontend/scripts/icon-source/waldo.png` (copied from waldo.BCTelemetryBuddy)
+  - Generator: `frontend/scripts/generate-icons.mjs` (sharp), wired as `npm run icons`
+  - Outputs: `public/icons/icon-{192,512}.png` (any) + `icon-{192,512}-maskable.png` (white bg, 80% safe zone)
+  - `manifest.json` split into 4 entries (any + maskable purposes)
+  - `index.html`: added `<link rel="apple-touch-icon" href="/icons/icon-192.png">`
+  - `staticwebapp.config.json`: added `/icons/*`, `/manifest.json`, `/*.webmanifest` to navigationFallback exclude
+  - Full suite: 529 passing
