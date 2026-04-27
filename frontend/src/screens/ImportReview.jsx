@@ -13,7 +13,7 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { candidates = [], courseName = "", courseLang = null } = location.state ?? {};
+  const { candidates = [], courseName = "", courseLang = null, uploadId = null, uploadName: existingUploadName = null } = location.state ?? {};
 
   const [checked, setChecked] = useState(() =>
     Object.fromEntries(candidates.map((_, i) => [i, true])),
@@ -23,6 +23,7 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
   const [uploadName, setUploadName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const appendingToExisting = Boolean(uploadId);
 
   function toggleCard(idx) {
     setChecked((prev) => ({ ...prev, [idx]: !prev[idx] }));
@@ -50,7 +51,11 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
           answer_lang: c.answer_lang ?? null,
         })),
       };
-      if (uploadName.trim()) body.uploadName = uploadName.trim();
+      if (appendingToExisting) {
+        body.uploadId = uploadId;
+      } else if (uploadName.trim()) {
+        body.uploadName = uploadName.trim();
+      }
       await batchCreateCards(body);
       navigate(`/courses/${courseId}/cards`);
     } catch {
@@ -88,15 +93,21 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
         {t("review.bidirectional")}
       </label>
 
-      <label>
-        {t("review.uploadName")}
-        <input
-          type="text"
-          value={uploadName}
-          onChange={(e) => setUploadName(e.target.value)}
-          placeholder={t("review.uploadName.placeholder")}
-        />
-      </label>
+      {appendingToExisting ? (
+        <p className="upload-target-note" data-testid="upload-target-note">
+          {t("review.appendingTo", { name: existingUploadName ?? uploadId })}
+        </p>
+      ) : (
+        <label>
+          {t("review.uploadName")}
+          <input
+            type="text"
+            value={uploadName}
+            onChange={(e) => setUploadName(e.target.value)}
+            placeholder={t("review.uploadName.placeholder")}
+          />
+        </label>
+      )}
 
       <ul>
         {candidates.map((card, idx) => (

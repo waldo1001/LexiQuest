@@ -19,13 +19,15 @@ function setup({
   lang = "en",
   courseLang = null,
   currentUser,
+  uploadId,
+  uploadName,
 } = {}) {
   return render(
     <AppProvider initialLang={lang} initialUser={currentUser}>
       <MemoryRouter
         initialEntries={[{
           pathname: `/courses/${COURSE_ID}/import/review`,
-          state: { courseId: COURSE_ID, courseName: COURSE_NAME, candidates, courseLang },
+          state: { courseId: COURSE_ID, courseName: COURSE_NAME, candidates, courseLang, uploadId, uploadName },
         }]}
       >
         <Routes>
@@ -287,5 +289,43 @@ describe("ImportReview", () => {
 
     const call = batchCreateCards.mock.calls[0][0];
     expect(call.cards[0].distractors).toEqual([]);
+  });
+});
+
+// =====================================================================
+// Slice B — uploadId passthrough (append to existing upload)
+// =====================================================================
+describe("ImportReview — append to existing upload", () => {
+  it("IR-B1: with uploadId in state, sends uploadId to batchCreateCards (no uploadName)", async () => {
+    const user = userEvent.setup();
+    const batchCreateCards = vi.fn().mockResolvedValue({ upload_id: "up-1", cards: [] });
+    setup({ batchCreateCards, uploadId: "up-1" });
+
+    await user.click(screen.getByRole("button", { name: /save selected/i }));
+    await waitFor(() => expect(batchCreateCards).toHaveBeenCalledOnce());
+
+    const call = batchCreateCards.mock.calls[0][0];
+    expect(call.uploadId).toBe("up-1");
+    expect(call.uploadName).toBeUndefined();
+  });
+
+  it("IR-B2: with uploadId in state, hides the 'name this upload' input (using existing name)", () => {
+    setup({ uploadId: "up-1", uploadName: "Math homework" });
+    expect(screen.queryByLabelText(/name this upload/i)).toBeNull();
+  });
+
+  it("IR-B3: with uploadName in state but no uploadId, sends uploadName as before (regression)", async () => {
+    const user = userEvent.setup();
+    const batchCreateCards = vi.fn().mockResolvedValue({ upload_id: "fresh", cards: [] });
+    setup({ batchCreateCards });
+
+    const nameInput = screen.getByLabelText(/name this upload/i);
+    await user.type(nameInput, "Brand new");
+    await user.click(screen.getByRole("button", { name: /save selected/i }));
+    await waitFor(() => expect(batchCreateCards).toHaveBeenCalledOnce());
+
+    const call = batchCreateCards.mock.calls[0][0];
+    expect(call.uploadName).toBe("Brand new");
+    expect(call.uploadId).toBeUndefined();
   });
 });

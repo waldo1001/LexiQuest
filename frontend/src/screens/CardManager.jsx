@@ -443,6 +443,14 @@ export default function CardManager({
                       onClick={(e) => { e.stopPropagation(); openNewFormForUpload(group.uploadId); }}
                       title={t("cards.action.addToUpload")}
                     >➕</button>
+                    <Link
+                      to={`/courses/${courseId}/import`}
+                      state={{ courseId, courseName, ownerId, courseLang, questionLangDefault, answerLangDefault, uploadId: group.uploadId, uploadName: group.uploadName ?? null }}
+                      className="btn-icon"
+                      data-testid={`upload-import-here-${group.uploadId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      title={t("cards.action.importHere")}
+                    >📷</Link>
                     <button
                       type="button"
                       className="btn-icon"

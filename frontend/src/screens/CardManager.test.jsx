@@ -846,4 +846,16 @@ describe("CardManager — Add card into existing upload", () => {
 
     expect(screen.queryByRole("combobox", { name: /add to/i })).toBeNull();
   });
+
+  it("CMA-7 (Slice B): per-upload 'Import here' link points at /import with the upload preselected", async () => {
+    setup({ fetchCards: vi.fn().mockResolvedValue(SEED_WITH_UPLOAD) });
+    await screen.findByText(/Math homework \(2\)/);
+
+    const link = await screen.findByTestId("upload-import-here-up-1");
+    // The link is an anchor pointing at the import route. We can't read
+    // navigation state directly from href, but the testid plus a stable
+    // href is enough to verify the affordance exists; PI-B2 covers
+    // pre-selection inside PhotoImport.
+    expect(link).toHaveAttribute("href", expect.stringContaining(`/courses/${COURSE_ID}/import`));
+  });
 });

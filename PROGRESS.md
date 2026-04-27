@@ -351,3 +351,12 @@ Plan: [docs/plans/post-v1-add-to-existing-upload.md](docs/plans/post-v1-add-to-e
   - Frontend: `CardManager` New-card form gains an "Add to" `<select>` (default *Manual*, plus each existing upload); per-upload ➕ icon button opens the form pre-targeted to that upload; new card auto-expands its destination group
   - i18n: `cards.field.addTo`, `cards.option.upload`, `cards.action.addToUpload` (en/nl)
   - Tests: 7 new in `cards-shared.test.ts` (findExistingUpload), 6 new in `cards.test.ts` (POST upload_id matrix incl. bidirectional inheritance + cross-course rejection), 6 new in `CardManager.test.jsx` (CMA-1..6); full suite green
+
+- ✅ Slice B — Import-into-existing-upload + first-class PDF
+  - API: `POST /api/cards/batch` accepts optional `uploadId` (mutually exclusive with `uploadName`); validates the upload exists in this course; reuses its identity (id + inherited `upload_name`) instead of minting a new one; bidirectional reverses inherit the same upload identity
+  - Frontend: `PhotoImport` calls `fetchCards` on mount and renders an "Add to upload" `<select>` (New upload + each existing upload). Pre-selects via `state.uploadId`. Carries `uploadId`/`uploadName` to Review through navigation state.
+  - `ImportReview`: when `uploadId` is in state, hides the "Name this upload" input, shows "Adding cards to: {name}", and submits `uploadId` (not `uploadName`).
+  - `CardManager`: per-upload 📷 "Import here" link navigates to `/import` with `state.uploadId` so the importer pre-selects that upload.
+  - PDF: end-to-end propagation of `application/pdf` mime is now covered by an explicit FE test (PI-B3); backend/Claude seam was already PDF-capable via `document` blocks.
+  - i18n: `import.addToUpload`, `import.newUpload`, `review.appendingTo`, `cards.action.importHere` (en/nl)
+  - Tests: 6 new in `cards-batch.test.ts` (SB-1..6), 5 new in `PhotoImport.test.jsx` (PI-B1..5), 3 new in `ImportReview.test.jsx` (IR-B1..3), 1 new in `CardManager.test.jsx` (CMA-7). Full suites: 830 api + 550 frontend = 1380 passing.

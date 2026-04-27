@@ -12,7 +12,7 @@ import type { TableStorage } from "../shared/table-storage.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { CourseRow } from "./courses-shared.js";
-import { buildReverseCard, cardProfile, type CardRow } from "./cards-shared.js";
+import { buildReverseCard, cardProfile, findExistingUpload, type CardRow } from "./cards-shared.js";
 
 export interface CardsBatchDeps {
   tables: TableStorage;
@@ -32,7 +32,7 @@ interface BatchCardInput {
 
 function validateBody(
   body: unknown,
-): { ok: true; courseId: string; cards: BatchCardInput[]; bidirectional: boolean; uploadName: string | null } | { ok: false; error: string } {
+): { ok: true; courseId: string; cards: BatchCardInput[]; bidirectional: boolean; uploadName: string | null; uploadId: string | null } | { ok: false; error: string } {
   if (body === null || typeof body !== "object") {
     return { ok: false, error: "body must be an object" };
   }
@@ -58,7 +58,19 @@ function validateBody(
   const uploadName = typeof src.uploadName === "string" && src.uploadName.trim().length > 0
     ? src.uploadName.trim()
     : null;
-  return { ok: true, courseId: src.courseId.trim(), cards: src.cards as BatchCardInput[], bidirectional, uploadName };
+
+  let uploadId: string | null = null;
+  if (src.uploadId !== undefined && src.uploadId !== null) {
+    if (typeof src.uploadId !== "string" || src.uploadId.trim().length === 0) {
+      return { ok: false, error: "uploadId must be a non-empty string" };
+    }
+    uploadId = src.uploadId.trim();
+  }
+  if (uploadId !== null && uploadName !== null) {
+    return { ok: false, error: "uploadId and uploadName are mutually exclusive" };
+  }
+
+  return { ok: true, courseId: src.courseId.trim(), cards: src.cards as BatchCardInput[], bidirectional, uploadName, uploadId };
 }
 
 async function findCourseById(
@@ -92,7 +104,7 @@ export function makeCardsBatchHandler(deps: CardsBatchDeps): HttpHandler {
     if (!validated.ok) {
       return { status: 400, jsonBody: { error: validated.error } };
     }
-    const { courseId, cards, bidirectional, uploadName } = validated;
+    const { courseId, cards, bidirectional, uploadName, uploadId: requestedUploadId } = validated;
 
     const course = await findCourseById(deps.tables, auth.auth.userId, courseId);
     if (!course) {
@@ -104,8 +116,21 @@ export function makeCardsBatchHandler(deps: CardsBatchDeps): HttpHandler {
       return { status: 403, jsonBody: { error: "forbidden" } };
     }
 
+    let uploadId: string;
+    let resolvedUploadName: string | null;
+    if (requestedUploadId) {
+      const existing = await findExistingUpload(deps.tables, courseId, requestedUploadId);
+      if (!existing) {
+        return { status: 400, jsonBody: { error: "uploadId does not match any upload in this course" } };
+      }
+      uploadId = existing.uploadId;
+      resolvedUploadName = existing.uploadName;
+    } else {
+      uploadId = deps.random.uuid();
+      resolvedUploadName = uploadName;
+    }
+
     const nowIso = deps.clock.now().toISOString();
-    const uploadId = deps.random.uuid();
     const created: CardRow[] = [];
 
     for (const input of cards) {
@@ -125,7 +150,7 @@ export function makeCardsBatchHandler(deps: CardsBatchDeps): HttpHandler {
         next_review_at: nowIso,
         created_at: nowIso,
         upload_id: uploadId,
-        upload_name: uploadName,
+        upload_name: resolvedUploadName,
         question_lang: input.question_lang ?? null,
         answer_lang: input.answer_lang ?? null,
         reverse_of: null,

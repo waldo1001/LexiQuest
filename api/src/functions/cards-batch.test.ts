@@ -497,3 +497,127 @@ describe("PATCH /api/cards/upload-name", () => {
     expect((res.jsonBody as { updated: number }).updated).toBe(0);
   });
 });
+
+// =====================================================================
+// Slice B — POST /api/cards/batch with uploadId (append to existing)
+// =====================================================================
+describe("POST /api/cards/batch — append to existing upload", () => {
+  let deps: ReturnType<typeof makeDeps>;
+
+  beforeEach(async () => {
+    deps = makeDeps();
+    await seedUser(deps);
+    await seedCourse(deps);
+    // Seed an existing upload with one card
+    await deps.tables.upsert<CardRow>("cards", {
+      partitionKey: COURSE_ID,
+      rowKey: "card-existing",
+      course_id: COURSE_ID,
+      question: "existing q",
+      answer: "existing a",
+      distractors: [],
+      hint: null,
+      source: "ai_import",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: NOW,
+      created_at: NOW,
+      upload_id: "upload-X",
+      upload_name: "Math homework",
+      question_lang: null,
+      answer_lang: null,
+      reverse_of: null,
+    });
+  });
+
+  it("SB-1: with valid uploadId, response upload_id equals it and every card carries it", async () => {
+    const res = await makeCardsBatchHandler(deps)(
+      makeReq(validCookie(deps), { ...validBody, uploadId: "upload-X" }),
+      ctx,
+    );
+    expect(res.status).toBe(201);
+    const body = res.jsonBody as { upload_id: string; cards: { upload_id: string | null; upload_name: string | null }[] };
+    expect(body.upload_id).toBe("upload-X");
+    for (const c of body.cards) {
+      expect(c.upload_id).toBe("upload-X");
+      expect(c.upload_name).toBe("Math homework");
+    }
+  });
+
+  it("SB-2: returns 400 when uploadId does not exist in this course", async () => {
+    const res = await makeCardsBatchHandler(deps)(
+      makeReq(validCookie(deps), { ...validBody, uploadId: "upload-DOES-NOT-EXIST" }),
+      ctx,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("SB-3: returns 400 when both uploadId and uploadName are present (mutually exclusive)", async () => {
+    const res = await makeCardsBatchHandler(deps)(
+      makeReq(validCookie(deps), { ...validBody, uploadId: "upload-X", uploadName: "Brand new" }),
+      ctx,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("SB-4: with neither uploadId nor uploadName, mints a fresh upload_id (regression)", async () => {
+    const res = await makeCardsBatchHandler(deps)(
+      makeReq(validCookie(deps), validBody),
+      ctx,
+    );
+    expect(res.status).toBe(201);
+    const body = res.jsonBody as { upload_id: string; cards: { upload_name: string | null }[] };
+    // Newly minted UUID, not the existing one
+    expect(body.upload_id).not.toBe("upload-X");
+    expect(body.cards[0]?.upload_name).toBeNull();
+  });
+
+  it("SB-5: bidirectional course — reverse cards inherit the same upload_id", async () => {
+    deps = makeDeps();
+    await seedUser(deps);
+    await seedCourse(deps, { bidirectional: true });
+    await deps.tables.upsert<CardRow>("cards", {
+      partitionKey: COURSE_ID,
+      rowKey: "card-existing",
+      course_id: COURSE_ID,
+      question: "existing q",
+      answer: "existing a",
+      distractors: [],
+      hint: null,
+      source: "ai_import",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: NOW,
+      created_at: NOW,
+      upload_id: "upload-X",
+      upload_name: "Math homework",
+      question_lang: null,
+      answer_lang: null,
+      reverse_of: null,
+    });
+
+    const res = await makeCardsBatchHandler(deps)(
+      makeReq(validCookie(deps), { ...validBody, uploadId: "upload-X", bidirectional: true }),
+      ctx,
+    );
+    expect(res.status).toBe(201);
+    const stored = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
+    // Includes seed + 2 forwards + 2 reverses
+    expect(stored).toHaveLength(5);
+    const newRows = stored.filter((r) => r.rowKey !== "card-existing");
+    for (const r of newRows) {
+      expect(r.upload_id).toBe("upload-X");
+      expect(r.upload_name).toBe("Math homework");
+    }
+  });
+
+  it("SB-6: rejects non-string uploadId (e.g. number) with 400", async () => {
+    const res = await makeCardsBatchHandler(deps)(
+      makeReq(validCookie(deps), { ...validBody, uploadId: 42 }),
+      ctx,
+    );
+    expect(res.status).toBe(400);
+  });
+});

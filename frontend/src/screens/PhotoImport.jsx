@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { importCards as importCardsApi } from "../lib/api.js";
+import { importCards as importCardsApi, fetchCards as fetchCardsApi } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
 import { useAppContext } from "../context/AppContext.jsx";
 
@@ -19,21 +19,53 @@ function baseTag(code) {
 }
 
 /**
- * @param {{ importCards?: typeof importCardsApi }} props
+ * @param {{ importCards?: typeof importCardsApi, fetchCards?: typeof fetchCardsApi }} props
  */
-export default function PhotoImport({ importCards = importCardsApi }) {
+export default function PhotoImport({ importCards = importCardsApi, fetchCards = fetchCardsApi }) {
   const t = useT();
   const { lang: uiLang } = useAppContext();
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { courseName = "", ownerId = null, courseLang = null, questionLangDefault = null, answerLangDefault = null } = location.state ?? {};
+  const { courseName = "", ownerId = null, courseLang = null, questionLangDefault = null, answerLangDefault = null, uploadId: initialUploadId = null } = location.state ?? {};
 
   const fileRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [questionLang, setQuestionLang] = useState(() => courseLang ? (questionLangDefault ?? baseTag(uiLang)) : "");
   const [answerLang, setAnswerLang] = useState(() => courseLang ? (answerLangDefault ?? baseTag(uiLang)) : "");
+  const [existingUploads, setExistingUploads] = useState([]);
+  const [selectedUploadId, setSelectedUploadId] = useState(initialUploadId ?? "");
+
+  useEffect(() => {
+    if (!courseId) return;
+    let cancelled = false;
+    fetchCards(courseId)
+      .then((cards) => {
+        if (cancelled) return;
+        const seen = new Map();
+        for (const c of cards) {
+          if (c.upload_id && !seen.has(c.upload_id)) {
+            seen.set(c.upload_id, c.upload_name ?? null);
+          } else if (c.upload_id && c.upload_name && !seen.get(c.upload_id)) {
+            seen.set(c.upload_id, c.upload_name);
+          }
+        }
+        const list = [...seen.entries()].map(([id, name]) => ({ uploadId: id, uploadName: name }));
+        setExistingUploads(list);
+      })
+      /* v8 ignore next 3 */
+      .catch(() => {
+        if (!cancelled) setExistingUploads([]);
+      });
+    return () => { cancelled = true; };
+  }, [courseId, fetchCards]);
+
+  const selectedUploadName = useMemo(() => {
+    if (!selectedUploadId) return null;
+    const hit = existingUploads.find((u) => u.uploadId === selectedUploadId);
+    return hit?.uploadName ?? null;
+  }, [existingUploads, selectedUploadId]);
 
   async function handleExtract() {
     const file = fileRef.current?.files?.[0];
@@ -62,6 +94,8 @@ export default function PhotoImport({ importCards = importCardsApi }) {
           courseName,
           ownerId,
           candidates: result.candidates,
+          uploadId: selectedUploadId || null,
+          uploadName: selectedUploadName,
         },
       });
     } catch (err) {
@@ -85,6 +119,26 @@ export default function PhotoImport({ importCards = importCardsApi }) {
       <Link to={`/courses/${courseId}/cards`} state={location.state}>
         {t("review.back")}
       </Link>
+
+      {existingUploads.length > 0 && (
+        <div>
+          <label>
+            {t("import.addToUpload")}
+            <select
+              aria-label={t("import.addToUpload")}
+              value={selectedUploadId}
+              onChange={(e) => setSelectedUploadId(e.target.value)}
+            >
+              <option value="">{t("import.newUpload")}</option>
+              {existingUploads.map((u) => (
+                <option key={u.uploadId} value={u.uploadId}>
+                  {u.uploadName ?? u.uploadId}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
 
       <div>
         <label>
