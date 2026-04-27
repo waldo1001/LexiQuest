@@ -91,6 +91,66 @@ describe("seed", () => {
     expect(waldo!.avatar_image_url).toBe("/icons/icon-192.png");
   });
 
+  it("AVATAR-BACKFILL: re-running seed() backfills avatar_image_url on an existing Waldo row that lacks it", async () => {
+    const tables = new FakeTableStorage();
+    const hasher = new FakePasswordHasher();
+    const clock = new FakeClock("2026-04-22T09:00:00Z");
+    // pre-seeded Waldo row from before this slice — no avatar_image_url
+    await tables.upsert<UserRow>("users", {
+      partitionKey: "users",
+      rowKey: "u-waldo-existing",
+      name: "Waldo",
+      password_hash: "fake$s0001$wpw",
+      is_admin: true,
+      color: "#2563eb",
+      avatar_emoji: "🦊",
+      ui_language: "nl",
+      settings: {
+        auto_speak: true,
+        preferred_mode: "ask",
+        daily_goal: 20,
+        theme: "playful",
+      },
+      created_at: "2026-04-25T00:00:00Z",
+    });
+    const random = new FakeRandom([
+      "u-lex",
+      "u-mats",
+      "u-ben",
+      "u-kaat",
+      "u-amaryllis",
+      "y-1",
+    ]);
+    const res = await seed({
+      tables,
+      hasher,
+      clock,
+      random,
+      getPassword: (n) => passwords[n],
+    });
+    const waldoResult = res.users.find((u) => u.name === "Waldo");
+    expect(waldoResult).toBeDefined();
+    expect(waldoResult!.created).toBe(false);
+    const rows = await tables.listByPartition<UserRow>("users", "users");
+    const waldo = rows.find((r) => r.name === "Waldo");
+    expect(waldo!.rowKey).toBe("u-waldo-existing");
+    expect(waldo!.avatar_image_url).toBe("/icons/icon-192.png");
+    expect(waldo!.password_hash).toBe("fake$s0001$wpw");
+    expect(waldo!.created_at).toBe("2026-04-25T00:00:00Z");
+  });
+
+  it("AVATAR-BACKFILL-IDEMPOTENT: running seed() twice does not duplicate or change avatar_image_url once set", async () => {
+    const deps = make();
+    await seed(deps);
+    const before = await deps.tables.listByPartition<UserRow>(
+      "users",
+      "users",
+    );
+    await seed({ ...deps, getPassword: (n) => passwords[n] });
+    const after = await deps.tables.listByPartition<UserRow>("users", "users");
+    expect(after).toEqual(before);
+  });
+
   it("AVATAR-3: after seed(), kid rows do NOT have avatar_image_url", async () => {
     const deps = make();
     await seed(deps);

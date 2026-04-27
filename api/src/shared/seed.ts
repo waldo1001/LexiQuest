@@ -91,6 +91,15 @@ export async function seed(opts: SeedOptions): Promise<SeedResult> {
   for (const spec of SEED_USERS) {
     const existingRow = byName.get(spec.name);
     if (existingRow) {
+      if (
+        spec.avatar_image_url !== undefined &&
+        existingRow.avatar_image_url !== spec.avatar_image_url
+      ) {
+        await tables.upsert<UserRow>("users", {
+          ...existingRow,
+          avatar_image_url: spec.avatar_image_url,
+        });
+      }
       userResults.push({
         id: existingRow.rowKey,
         name: spec.name,
