@@ -129,7 +129,15 @@ onward (first login + dashboard) and gets sections added per phase:
     Pick a date range. The chart updates instantly showing all selected
     users overlaid with their own color.
 - **Install as an app** (Phase 17): add to home screen on iOS or Android.
-  Works full-screen without browser chrome.
+  Works full-screen without browser chrome. The home-screen icon is the
+  LexiQuest mark generated from `frontend/scripts/icon-source/waldo.png`
+  (run `npm run icons` after replacing the source to regenerate the
+  192/512 `any` and `maskable` PNGs in `public/icons/`).
+- **Custom avatar** (post-v1): admins can set a user's avatar to a
+  PNG/WebP under `/icons/` instead of an emoji. Edit the user, set
+  `avatar_image_url` to e.g. `/icons/icon-192.png`. Validation rejects
+  external URLs, SVG, and any path outside `/icons/`. Send `null` to
+  clear and fall back to the emoji.
 - **Settings** (Phase 17): UI language (NL / EN), auto-speak, daily goal,
   preferred study mode, streak freeze tokens, and:
   - **Display theme** — System default, Light, or Dark.

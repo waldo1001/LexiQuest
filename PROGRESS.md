@@ -316,7 +316,7 @@ Plan: [docs/plans/i-can-t-log-into-mighty-eagle.md](docs/plans/i-can-t-log-into-
 
 ## Post-v1 — Online-only PWA (Android-installable home-screen icon)
 
-Plan: [docs/plans/pwa-online-only.md](docs/plans/pwa-online-only.md)
+Plan: [docs/plans/done/pwa-online-only.md](docs/plans/done/pwa-online-only.md) (also covers Waldo image avatar via [done/waldo-image-avatar.md](docs/plans/done/waldo-image-avatar.md))
 
 - ✅ Slice 1 — PWA online-only
   - Tests: PWA-9..12 (manifest icons resolve, split any/maskable, apple-touch-icon, SWA fallback exclusions); PWA-B1..B3 (build-output smoke: manifest, sw.js, valid 192/512 PNGs)
