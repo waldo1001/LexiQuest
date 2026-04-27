@@ -180,4 +180,35 @@ describe("validateUserPatch", () => {
     });
     expect(r.ok).toBe(true);
   });
+
+  it("AVATAR-6: accepts avatar_image_url /icons/icon-192.png", () => {
+    const r = validateUserPatch({ avatar_image_url: "/icons/icon-192.png" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.patch.avatar_image_url).toBe("/icons/icon-192.png");
+  });
+
+  it("AVATAR-7: rejects external avatar_image_url (https)", () => {
+    expect(
+      validateUserPatch({ avatar_image_url: "https://evil.example.com/x.png" })
+        .ok,
+    ).toBe(false);
+  });
+
+  it("AVATAR-8: rejects javascript: avatar_image_url (XSS-shaped)", () => {
+    expect(
+      validateUserPatch({ avatar_image_url: "javascript:alert(1)" }).ok,
+    ).toBe(false);
+  });
+
+  it("AVATAR-9: rejects path traversal in avatar_image_url", () => {
+    expect(
+      validateUserPatch({ avatar_image_url: "/icons/../../etc/passwd" }).ok,
+    ).toBe(false);
+  });
+
+  it("AVATAR-10: accepts null to clear avatar_image_url", () => {
+    const r = validateUserPatch({ avatar_image_url: null });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.patch.avatar_image_url).toBeNull();
+  });
 });

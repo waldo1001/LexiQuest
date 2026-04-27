@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchPublicUsers } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
+import Avatar from "../components/Avatar.jsx";
 
 export default function UserPicker({ fetchUsers = fetchPublicUsers } = {}) {
   const t = useT();
@@ -36,7 +37,11 @@ export default function UserPicker({ fetchUsers = fetchPublicUsers } = {}) {
               data-testid={`picker-${u.id}`}
               className="card card-tile"
             >
-              <span className="avatar" aria-hidden="true">{u.avatar_emoji}</span>
+              <Avatar
+                avatarImageUrl={u.avatar_image_url}
+                avatarEmoji={u.avatar_emoji}
+                name={u.name}
+              />
               <span className="tile-name">{u.name}</span>
             </Link>
           </li>

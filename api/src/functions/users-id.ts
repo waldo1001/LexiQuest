@@ -79,6 +79,13 @@ export function makeUsersIdHandler(deps: UsersIdDeps): HttpHandler {
         : existing.settings,
       password_hash,
     };
+    if ("avatar_image_url" in patch) {
+      if (patch.avatar_image_url === null) {
+        delete merged.avatar_image_url;
+      } else {
+        merged.avatar_image_url = patch.avatar_image_url;
+      }
+    }
     await deps.tables.upsert<UserRow>("users", merged);
 
     return { status: 200, jsonBody: fullProfile(merged) };

@@ -76,6 +76,32 @@ describe("seed", () => {
     expect(amaryllis!.avatar_emoji).toBe("🌸");
   });
 
+  it("AVATAR-1: Waldo seed spec carries avatar_image_url /icons/icon-192.png", () => {
+    const waldo = SEED_USERS.find((s) => s.name === "Waldo");
+    expect(waldo).toBeDefined();
+    expect(waldo!.avatar_image_url).toBe("/icons/icon-192.png");
+  });
+
+  it("AVATAR-2: after seed(), Waldo's stored row has avatar_image_url set", async () => {
+    const deps = make();
+    await seed(deps);
+    const rows = await deps.tables.listByPartition<UserRow>("users", "users");
+    const waldo = rows.find((r) => r.name === "Waldo");
+    expect(waldo).toBeDefined();
+    expect(waldo!.avatar_image_url).toBe("/icons/icon-192.png");
+  });
+
+  it("AVATAR-3: after seed(), kid rows do NOT have avatar_image_url", async () => {
+    const deps = make();
+    await seed(deps);
+    const rows = await deps.tables.listByPartition<UserRow>("users", "users");
+    for (const name of ["Lex", "Mats", "Ben", "Kaat", "Amaryllis"]) {
+      const r = rows.find((row) => row.name === name);
+      expect(r).toBeDefined();
+      expect(r!.avatar_image_url).toBeUndefined();
+    }
+  });
+
   it("inserts a current year row", async () => {
     const deps = make();
     const res = await seed(deps);

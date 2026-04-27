@@ -12,6 +12,8 @@ export const PREFERRED_MODES = new Set<PreferredMode>([
   "ask",
 ]);
 
+export const AVATAR_IMAGE_URL_RE = /^\/icons\/[a-z0-9-]+\.(png|webp)$/;
+
 export function fullProfile(user: UserRow) {
   return {
     id: user.rowKey,
@@ -19,6 +21,7 @@ export function fullProfile(user: UserRow) {
     isAdmin: user.is_admin,
     color: user.color,
     avatar_emoji: user.avatar_emoji,
+    avatar_image_url: user.avatar_image_url ?? null,
     ui_language: user.ui_language,
     settings: user.settings,
     created_at: user.created_at,
@@ -93,6 +96,7 @@ export interface UserPatchBody {
   is_admin?: boolean;
   color?: string;
   avatar_emoji?: string;
+  avatar_image_url?: string | null;
   ui_language?: UiLanguage;
   settings?: Partial<UserSettings>;
 }
@@ -137,6 +141,20 @@ export function validateUserPatch(
       return { ok: false, error: "avatar_emoji must be a non-empty string" };
     }
     patch.avatar_emoji = src.avatar_emoji;
+  }
+  if ("avatar_image_url" in src) {
+    const v = src.avatar_image_url;
+    if (v === null || v === "") {
+      patch.avatar_image_url = null;
+    } else if (typeof v !== "string" || !AVATAR_IMAGE_URL_RE.test(v)) {
+      return {
+        ok: false,
+        error:
+          "avatar_image_url must match /icons/<name>.(png|webp) or be null",
+      };
+    } else {
+      patch.avatar_image_url = v;
+    }
   }
   if ("ui_language" in src) {
     if (

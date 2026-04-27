@@ -327,3 +327,15 @@ Plan: [docs/plans/pwa-online-only.md](docs/plans/pwa-online-only.md)
   - `index.html`: added `<link rel="apple-touch-icon" href="/icons/icon-192.png">`
   - `staticwebapp.config.json`: added `/icons/*`, `/manifest.json`, `/*.webmanifest` to navigationFallback exclude
   - Full suite: 529 passing
+
+- ✅ Slice 2 — Waldo image avatar
+  - Schema: `UserRow.avatar_image_url?: string`; Waldo's seed spec set to `/icons/icon-192.png`
+  - Validation: `^/icons/[a-z0-9-]+\.(png|webp)$` regex; rejects external URLs, `javascript:`, path traversal; null clears the field
+  - Projection: `/api/users/public` returns `avatar_image_url` (nullable); `fullProfile` includes it
+  - PUT `/api/users/:id` updates and clears the field; `delete merged.avatar_image_url` on null patch
+  - Frontend: new `<Avatar>` component renders `<img>` (with explicit width/height) when `avatar_image_url` is a non-empty string, else emoji span
+  - `UserPicker` switched to `<Avatar>` so all picker tiles render through the same path
+  - Tests: AVATAR-1..16 across `seed.test.ts`, `users-public.test.ts`, `users-shared.test.ts`, `users-id.test.ts`, `Avatar.test.jsx`, `UserPicker.test.jsx`
+  - Full suites: 809 api + 535 frontend = 1344 tests passing
+  - Security scan PASS
+  - Migration: existing Waldo row needs a manual `PUT /api/users/<waldoId>` (or admin UI) to set the new field — seed only populates it for new rows

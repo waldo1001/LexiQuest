@@ -257,6 +257,36 @@ describe("PUT /api/users/:id", () => {
     expect(res.status).toBe(400);
   });
 
+  it("AVATAR-11: PUT updates avatar_image_url and persists on round-trip", async () => {
+    const res = (await makeUsersIdHandler(deps)(
+      makeReq(adminCookie(), {
+        body: { avatar_image_url: "/icons/icon-192.png" },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(200);
+    const body = res.jsonBody as Record<string, unknown>;
+    expect(body.avatar_image_url).toBe("/icons/icon-192.png");
+    const stored = await deps.tables.getById<UserRow>(
+      "users",
+      "users",
+      "u-target",
+    );
+    expect(stored?.avatar_image_url).toBe("/icons/icon-192.png");
+
+    const cleared = (await makeUsersIdHandler(deps)(
+      makeReq(adminCookie(), { body: { avatar_image_url: null } }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(cleared.status).toBe(200);
+    const after = await deps.tables.getById<UserRow>(
+      "users",
+      "users",
+      "u-target",
+    );
+    expect(after?.avatar_image_url).toBeUndefined();
+  });
+
   it("PUT treats missing body as empty patch and returns 200 unchanged", async () => {
     const res = (await makeUsersIdHandler(deps)(
       makeReq(adminCookie(), { method: "PUT" }),

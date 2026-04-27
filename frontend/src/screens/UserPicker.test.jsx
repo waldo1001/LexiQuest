@@ -69,4 +69,33 @@ describe("UserPicker", () => {
     expect(alice).toHaveClass("card");
     expect(bob).toHaveClass("card");
   });
+
+  it("AVATAR-16: tile with avatar_image_url renders <img>; tile with only emoji renders the emoji span", async () => {
+    setup(
+      vi.fn().mockResolvedValue([
+        {
+          id: "u-waldo",
+          name: "Waldo",
+          avatar_emoji: "🦊",
+          avatar_image_url: "/icons/icon-192.png",
+          color: "#abc",
+        },
+        {
+          id: "u-lex",
+          name: "Lex",
+          avatar_emoji: "🐯",
+          avatar_image_url: null,
+          color: "#def",
+        },
+      ]),
+    );
+    const waldoTile = await screen.findByTestId("picker-u-waldo");
+    const img = waldoTile.querySelector("img");
+    expect(img).not.toBeNull();
+    expect(img.getAttribute("src")).toBe("/icons/icon-192.png");
+
+    const lexTile = screen.getByTestId("picker-u-lex");
+    expect(lexTile.querySelector("img")).toBeNull();
+    expect(lexTile.textContent).toContain("🐯");
+  });
 });

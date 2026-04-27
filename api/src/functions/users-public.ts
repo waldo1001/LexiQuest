@@ -20,6 +20,7 @@ export function makeUsersPublicHandler(
         id: r.rowKey,
         name: r.name,
         avatar_emoji: r.avatar_emoji,
+        avatar_image_url: r.avatar_image_url ?? null,
         color: r.color,
       }))
       .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));

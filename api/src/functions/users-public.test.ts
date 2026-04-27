@@ -47,7 +47,7 @@ describe("GET /api/users/public", () => {
     expect(res.jsonBody).toEqual([]);
   });
 
-  it("projects only { id, name, avatar_emoji, color }", async () => {
+  it("projects only { id, name, avatar_emoji, avatar_image_url, color }", async () => {
     await tables.upsert<UserRow>("users", userRow("u1", "Alice"));
     await tables.upsert<UserRow>("users", userRow("u2", "Bob"));
     const res = (await makeUsersPublicHandler({ tables })(
@@ -58,11 +58,37 @@ describe("GET /api/users/public", () => {
     for (const item of body) {
       expect(Object.keys(item as object).sort()).toEqual([
         "avatar_emoji",
+        "avatar_image_url",
         "color",
         "id",
         "name",
       ]);
     }
+  });
+
+  it("AVATAR-4: includes avatar_image_url for users whose row has it set", async () => {
+    await tables.upsert<UserRow>(
+      "users",
+      userRow("u-waldo", "Waldo", { avatar_image_url: "/icons/icon-192.png" }),
+    );
+    const res = (await makeUsersPublicHandler({ tables })(
+      req,
+      ctx,
+    )) as HttpResponseInit;
+    const body = res.jsonBody as { name: string; avatar_image_url: unknown }[];
+    const waldo = body.find((u) => u.name === "Waldo");
+    expect(waldo).toBeDefined();
+    expect(waldo!.avatar_image_url).toBe("/icons/icon-192.png");
+  });
+
+  it("AVATAR-5: avatar_image_url is null when the user row does not have it", async () => {
+    await tables.upsert<UserRow>("users", userRow("u-lex", "Lex"));
+    const res = (await makeUsersPublicHandler({ tables })(
+      req,
+      ctx,
+    )) as HttpResponseInit;
+    const body = res.jsonBody as { name: string; avatar_image_url: unknown }[];
+    expect(body[0]!.avatar_image_url).toBeNull();
   });
 
   it("response NEVER contains sensitive fields", async () => {

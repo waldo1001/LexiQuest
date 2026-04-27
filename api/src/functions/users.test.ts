@@ -167,6 +167,7 @@ describe("GET /api/users", () => {
     expect(item.created_at).toBe("2026-04-22T00:00:00.000Z");
     expect(Object.keys(item).sort()).toEqual([
       "avatar_emoji",
+      "avatar_image_url",
       "color",
       "created_at",
       "id",

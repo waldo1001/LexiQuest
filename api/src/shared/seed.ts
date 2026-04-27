@@ -11,6 +11,7 @@ export interface UserRow extends Entity {
   is_admin: boolean;
   color: string;
   avatar_emoji: string;
+  avatar_image_url?: string;
   ui_language: "nl" | "en";
   settings: {
     auto_speak: boolean;
@@ -40,10 +41,17 @@ export interface SeedUserSpec {
   is_admin: boolean;
   color: string;
   avatar_emoji: string;
+  avatar_image_url?: string;
 }
 
 export const SEED_USERS: readonly SeedUserSpec[] = [
-  { name: "Waldo", is_admin: true, color: "#2563eb", avatar_emoji: "🦊" },
+  {
+    name: "Waldo",
+    is_admin: true,
+    color: "#2563eb",
+    avatar_emoji: "🦊",
+    avatar_image_url: "/icons/icon-192.png",
+  },
   { name: "Lex", is_admin: false, color: "#16a34a", avatar_emoji: "🐯" },
   { name: "Mats", is_admin: false, color: "#dc2626", avatar_emoji: "🐻" },
   { name: "Ben", is_admin: false, color: "#9333ea", avatar_emoji: "🐼" },
@@ -104,6 +112,9 @@ export async function seed(opts: SeedOptions): Promise<SeedResult> {
       is_admin: spec.is_admin,
       color: spec.color,
       avatar_emoji: spec.avatar_emoji,
+      ...(spec.avatar_image_url !== undefined && {
+        avatar_image_url: spec.avatar_image_url,
+      }),
       ui_language: "nl",
       settings: {
         auto_speak: true,
