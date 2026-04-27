@@ -12,7 +12,7 @@ import {
 import { useT } from "../i18n/useT.js";
 import { useAppContext, useTts } from "../context/AppContext.jsx";
 
-const EMPTY_NEW = { question: "", answer: "", hint: "" };
+const EMPTY_NEW = { question: "", answer: "", hint: "", uploadId: "" };
 const MANUAL_KEY = "__manual__";
 
 function groupByUpload(cards) {
@@ -113,6 +113,16 @@ export default function CardManager({
   }, [courseId, fetchCards]);
 
   const groups = useMemo(() => (cards ? groupByUpload(cards) : []), [cards]);
+  const uploadOptions = useMemo(
+    () =>
+      groups
+        .filter((g) => g.uploadId !== null)
+        .map((g) => ({
+          uploadId: g.uploadId,
+          label: g.uploadName ?? t("cards.option.upload", { date: formatDate(g.earliest) }),
+        })),
+    [groups, t],
+  );
 
   const partnerMap = useMemo(() => {
     if (!cards) return new Map();
@@ -152,14 +162,33 @@ export default function CardManager({
       answer: newForm.answer,
       hint: newForm.hint || null,
     };
+    if (newForm.uploadId) payload.upload_id = newForm.uploadId;
     try {
       const created = await createCard(payload);
       setCards((prev) => [...(prev ?? []), created]);
+      const targetKey = created.upload_id ?? MANUAL_KEY;
+      setExpandedGroups((prev) => {
+        const next = new Set(prev);
+        next.add(targetKey);
+        return next;
+      });
       setNewForm(EMPTY_NEW);
       setShowNew(false);
       setStatus(t("cards.status.created"));
     } catch {
       setError(t("errors.generic"));
+    }
+  }
+
+  function openNewFormForUpload(uploadId) {
+    setNewForm({ ...EMPTY_NEW, uploadId: uploadId ?? "" });
+    setShowNew(true);
+    if (uploadId) {
+      setExpandedGroups((prev) => {
+        const next = new Set(prev);
+        next.add(uploadId);
+        return next;
+      });
     }
   }
 
@@ -410,6 +439,13 @@ export default function CardManager({
                     <button
                       type="button"
                       className="btn-icon"
+                      data-testid={`upload-add-card-${group.uploadId}`}
+                      onClick={(e) => { e.stopPropagation(); openNewFormForUpload(group.uploadId); }}
+                      title={t("cards.action.addToUpload")}
+                    >➕</button>
+                    <button
+                      type="button"
+                      className="btn-icon"
                       data-testid="rename-btn"
                       onClick={(e) => { e.stopPropagation(); startRename(group); }}
                       title={t("cards.action.rename")}
@@ -558,6 +594,23 @@ export default function CardManager({
 
       {canEdit && showNew && (
         <form onSubmit={onAdd}>
+          {uploadOptions.length > 0 && (
+            <label>
+              {t("cards.field.addTo")}
+              <select
+                aria-label={t("cards.field.addTo")}
+                value={newForm.uploadId}
+                onChange={(e) => setNewForm({ ...newForm, uploadId: e.target.value })}
+              >
+                <option value="">{t("cards.group.manual")}</option>
+                {uploadOptions.map((opt) => (
+                  <option key={opt.uploadId} value={opt.uploadId}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label>
             {t("cards.field.question")}
             <input

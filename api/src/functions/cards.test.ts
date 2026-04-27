@@ -375,4 +375,164 @@ describe("POST /api/cards", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].reverse_of).toBeNull();
   });
+
+  // -----------------------------------------------------------------
+  // POST /api/cards — upload_id (manual add into existing upload)
+  // -----------------------------------------------------------------
+
+  it("creates manual card with upload_id null when body omits upload_id (regression)", async () => {
+    const res = (await makeCardsHandler(deps)(
+      makeReq(validCookie(deps, OWNER_ID), {
+        method: "POST",
+        body: { course_id: COURSE_ID, question: "Q?", answer: "A" },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(201);
+    const body = res.jsonBody as { upload_id: string | null; upload_name: string | null };
+    expect(body.upload_id).toBeNull();
+    expect(body.upload_name).toBeNull();
+  });
+
+  it("creates card stamped with upload_id when body references a real upload in the same course", async () => {
+    // Seed an existing upload with one card.
+    await deps.tables.upsert<CardRow>("cards", {
+      partitionKey: COURSE_ID,
+      rowKey: "card-existing",
+      course_id: COURSE_ID,
+      question: "existing q",
+      answer: "existing a",
+      distractors: [],
+      hint: null,
+      source: "ai_import",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: "2026-04-22T09:00:00.000Z",
+      created_at: "2026-04-22T09:00:00.000Z",
+      upload_id: "upload-X",
+      upload_name: "Math homework",
+      question_lang: null,
+      answer_lang: null,
+      reverse_of: null,
+    });
+
+    const res = (await makeCardsHandler(deps)(
+      makeReq(validCookie(deps, OWNER_ID), {
+        method: "POST",
+        body: { course_id: COURSE_ID, question: "Q?", answer: "A", upload_id: "upload-X" },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(201);
+    const body = res.jsonBody as { upload_id: string | null; upload_name: string | null; id: string };
+    expect(body.upload_id).toBe("upload-X");
+    expect(body.upload_name).toBe("Math homework");
+
+    // And the row in storage.
+    const rows = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
+    const created = rows.find((r) => r.rowKey === body.id)!;
+    expect(created.upload_id).toBe("upload-X");
+    expect(created.upload_name).toBe("Math homework");
+  });
+
+  it("returns 400 when upload_id refers to a non-existent upload", async () => {
+    const res = (await makeCardsHandler(deps)(
+      makeReq(validCookie(deps, OWNER_ID), {
+        method: "POST",
+        body: { course_id: COURSE_ID, question: "Q?", answer: "A", upload_id: "upload-DOES-NOT-EXIST" },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+    expect((res.jsonBody as { error: string }).error).toMatch(/upload/i);
+  });
+
+  it("returns 400 when upload_id exists in a different course (course-scoped lookup)", async () => {
+    const OTHER_COURSE = "course-spanish";
+    await deps.tables.upsert("courses", makeCourse(OWNER_ID, OTHER_COURSE, { name: "Spanish" }));
+    // Seed the upload in the OTHER course only.
+    await deps.tables.upsert<CardRow>("cards", {
+      partitionKey: OTHER_COURSE,
+      rowKey: "card-other",
+      course_id: OTHER_COURSE,
+      question: "other q",
+      answer: "other a",
+      distractors: [],
+      hint: null,
+      source: "ai_import",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: "2026-04-22T09:00:00.000Z",
+      created_at: "2026-04-22T09:00:00.000Z",
+      upload_id: "upload-OTHER",
+      upload_name: "Other upload",
+      question_lang: null,
+      answer_lang: null,
+      reverse_of: null,
+    });
+
+    const res = (await makeCardsHandler(deps)(
+      makeReq(validCookie(deps, OWNER_ID), {
+        method: "POST",
+        body: { course_id: COURSE_ID, question: "Q?", answer: "A", upload_id: "upload-OTHER" },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
+  it("bidirectional course: reverse card inherits upload_id and upload_name from forward", async () => {
+    const biDeps = makeDeps(["card-fwd", "card-rev"]);
+    await biDeps.tables.upsert("users", makeUser(OWNER_ID, false));
+    await biDeps.tables.upsert("courses", makeCourse(OWNER_ID, COURSE_ID, { bidirectional: true }));
+    await biDeps.tables.upsert<CardRow>("cards", {
+      partitionKey: COURSE_ID,
+      rowKey: "card-existing",
+      course_id: COURSE_ID,
+      question: "existing q",
+      answer: "existing a",
+      distractors: [],
+      hint: null,
+      source: "ai_import",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: "2026-04-22T09:00:00.000Z",
+      created_at: "2026-04-22T09:00:00.000Z",
+      upload_id: "upload-X",
+      upload_name: "Math homework",
+      question_lang: null,
+      answer_lang: null,
+      reverse_of: null,
+    });
+
+    const res = await makeCardsHandler(biDeps)(
+      makeReq(validCookie(biDeps, OWNER_ID), {
+        method: "POST",
+        body: { course_id: COURSE_ID, question: "the dog", answer: "le chien", upload_id: "upload-X" },
+      }),
+      ctx,
+    );
+    expect(res.status).toBe(201);
+    const rows = await biDeps.tables.listByPartition<CardRow>("cards", COURSE_ID);
+    const fwd = rows.find((r) => r.rowKey === "card-fwd")!;
+    const rev = rows.find((r) => r.rowKey === "card-rev")!;
+    expect(fwd.upload_id).toBe("upload-X");
+    expect(fwd.upload_name).toBe("Math homework");
+    expect(rev.upload_id).toBe("upload-X");
+    expect(rev.upload_name).toBe("Math homework");
+  });
+
+  it("rejects non-string upload_id (e.g. number) with 400", async () => {
+    const res = (await makeCardsHandler(deps)(
+      makeReq(validCookie(deps, OWNER_ID), {
+        method: "POST",
+        body: { course_id: COURSE_ID, question: "Q?", answer: "A", upload_id: 42 },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
 });

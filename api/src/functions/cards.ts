@@ -15,6 +15,7 @@ import type { CourseRow } from "./courses-shared.js";
 import {
   buildReverseCard,
   cardProfile,
+  findExistingUpload,
   validateCardCreate,
   type CardRow,
 } from "./cards-shared.js";
@@ -64,6 +65,17 @@ export function makeCardsHandler(deps: CardsDeps): HttpHandler {
       return { status: 403, jsonBody: { error: "forbidden" } };
     }
 
+    let uploadId: string | null = null;
+    let uploadName: string | null = null;
+    if (value.upload_id) {
+      const existing = await findExistingUpload(deps.tables, value.course_id, value.upload_id);
+      if (!existing) {
+        return { status: 400, jsonBody: { error: "upload_id does not match any upload in this course" } };
+      }
+      uploadId = existing.uploadId;
+      uploadName = existing.uploadName;
+    }
+
     const nowIso = deps.clock.now().toISOString();
     const id = deps.random.uuid();
     const row: CardRow = {
@@ -80,7 +92,8 @@ export function makeCardsHandler(deps: CardsDeps): HttpHandler {
       sm2_reps: 0,
       next_review_at: nowIso,
       created_at: nowIso,
-      upload_id: null,
+      upload_id: uploadId,
+      upload_name: uploadName,
       question_lang: value.question_lang ?? null,
       answer_lang: value.answer_lang ?? null,
       reverse_of: null,

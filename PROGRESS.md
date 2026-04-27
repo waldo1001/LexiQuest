@@ -339,3 +339,15 @@ Plan: [docs/plans/done/pwa-online-only.md](docs/plans/done/pwa-online-only.md) (
   - Full suites: 809 api + 535 frontend = 1344 tests passing
   - Security scan PASS
   - Migration: existing Waldo row needs a manual `PUT /api/users/<waldoId>` (or admin UI) to set the new field — seed only populates it for new rows
+
+---
+
+## Post-v1 — Add cards to an existing upload (manual + import)
+
+Plan: [docs/plans/post-v1-add-to-existing-upload.md](docs/plans/post-v1-add-to-existing-upload.md)
+
+- ✅ Slice A — Manual add into existing upload
+  - API: `findExistingUpload(tables, courseId, uploadId)` helper in `cards-shared.ts` (course-scoped); `validateCardCreate` accepts optional `upload_id`; `POST /api/cards` looks up the upload, stamps both `upload_id` and inherited `upload_name`, returns 400 if the upload doesn't belong to the course
+  - Frontend: `CardManager` New-card form gains an "Add to" `<select>` (default *Manual*, plus each existing upload); per-upload ➕ icon button opens the form pre-targeted to that upload; new card auto-expands its destination group
+  - i18n: `cards.field.addTo`, `cards.option.upload`, `cards.action.addToUpload` (en/nl)
+  - Tests: 7 new in `cards-shared.test.ts` (findExistingUpload), 6 new in `cards.test.ts` (POST upload_id matrix incl. bidirectional inheritance + cross-course rejection), 6 new in `CardManager.test.jsx` (CMA-1..6); full suite green

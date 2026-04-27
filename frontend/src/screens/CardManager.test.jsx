@@ -681,3 +681,169 @@ describe("CardManager — TTS speak buttons", () => {
     expect(tts.lastSpoken?.lang).toBe("nl");
   });
 });
+
+// =====================================================================
+// Slice A — Manual add into an existing upload
+// =====================================================================
+describe("CardManager — Add card into existing upload", () => {
+  const SEED_WITH_UPLOAD = [
+    {
+      id: "card-manual",
+      course_id: COURSE_ID,
+      question: "Manual Q",
+      answer: "Manual A",
+      distractors: [],
+      hint: null,
+      source: "manual",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: "2026-04-22T09:00:00Z",
+      created_at: "2026-04-22T09:00:00Z",
+      upload_id: null,
+      upload_name: null,
+    },
+    {
+      id: "card-up1-a",
+      course_id: COURSE_ID,
+      question: "Imported Q1",
+      answer: "Imported A1",
+      distractors: [],
+      hint: null,
+      source: "ai_import",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: "2026-04-22T09:00:00Z",
+      created_at: "2026-04-22T09:00:00Z",
+      upload_id: "up-1",
+      upload_name: "Math homework",
+    },
+    {
+      id: "card-up1-b",
+      course_id: COURSE_ID,
+      question: "Imported Q2",
+      answer: "Imported A2",
+      distractors: [],
+      hint: null,
+      source: "ai_import",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: "2026-04-22T09:00:00Z",
+      created_at: "2026-04-22T09:00:00Z",
+      upload_id: "up-1",
+      upload_name: "Math homework",
+    },
+  ];
+
+  it("CMA-1: New-card form shows 'Add to' selector listing Manual + each existing upload", async () => {
+    const user = userEvent.setup();
+    setup({ fetchCards: vi.fn().mockResolvedValue(SEED_WITH_UPLOAD) });
+
+    await screen.findByText(/Math homework \(2\)/);
+    await user.click(screen.getByRole("button", { name: /new card/i }));
+
+    const select = screen.getByRole("combobox", { name: /add to/i });
+    expect(select).toBeInTheDocument();
+    // Default = Manual
+    expect(select).toHaveValue("");
+    // Has Manual + Math homework as options
+    const optionLabels = Array.from(select.options).map((o) => o.textContent);
+    expect(optionLabels).toContain("Manual cards");
+    expect(optionLabels.some((l) => l.includes("Math homework"))).toBe(true);
+  });
+
+  it("CMA-2: submitting with Manual selected sends no upload_id", async () => {
+    const created = {
+      ...SEED_WITH_UPLOAD[0],
+      id: "card-new",
+      question: "Q new",
+      answer: "A new",
+    };
+    const createCard = vi.fn().mockResolvedValue(created);
+    const user = userEvent.setup();
+    setup({ fetchCards: vi.fn().mockResolvedValue(SEED_WITH_UPLOAD), createCard });
+
+    await screen.findByText(/Math homework \(2\)/);
+    await user.click(screen.getByRole("button", { name: /new card/i }));
+    await user.type(screen.getByRole("textbox", { name: /question/i }), "Q new");
+    await user.type(screen.getByRole("textbox", { name: /answer/i }), "A new");
+    await user.click(screen.getByRole("button", { name: /add card/i }));
+
+    expect(createCard).toHaveBeenCalledTimes(1);
+    const payload = createCard.mock.calls[0][0];
+    expect(payload.upload_id == null).toBe(true);
+  });
+
+  it("CMA-3: submitting with an upload selected sends that upload_id", async () => {
+    const created = {
+      ...SEED_WITH_UPLOAD[1],
+      id: "card-new",
+      question: "Q new",
+      answer: "A new",
+    };
+    const createCard = vi.fn().mockResolvedValue(created);
+    const user = userEvent.setup();
+    setup({ fetchCards: vi.fn().mockResolvedValue(SEED_WITH_UPLOAD), createCard });
+
+    await screen.findByText(/Math homework \(2\)/);
+    await user.click(screen.getByRole("button", { name: /new card/i }));
+    await user.selectOptions(screen.getByRole("combobox", { name: /add to/i }), "up-1");
+    await user.type(screen.getByRole("textbox", { name: /question/i }), "Q new");
+    await user.type(screen.getByRole("textbox", { name: /answer/i }), "A new");
+    await user.click(screen.getByRole("button", { name: /add card/i }));
+
+    expect(createCard).toHaveBeenCalledTimes(1);
+    expect(createCard.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ upload_id: "up-1" }),
+    );
+  });
+
+  it("CMA-4: per-upload 'Add card here' button opens form pre-targeted to that upload", async () => {
+    const user = userEvent.setup();
+    setup({ fetchCards: vi.fn().mockResolvedValue(SEED_WITH_UPLOAD) });
+
+    await screen.findByText(/Math homework \(2\)/);
+    const addHere = await screen.findByTestId("upload-add-card-up-1");
+    await user.click(addHere);
+
+    const select = screen.getByRole("combobox", { name: /add to/i });
+    expect(select).toHaveValue("up-1");
+  });
+
+  it("CMA-5: after manual-add to an upload, the new card appears under that group", async () => {
+    const created = {
+      ...SEED_WITH_UPLOAD[1],
+      id: "card-new",
+      question: "Q new",
+      answer: "A new",
+      upload_id: "up-1",
+      upload_name: "Math homework",
+    };
+    const createCard = vi.fn().mockResolvedValue(created);
+    const user = userEvent.setup();
+    setup({ fetchCards: vi.fn().mockResolvedValue(SEED_WITH_UPLOAD), createCard });
+
+    await screen.findByText(/Math homework \(2\)/);
+    await user.click(screen.getByRole("button", { name: /new card/i }));
+    await user.selectOptions(screen.getByRole("combobox", { name: /add to/i }), "up-1");
+    await user.type(screen.getByRole("textbox", { name: /question/i }), "Q new");
+    await user.type(screen.getByRole("textbox", { name: /answer/i }), "A new");
+    await user.click(screen.getByRole("button", { name: /add card/i }));
+
+    // The new card should appear and the Math homework group's count should reflect 3.
+    expect(await screen.findByText("Q new")).toBeInTheDocument();
+    expect(screen.getByText(/Math homework \(3\)/)).toBeInTheDocument();
+  });
+
+  it("CMA-6: when no uploads exist, selector is hidden (no regression for fresh course)", async () => {
+    const user = userEvent.setup();
+    // Only manual-only cards (no upload_id)
+    setup();
+    await screen.findByText("What is a dog?");
+    await user.click(screen.getByRole("button", { name: /new card/i }));
+
+    expect(screen.queryByRole("combobox", { name: /add to/i })).toBeNull();
+  });
+});

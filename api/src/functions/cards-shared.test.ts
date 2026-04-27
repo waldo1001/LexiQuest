@@ -4,8 +4,10 @@ import {
   validateCardPatch,
   cardProfile,
   buildReverseCard,
+  findExistingUpload,
   type CardRow,
 } from "./cards-shared.js";
+import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 
 function makeRow(overrides: Partial<CardRow> = {}): CardRow {
   return {
@@ -420,5 +422,81 @@ describe("buildReverseCard", () => {
     const forward = makeRow();
     const rev = buildReverseCard(forward, { id: "custom-id", nowIso: NOW_ISO });
     expect(rev.rowKey).toBe("custom-id");
+  });
+});
+
+describe("findExistingUpload", () => {
+  it("returns { uploadId, uploadName } when at least one card in the course has the upload_id", async () => {
+    const tables = new FakeTableStorage();
+    await tables.upsert<CardRow>("cards", makeRow({
+      partitionKey: "course-1", rowKey: "c1", course_id: "course-1",
+      upload_id: "upload-A", upload_name: "Math homework p.42",
+    }));
+    await tables.upsert<CardRow>("cards", makeRow({
+      partitionKey: "course-1", rowKey: "c2", course_id: "course-1",
+      upload_id: "upload-A", upload_name: "Math homework p.42",
+    }));
+    const result = await findExistingUpload(tables, "course-1", "upload-A");
+    expect(result).toEqual({ uploadId: "upload-A", uploadName: "Math homework p.42" });
+  });
+
+  it("returns null when no card matches the upload_id in the course", async () => {
+    const tables = new FakeTableStorage();
+    await tables.upsert<CardRow>("cards", makeRow({
+      partitionKey: "course-1", rowKey: "c1", course_id: "course-1",
+      upload_id: "upload-A",
+    }));
+    const result = await findExistingUpload(tables, "course-1", "upload-B");
+    expect(result).toBeNull();
+  });
+
+  it("returns null when course is empty", async () => {
+    const tables = new FakeTableStorage();
+    const result = await findExistingUpload(tables, "course-empty", "upload-A");
+    expect(result).toBeNull();
+  });
+
+  it("course-scoped: ignores matching upload_id in a different course", async () => {
+    const tables = new FakeTableStorage();
+    await tables.upsert<CardRow>("cards", makeRow({
+      partitionKey: "course-2", rowKey: "c-other", course_id: "course-2",
+      upload_id: "upload-A", upload_name: "Other course upload",
+    }));
+    const result = await findExistingUpload(tables, "course-1", "upload-A");
+    expect(result).toBeNull();
+  });
+
+  it("returns the non-null uploadName even if some cards in the group have null name", async () => {
+    const tables = new FakeTableStorage();
+    await tables.upsert<CardRow>("cards", makeRow({
+      partitionKey: "course-1", rowKey: "c1", course_id: "course-1",
+      upload_id: "upload-A", upload_name: null,
+    }));
+    await tables.upsert<CardRow>("cards", makeRow({
+      partitionKey: "course-1", rowKey: "c2", course_id: "course-1",
+      upload_id: "upload-A", upload_name: "Named later",
+    }));
+    const result = await findExistingUpload(tables, "course-1", "upload-A");
+    expect(result).toEqual({ uploadId: "upload-A", uploadName: "Named later" });
+  });
+
+  it("returns null uploadName when every matching card has null name", async () => {
+    const tables = new FakeTableStorage();
+    await tables.upsert<CardRow>("cards", makeRow({
+      partitionKey: "course-1", rowKey: "c1", course_id: "course-1",
+      upload_id: "upload-A", upload_name: null,
+    }));
+    const result = await findExistingUpload(tables, "course-1", "upload-A");
+    expect(result).toEqual({ uploadId: "upload-A", uploadName: null });
+  });
+
+  it("ignores manual cards (upload_id null) when looking up", async () => {
+    const tables = new FakeTableStorage();
+    await tables.upsert<CardRow>("cards", makeRow({
+      partitionKey: "course-1", rowKey: "c-manual", course_id: "course-1",
+      upload_id: null,
+    }));
+    const result = await findExistingUpload(tables, "course-1", "upload-A");
+    expect(result).toBeNull();
   });
 });

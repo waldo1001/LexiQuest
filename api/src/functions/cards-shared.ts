@@ -1,4 +1,4 @@
-import type { Entity } from "../shared/table-storage.js";
+import type { Entity, TableStorage } from "../shared/table-storage.js";
 
 export type CardSource = "manual" | "photo" | "ai_import" | "reverse";
 
@@ -37,6 +37,7 @@ export interface CardCreateBody {
   source?: CardSource;
   question_lang?: string | null;
   answer_lang?: string | null;
+  upload_id?: string | null;
 }
 
 export interface CardPatchBody {
@@ -124,6 +125,15 @@ export function validateCardCreate(
     return { ok: false, error: "answer_lang must be a valid BCP-47 code (e.g. en, fr-FR)" };
   }
 
+  let upload_id: string | null | undefined;
+  if (src.upload_id === undefined || src.upload_id === null) {
+    upload_id = null;
+  } else if (typeof src.upload_id === "string" && src.upload_id.trim().length > 0) {
+    upload_id = src.upload_id.trim();
+  } else {
+    return { ok: false, error: "upload_id must be a non-empty string" };
+  }
+
   return {
     ok: true,
     value: {
@@ -135,6 +145,7 @@ export function validateCardCreate(
       source,
       question_lang,
       answer_lang,
+      upload_id,
     },
   };
 }
@@ -238,8 +249,33 @@ export function buildReverseCard(
     next_review_at: opts.nowIso,
     created_at: opts.nowIso,
     upload_id: forward.upload_id ?? null,
+    upload_name: forward.upload_name ?? null,
     question_lang: forward.answer_lang ?? null,
     answer_lang: forward.question_lang ?? null,
     reverse_of: forward.rowKey,
   };
+}
+
+/**
+ * Look up an existing upload group inside a single course. Returns the
+ * upload identity (id + name) if any card in `courseId` carries
+ * `upload_id === uploadId`. Course-scoped: a matching upload in another
+ * course returns null.
+ */
+export async function findExistingUpload(
+  tables: TableStorage,
+  courseId: string,
+  uploadId: string,
+): Promise<{ uploadId: string; uploadName: string | null } | null> {
+  const rows = await tables.listByPartition<CardRow>("cards", courseId);
+  let matched = false;
+  let name: string | null = null;
+  for (const r of rows) {
+    if (r.upload_id === uploadId) {
+      matched = true;
+      if (r.upload_name && name === null) name = r.upload_name;
+    }
+  }
+  if (!matched) return null;
+  return { uploadId, uploadName: name };
 }
