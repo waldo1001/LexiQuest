@@ -344,7 +344,7 @@ Plan: [docs/plans/done/pwa-online-only.md](docs/plans/done/pwa-online-only.md) (
 
 ## Post-v1 — Add cards to an existing upload (manual + import)
 
-Plan: [docs/plans/post-v1-add-to-existing-upload.md](docs/plans/post-v1-add-to-existing-upload.md)
+Plan: [docs/plans/done/post-v1-add-to-existing-upload.md](docs/plans/done/post-v1-add-to-existing-upload.md)
 
 - ✅ Slice A — Manual add into existing upload
   - API: `findExistingUpload(tables, courseId, uploadId)` helper in `cards-shared.ts` (course-scoped); `validateCardCreate` accepts optional `upload_id`; `POST /api/cards` looks up the upload, stamps both `upload_id` and inherited `upload_name`, returns 400 if the upload doesn't belong to the course

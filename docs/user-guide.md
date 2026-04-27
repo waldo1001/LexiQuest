@@ -33,6 +33,16 @@ onward (first login + dashboard) and gets sections added per phase:
   due. Edit a card inline by clicking "Edit" and Save. Delete with
   confirmation. You can browse any family member's cards — a great way to
   see what Lex is studying in French.
+- **Adding to an existing upload** (post-v1): when a course already has
+  at least one photo / AI import, the "New card" form gains an **"Add
+  to"** dropdown. Default is *Manual* (the card lands in the Manual
+  group as before); pick any existing upload (e.g. *Math homework*) and
+  the card joins that group instead, inheriting the upload name. Each
+  upload group's header now also has a **➕ Add card** icon that opens
+  the form pre-targeted to that upload, and a **📷 Import here** icon
+  that takes you to the importer with the upload pre-selected — so you
+  can fold a second photo or PDF into the same group instead of getting
+  a new "Upload — {date}" entry every time.
 - **Bulk-deleting cards**: cards in the Card Manager are grouped by
   upload — every photo or AI import becomes its own group with a
   timestamp label like `Upload — 2026-04-25 14:02 (12 cards)`; manually
@@ -73,21 +83,27 @@ onward (first login + dashboard) and gets sections added per phase:
   time taken, XP earned (with multiplier for Boss/Speed rounds), and
   cards-per-minute for Speed Rounds. A "Study again" button takes you
   back to the setup screen.
-- **Photo import** (Phase 12): from the Card Manager, click "Import cards
-  from photo". Choose a photo of a vocab sheet (or take one with the
-  camera). If your course has a language set, two dropdowns appear:
+- **Photo / PDF import** (Phase 12): from the Card Manager, click "Import
+  cards from photo or PDF". Choose a photo of a vocab sheet (or take one
+  with the camera) — or a multi-page PDF (e.g. an exported homework
+  sheet). If your course has a language set, two dropdowns appear:
   **Question language** and **Answer language** — pick the language of
   each side so the 🔊 buttons speak the right voice later. Defaults:
   question = course language, answer = your UI language. For single-
   language content (e.g. history notes in French), set both to the same
-  language. Click "Extract cards" — Claude reads the photo and returns a
-  list of question/answer/distractor candidates (this takes 5–15 seconds).
-  On the Review screen, every extracted card is shown with a checkbox
-  (all ticked by default). Untick cards you don't want, edit any field
-  inline, then click "Save selected". Only the ticked cards are saved to
-  your course — extraction results are never auto-saved. If Claude can't
-  read the photo (blank page, bad lighting), a friendly error message is
-  shown instead of a crash.
+  language. If the course already has uploads, an **"Add to upload"**
+  dropdown also appears — *New upload* (default) creates a fresh group,
+  or pick an existing upload to fold the new cards into it; the Review
+  screen will then say *"Adding cards to: {name}"* instead of asking
+  for a new upload name. Click "Extract cards" — Claude reads the file
+  and returns a list of question/answer/distractor candidates (this
+  takes 5–15 seconds, longer for multi-page PDFs). On the Review screen,
+  every extracted card is shown with a checkbox (all ticked by default).
+  Untick cards you don't want, edit any field inline, then click "Save
+  selected". Only the ticked cards are saved to your course —
+  extraction results are never auto-saved. If Claude can't read the
+  file (blank page, bad lighting), a friendly error message is shown
+  instead of a crash.
 - **Stats** (Phase 15): three stats screens, all accessible to every family
   member:
   - **Family Dashboard** (`/family`): one-page overview of all users. Each
