@@ -105,6 +105,8 @@ export default function PhotoImport({ importCards = importCardsApi, fetchCards =
         setError(t("import.error.parse"));
       } else if (msg === "claude_error") {
         setError(t("import.error.claude"));
+      } else if (msg === "image_too_large") {
+        setError(t("import.error.tooLarge"));
       } else {
         setError(t("import.error.generic"));
       }

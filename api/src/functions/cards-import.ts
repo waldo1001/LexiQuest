@@ -31,6 +31,9 @@ const VALID_MIME_TYPES = new Set([
   "application/pdf",
 ]);
 
+const MAX_IMAGE_DECODED_BYTES = 5 * 1024 * 1024;
+const MAX_PDF_DECODED_BYTES = 32 * 1024 * 1024;
+
 const BCP47_RE = /^[a-z]{2,3}(-[A-Z][a-zA-Z]{1,7})?$/;
 
 interface ValidatedImportBody {
@@ -112,6 +115,16 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
       return { status: 400, jsonBody: { error: validated.error } };
     }
     const { courseId, imageBase64, mimeType, questionLang, answerLang } = validated;
+
+    const isPdf = mimeType === "application/pdf";
+    const decodedBytes = Math.floor((imageBase64.length * 3) / 4);
+    const maxBytes = isPdf ? MAX_PDF_DECODED_BYTES : MAX_IMAGE_DECODED_BYTES;
+    if (decodedBytes > maxBytes) {
+      return {
+        status: 413,
+        jsonBody: { error: "Image too large", maxBytes, actualBytes: decodedBytes },
+      };
+    }
 
     const course = await findCourseById(deps.tables, auth.auth.userId, courseId);
     if (!course) {

@@ -155,6 +155,21 @@ describe("PhotoImport", () => {
     );
   });
 
+  it("shows too-large error on image_too_large", async () => {
+    const user = userEvent.setup();
+    const importCards = vi.fn().mockRejectedValue(new Error("image_too_large"));
+    setup({ importCards });
+
+    const file = new File(["img-data"], "photo.jpg", { type: "image/jpeg" });
+    const input = document.querySelector("input[type='file']");
+    await user.upload(input, file);
+
+    await user.click(screen.getByRole("button", { name: /extract cards/i }));
+    await waitFor(() =>
+      expect(screen.getByText(/too large/i)).toBeInTheDocument(),
+    );
+  });
+
   it("renders in Dutch under lang=nl", () => {
     setup({ lang: "nl" });
     expect(screen.getByRole("heading", { name: /foto/i })).toBeInTheDocument();

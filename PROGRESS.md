@@ -373,3 +373,11 @@ Plan: [~/.claude/plans/test-the-import-feature-hashed-hartmanis.md](../.claude/p
   - Security: typed `LogAttrs` already bans `password`, `apiKey`, `imageBase64`, etc. by key name; the new line carries no secrets, no base64, no session token
   - Tests: 3 new in `cards-import.test.ts` (AC24 — 502 path logs the full attr set incl. SDK status; AC25 — 200 path emits no failure log; AC26 — 422 ClaudeJsonParseError emits no failure log). Full api suite 833 passing
   - Cards-import.ts coverage: 100% statements / 96.36% branches (Tier-A floor 90%)
+  - **Diagnostic outcome**: live image-import failure was a 5.46 MB photo exceeding Anthropic's 5 MB / 5,242,880 bytes per-image cap → 400 BadRequestError from the SDK was being miscategorised as "Claude unavailable" (502)
+
+- ✅ Slice 2 — Pre-Claude size guard returns 413 with clear UI message
+  - API: `cards-import.ts` enforces decoded-payload caps **before** calling Claude — 5 MB for images, 32 MB for PDFs (Anthropic per-image / per-document limits). On overrun returns `413 { error, maxBytes, actualBytes }`. Saves a Claude round-trip and stops mis-attributing client-side mistakes to upstream availability
+  - Frontend: `importCards` in `api.js` maps `413` → `Error("image_too_large")`; `PhotoImport.jsx` adds the new branch that renders `import.error.tooLarge`; i18n: `"That photo is too large (max 5 MB)…"` (en) / `"Die foto is te groot (max 5 MB)…"` (nl)
+  - Tests: 4 new in `cards-import.test.ts` (AC27 413 + maxBytes/actualBytes shape; AC28 413 path doesn't call Claude; AC29 413 doesn't emit `cards_import_claude_failed`; AC30 PDF up to 32 MB still passes). 1 new in `api.test.js` (413 → image_too_large). 1 new in `PhotoImport.test.jsx` (image_too_large → tooLarge string). Suites: 837 api + 552 frontend = 1389 passing
+  - Coverage: cards-import.ts 100%/96.61%, api.js 97.71%, PhotoImport.jsx 98.77%, strings.js 100% — all above tier floors
+  - **Decided against** client-side auto-downscale this slice: canvas/image manipulation is hard to TDD reliably in jsdom, the user-facing message is honest and self-resolvable (re-take the photo, or use the phone's lower-resolution mode). Revisit only if oversized photos remain a routine pain point

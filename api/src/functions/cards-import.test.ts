@@ -390,4 +390,54 @@ describe("POST /api/cards/import", () => {
     );
     expect(failures.length).toBe(0);
   });
+
+  it("AC27: 413 when image exceeds 5 MB decoded cap, with maxBytes/actualBytes in body", async () => {
+    await seedCourse(deps);
+    // 7_000_000 base64 chars decode to 5_250_000 bytes — just over 5 MB
+    const overCap = { ...validBody, imageBase64: "A".repeat(7_000_000) };
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), overCap), ctx);
+    expect(res.status).toBe(413);
+    const body = res.jsonBody as Record<string, unknown>;
+    expect(body.error).toBe("Image too large");
+    expect(body.maxBytes).toBe(5 * 1024 * 1024);
+    expect(typeof body.actualBytes).toBe("number");
+    expect(body.actualBytes as number).toBeGreaterThan(body.maxBytes as number);
+  });
+
+  it("AC28: 413 path does NOT call claude.extractCards", async () => {
+    await seedCourse(deps);
+    const overCap = { ...validBody, imageBase64: "A".repeat(7_000_000) };
+
+    await makeCardsImportHandler(deps)(makeReq(validCookie(deps), overCap), ctx);
+
+    expect(deps.claude.extractCardsInputs.length).toBe(0);
+  });
+
+  it("AC29: 413 path does NOT log cards_import_claude_failed", async () => {
+    await seedCourse(deps);
+    const overCap = { ...validBody, imageBase64: "A".repeat(7_000_000) };
+
+    await makeCardsImportHandler(deps)(makeReq(validCookie(deps), overCap), ctx);
+
+    const failures = deps.logger.records.filter(
+      (r) => r.event === "cards_import_claude_failed",
+    );
+    expect(failures.length).toBe(0);
+  });
+
+  it("AC30: PDF up to 32 MB decoded passes the size guard (still hits Claude path)", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+    // 14_000_000 base64 chars decode to ~10.5 MB — under the 32 MB PDF cap, over the 5 MB image cap
+    const pdfBody = {
+      courseId: COURSE_ID,
+      imageBase64: "A".repeat(14_000_000),
+      mimeType: "application/pdf" as const,
+    };
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), pdfBody), ctx);
+    expect(res.status).not.toBe(413);
+    expect(res.status).toBe(200);
+  });
 });

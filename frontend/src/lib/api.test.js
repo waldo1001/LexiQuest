@@ -769,6 +769,12 @@ describe("importCards", () => {
     ).rejects.toThrow("claude_error");
   });
 
+  it("throws 'image_too_large' on 413", async () => {
+    await expect(
+      importCards({ courseId: "c1", imageBase64: "b64", mimeType: "image/jpeg" }, { fetchFn: vi.fn().mockResolvedValue(fail(413)) }),
+    ).rejects.toThrow("image_too_large");
+  });
+
   it("throws on generic non-ok", async () => {
     await expect(
       importCards({ courseId: "c1", imageBase64: "b64", mimeType: "image/jpeg" }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),

@@ -533,6 +533,7 @@ export async function importCards(body, { fetchFn = fetch } = {}) {
     body: JSON.stringify(body),
   });
   if (response.status === 403) throw new Error("forbidden");
+  if (response.status === 413) throw new Error("image_too_large");
   if (response.status === 422) throw new Error("parse_error");
   if (response.status === 502) throw new Error("claude_error");
   if (!response.ok) throw new Error(`POST /api/cards/import failed: ${response.status}`);
