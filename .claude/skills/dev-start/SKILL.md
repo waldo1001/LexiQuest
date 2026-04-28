@@ -29,25 +29,27 @@ an empty key and every `/api/cards/import` call returns 502.
 
 Do not check first. Do not skip if "looks fine". Always run this block.
 
+**Run [`/dev-stop`](../dev-stop/SKILL.md)** — that skill is the canonical
+teardown. It kills every LexiQuest dev process (swa, func, vite, azurite),
+frees ports 4280/5173/7071/10000/10001/10002, and verifies nothing is
+left listening. It is idempotent, so it is safe to run when nothing is
+running.
+
+If you cannot invoke another skill from here, inline its commands:
+
 ```sh
 pkill -9 -f "swa start"  2>/dev/null
 pkill -9 -f "func start" 2>/dev/null
 pkill -9 -f "vite"       2>/dev/null
 pkill -9 -f "azurite"    2>/dev/null
-# belt-and-braces: free the ports even if a stray child survived pkill
 lsof -ti :4280,5173,7071,10000,10001,10002 2>/dev/null | xargs -r kill -9 2>/dev/null
 sleep 1
-```
-
-Verify the ports are free before continuing:
-
-```sh
 lsof -i :4280,5173,7071,10000,10001,10002 | grep LISTEN
 # expect: NO output
 ```
 
-If anything is still listed, identify the PID and `kill -9` it explicitly
-before moving on.
+Keep these commands aligned with `/dev-stop`. If you change one, change
+the other.
 
 **Port reference (for diagnosis only — do NOT use to decide whether to
 skip Step 1):**

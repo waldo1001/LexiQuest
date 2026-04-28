@@ -112,9 +112,16 @@ operation, or an architectural ambiguity that Design.md does not resolve.
 - [`/dev-start`](.claude/skills/dev-start/SKILL.md) — invoke when the
   user wants to run the app in the browser locally. Starts Azurite,
   Vite, and SWA CLI with the `ANTHROPIC_API_KEY` injected correctly
-  from `api/local.settings.json`. Includes the key pitfall: SWA skips
+  from `api/local.settings.json`. Always tears down any existing dev
+  stack first (delegates to `/dev-stop`), then starts clean — never
+  attaches to a running stack. Includes the key pitfall: SWA skips
   local.settings.json values for env vars already exported (even if
   empty), which causes 502 on `/api/cards/import`.
+- [`/dev-stop`](.claude/skills/dev-stop/SKILL.md) — kills every
+  LexiQuest dev process (Azurite, Vite, Functions host, SWA CLI) and
+  frees ports 4280/5173/7071/10000-10002. Idempotent. Use to clean up
+  orphaned background processes when no terminal is attached, or as a
+  teardown after a debug session.
 - [`/local-smoke`](.claude/skills/local-smoke/SKILL.md) — invoke before
   `/deploy-swa` (or whenever the user says "smoke test"). Boots
   `swa start` against Azurite on a non-default port and exercises the
