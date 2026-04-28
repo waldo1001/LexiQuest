@@ -5,6 +5,7 @@ import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
 import { FakeClaudeClient } from "../../testing/fake-claude-client.js";
+import { FakeLogger } from "../../testing/fake-logger.js";
 import { buildSessionCookie } from "../shared/session-cookie.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
@@ -41,12 +42,14 @@ function makeDeps(): CardsImportDeps & {
   signer: FakeSessionSigner;
   clock: FakeClock;
   claude: FakeClaudeClient;
+  logger: FakeLogger;
 } {
   const clock = new FakeClock(NOW);
   const signer = new FakeSessionSigner(clock);
   const tables = new FakeTableStorage();
   const claude = new FakeClaudeClient();
-  return { tables, signer, clock, claude };
+  const logger = new FakeLogger();
+  return { tables, signer, clock, claude, logger };
 }
 
 function validCookie(deps: ReturnType<typeof makeDeps>, userId = USER_ID): string {
@@ -328,5 +331,63 @@ describe("POST /api/cards/import", () => {
     const input = deps.claude.extractCardsInputs[0];
     expect(input.questionLang).toBeNull();
     expect(input.answerLang).toBeNull();
+  });
+
+  it("AC24: 502 path logs cards_import_claude_failed with diagnostic attrs", async () => {
+    await seedCourse(deps);
+    // Simulate a real Anthropic SDK error: an Error with a numeric .status
+    const sdkErr = Object.assign(new Error("invalid x-api-key"), {
+      name: "AuthenticationError",
+      status: 401,
+    });
+    deps.claude.nextError = sdkErr;
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+    expect(res.status).toBe(502);
+
+    const failures = deps.logger.records.filter(
+      (r) => r.event === "cards_import_claude_failed",
+    );
+    expect(failures.length).toBe(1);
+    const rec = failures[0];
+    expect(rec.level).toBe("error");
+    expect(rec.attrs).toBeDefined();
+    expect(rec.attrs?.userId).toBe(USER_ID);
+    expect(rec.attrs?.courseId).toBe(COURSE_ID);
+    expect(rec.attrs?.mimeType).toBe("image/jpeg");
+    expect(typeof rec.attrs?.payloadKB).toBe("number");
+    expect(rec.attrs?.errorName).toBe("AuthenticationError");
+    expect(rec.attrs?.status).toBe(401);
+    // Security: never leak the API key, base64, or session token
+    const serialized = JSON.stringify(rec.attrs ?? {});
+    expect(serialized).not.toContain("base64data");
+    expect(serialized).not.toMatch(/sk-ant-/);
+  });
+
+  it("AC25: 200 path does NOT log cards_import_claude_failed", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+    expect(res.status).toBe(200);
+
+    const failures = deps.logger.records.filter(
+      (r) => r.event === "cards_import_claude_failed",
+    );
+    expect(failures.length).toBe(0);
+  });
+
+  it("AC26: 422 (ClaudeJsonParseError) path does NOT log cards_import_claude_failed", async () => {
+    const { ClaudeJsonParseError } = await import("../shared/claude.js");
+    await seedCourse(deps);
+    deps.claude.nextError = new ClaudeJsonParseError("bad json", "{{not json");
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+    expect(res.status).toBe(422);
+
+    const failures = deps.logger.records.filter(
+      (r) => r.event === "cards_import_claude_failed",
+    );
+    expect(failures.length).toBe(0);
   });
 });

@@ -360,3 +360,16 @@ Plan: [docs/plans/done/post-v1-add-to-existing-upload.md](docs/plans/done/post-v
   - PDF: end-to-end propagation of `application/pdf` mime is now covered by an explicit FE test (PI-B3); backend/Claude seam was already PDF-capable via `document` blocks.
   - i18n: `import.addToUpload`, `import.newUpload`, `review.appendingTo`, `cards.action.importHere` (en/nl)
   - Tests: 6 new in `cards-batch.test.ts` (SB-1..6), 5 new in `PhotoImport.test.jsx` (PI-B1..5), 3 new in `ImportReview.test.jsx` (IR-B1..3), 1 new in `CardManager.test.jsx` (CMA-7). Full suites: 830 api + 550 frontend = 1380 passing.
+
+---
+
+## Post-v1 — Cards-import diagnostic logging
+
+Plan: [~/.claude/plans/test-the-import-feature-hashed-hartmanis.md](../.claude/plans/test-the-import-feature-hashed-hartmanis.md)
+
+- ✅ Slice 1 — Diagnostic logging in cards-import 502 catch
+  - API: `CardsImportDeps` gains `logger: Logger`; the catch-all in `cards-import.ts` now emits a single structured `cards_import_claude_failed` line with `userId`, `courseId`, `mimeType`, `payloadKB`, `errorName`, `errorMessage`, and SDK-supplied `status` before returning 502 — turns the opaque "Claude is unavailable" 502 into a diagnosable event without changing the user-facing response
+  - Composition root (`index.ts`): wires `logger` into `registerCardsImport`; also adds an `anthropic_api_key_missing` startup-error log when `ANTHROPIC_API_KEY` is empty/whitespace
+  - Security: typed `LogAttrs` already bans `password`, `apiKey`, `imageBase64`, etc. by key name; the new line carries no secrets, no base64, no session token
+  - Tests: 3 new in `cards-import.test.ts` (AC24 — 502 path logs the full attr set incl. SDK status; AC25 — 200 path emits no failure log; AC26 — 422 ClaudeJsonParseError emits no failure log). Full api suite 833 passing
+  - Cards-import.ts coverage: 100% statements / 96.36% branches (Tier-A floor 90%)

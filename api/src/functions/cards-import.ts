@@ -6,6 +6,7 @@ import {
 } from "@azure/functions";
 import { requireAuth } from "../shared/auth.js";
 import type { Clock } from "../shared/clock.js";
+import type { Logger } from "../shared/logger.js";
 import type { SessionSigner } from "../shared/session-signer.js";
 import type { TableStorage } from "../shared/table-storage.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
@@ -19,6 +20,7 @@ export interface CardsImportDeps {
   signer: SessionSigner;
   clock: Clock;
   claude: ClaudeClient;
+  logger: Logger;
 }
 
 const VALID_MIME_TYPES = new Set([
@@ -140,6 +142,18 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
       if (err instanceof ClaudeJsonParseError) {
         return { status: 422, jsonBody: { error: "Claude returned unparseable JSON", raw: err.raw } };
       }
+      const errorName = err instanceof Error ? err.name : "unknown";
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      const sdkStatus = (err as { status?: unknown })?.status;
+      deps.logger.error("cards_import_claude_failed", {
+        userId: auth.auth.userId,
+        courseId,
+        mimeType,
+        payloadKB: Math.round((imageBase64.length * 0.75) / 1024),
+        errorName,
+        errorMessage,
+        status: typeof sdkStatus === "number" ? sdkStatus : null,
+      });
       return { status: 502, jsonBody: { error: "Claude request failed" } };
     }
   };

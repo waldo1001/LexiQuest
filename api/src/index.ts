@@ -70,7 +70,10 @@ registerStatsFamily({ tables, signer, clock });
 registerStatsHeatmap({ tables, signer, clock });
 registerStatsUpload({ tables, signer, clock });
 const claude = createClaudeClient(anthropicApiKey);
-registerCardsImport({ tables, signer, clock, claude });
+if (anthropicApiKey.trim().length === 0) {
+  logger.error("anthropic_api_key_missing");
+}
+registerCardsImport({ tables, signer, clock, claude, logger });
 registerCardsBatch({ tables, signer, clock, random });
 registerCardsBulkDelete({ tables, signer, clock });
 registerCardsReverse({ tables, signer, clock, random });
