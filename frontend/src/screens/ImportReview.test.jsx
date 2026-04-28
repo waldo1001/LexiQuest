@@ -328,4 +328,58 @@ describe("ImportReview — append to existing upload", () => {
     expect(call.uploadName).toBe("Brand new");
     expect(call.uploadId).toBeUndefined();
   });
+
+  it("IR-SWAP1: swap button swaps question and answer for that card", async () => {
+    const user = userEvent.setup();
+    setup();
+
+    const swapButtons = screen.getAllByRole("button", { name: /swap question and answer/i });
+    expect(swapButtons).toHaveLength(2);
+
+    // First card: "le chien" → "the dog"
+    expect(screen.getByText("le chien")).toBeInTheDocument();
+
+    await user.click(swapButtons[0]);
+
+    // After swap: "the dog" should now appear as the bolded question
+    const items = screen.getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("the dog");
+    expect(items[0]).toHaveTextContent("le chien");
+  });
+
+  it("IR-SWAP2: swapped card is saved with question and answer reversed", async () => {
+    const user = userEvent.setup();
+    const batchCreateCards = vi.fn().mockResolvedValue({ upload_id: "u1", cards: [] });
+    setup({ batchCreateCards });
+
+    const swapButtons = screen.getAllByRole("button", { name: /swap question and answer/i });
+    await user.click(swapButtons[0]);
+
+    await user.click(screen.getByRole("button", { name: /save selected/i }));
+    await waitFor(() => expect(batchCreateCards).toHaveBeenCalledOnce());
+
+    const saved = batchCreateCards.mock.calls[0][0].cards;
+    expect(saved[0].question).toBe("the dog");
+    expect(saved[0].answer).toBe("le chien");
+    // Second card unchanged
+    expect(saved[1].question).toBe("la maison");
+    expect(saved[1].answer).toBe("the house");
+  });
+
+  it("IR-SWAP3: swapping twice restores original order", async () => {
+    const user = userEvent.setup();
+    const batchCreateCards = vi.fn().mockResolvedValue({ upload_id: "u1", cards: [] });
+    setup({ batchCreateCards });
+
+    const swapButtons = screen.getAllByRole("button", { name: /swap question and answer/i });
+    await user.click(swapButtons[0]);
+    await user.click(swapButtons[0]);
+
+    await user.click(screen.getByRole("button", { name: /save selected/i }));
+    await waitFor(() => expect(batchCreateCards).toHaveBeenCalledOnce());
+
+    const saved = batchCreateCards.mock.calls[0][0].cards;
+    expect(saved[0].question).toBe("le chien");
+    expect(saved[0].answer).toBe("the dog");
+  });
 });

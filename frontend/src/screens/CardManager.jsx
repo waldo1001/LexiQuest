@@ -202,6 +202,25 @@ export default function CardManager({
     setEditForm(null);
   }
 
+  async function onSwap(card) {
+    resetStatus();
+    try {
+      const updated = await updateCard(card.id, courseId, {
+        question: card.answer,
+        answer: card.question,
+        hint: card.hint ?? null,
+      });
+      setCards((prev) => (prev ?? []).map((c) => (c.id === card.id ? updated : c)));
+      setStatus(t("cards.status.updated"));
+    } catch (err) {
+      if (err?.message === "forbidden") {
+        setError(t("cards.error.forbidden"));
+      } else {
+        setError(t("errors.generic"));
+      }
+    }
+  }
+
   async function onSaveEdit(card) {
     resetStatus();
     const patch = {
@@ -524,6 +543,11 @@ export default function CardManager({
                             />
                           </td>
                           <td>
+                            <button
+                              type="button"
+                              aria-label={t("cards.action.swap")}
+                              onClick={() => setEditForm({ ...editForm, question: editForm.answer, answer: editForm.question })}
+                            >🔄</button>
                             <button type="button" onClick={() => onSaveEdit(card)}>
                               {t("cards.action.save")}
                             </button>
@@ -562,6 +586,11 @@ export default function CardManager({
                           <td>{card.hint ?? ""}</td>
                           {canEdit && (
                             <td>
+                              <button
+                                type="button"
+                                aria-label={t("cards.action.swap")}
+                                onClick={() => onSwap(card)}
+                              >🔄</button>
                               <button type="button" onClick={() => startEdit(card)}>
                                 {t("cards.action.edit")}
                               </button>
@@ -646,6 +675,11 @@ export default function CardManager({
               onChange={(e) => setNewForm({ ...newForm, hint: e.target.value })}
             />
           </label>
+          <button
+            type="button"
+            aria-label={t("cards.action.swap")}
+            onClick={() => setNewForm({ ...newForm, question: newForm.answer, answer: newForm.question })}
+          >🔄</button>
           <button type="submit">{t("cards.action.add")}</button>
           <button type="button" onClick={() => setShowNew(false)}>
             {t("cards.action.cancel")}

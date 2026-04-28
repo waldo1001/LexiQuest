@@ -18,6 +18,7 @@ export default function Settings({ patchMe = patchMeApi }) {
   const dailyGoal = user?.settings?.daily_goal ?? 20;
   const preferredMode = user?.settings?.preferred_mode ?? "self_grade";
   const freezeTokens = user?.settings?.freeze_tokens ?? 0;
+  const studyFontSize = user?.settings?.study_font_size ?? "normal";
 
   async function onLangChange(e) {
     const next = /** @type {"en"|"nl"} */ (e.target.value);
@@ -58,6 +59,17 @@ export default function Settings({ patchMe = patchMeApi }) {
     try {
       await patchMe({ settings: { auto_speak: next } });
       setUser((u) => u ? { ...u, settings: { ...u.settings, auto_speak: next } } : u);
+    } catch {
+      setError(t("errors.generic"));
+    }
+  }
+
+  async function onStudyFontSizeChange(e) {
+    const next = e.target.value;
+    setError(null);
+    try {
+      await patchMe({ settings: { study_font_size: next } });
+      setUser((u) => u ? { ...u, settings: { ...u.settings, study_font_size: next } } : u);
     } catch {
       setError(t("errors.generic"));
     }
@@ -132,6 +144,21 @@ export default function Settings({ patchMe = patchMeApi }) {
             <option value="self_grade">{t("courses.mode.self_grade")}</option>
             <option value="mcq">{t("courses.mode.mcq")}</option>
             <option value="mixed">{t("courses.mode.mixed")}</option>
+          </select>
+        </div>
+
+        <div className="field">
+          <label htmlFor="study-font-size-select">{t("settings.studyFontSize")}</label>
+          <select
+            id="study-font-size-select"
+            data-testid="study-font-size-select"
+            className="input"
+            value={studyFontSize}
+            onChange={onStudyFontSizeChange}
+          >
+            <option value="normal">{t("settings.studyFontSize.normal")}</option>
+            <option value="large">{t("settings.studyFontSize.large")}</option>
+            <option value="xlarge">{t("settings.studyFontSize.xlarge")}</option>
           </select>
         </div>
 

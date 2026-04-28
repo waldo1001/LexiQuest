@@ -15,6 +15,7 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
   const navigate = useNavigate();
   const { candidates = [], courseName = "", courseLang = null, uploadId = null, uploadName: existingUploadName = null } = location.state ?? {};
 
+  const [cards, setCards] = useState(candidates);
   const [checked, setChecked] = useState(() =>
     Object.fromEntries(candidates.map((_, i) => [i, true])),
   );
@@ -29,8 +30,16 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
     setChecked((prev) => ({ ...prev, [idx]: !prev[idx] }));
   }
 
+  function swapCard(idx) {
+    setCards((prev) =>
+      prev.map((c, i) =>
+        i === idx ? { ...c, question: c.answer, answer: c.question } : c,
+      ),
+    );
+  }
+
   async function handleSave() {
-    const selected = candidates.filter((_, i) => checked[i]);
+    const selected = cards.filter((_, i) => checked[i]);
     if (selected.length === 0) {
       setError(t("review.noneSelected"));
       return;
@@ -110,7 +119,7 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
       )}
 
       <ul>
-        {candidates.map((card, idx) => (
+        {cards.map((card, idx) => (
           <li key={idx}>
             <label>
               <input
@@ -125,6 +134,11 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
                 <span> [{card.distractors.join(", ")}]</span>
               )}
             </label>
+            <button
+              type="button"
+              aria-label={t("review.action.swap")}
+              onClick={() => swapCard(idx)}
+            >🔄</button>
           </li>
         ))}
       </ul>

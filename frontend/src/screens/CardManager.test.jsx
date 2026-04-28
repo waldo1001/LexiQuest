@@ -244,6 +244,61 @@ describe("CardManager", () => {
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 
+  it("CM11d: swap button on card row calls updateCard with question and answer reversed", async () => {
+    const swapped = { ...SEED_CARDS[0], question: "le chien", answer: "What is a dog?" };
+    const updateCard = vi.fn().mockResolvedValue(swapped);
+    const user = userEvent.setup();
+    setup({ updateCard });
+
+    await screen.findByText("What is a dog?");
+    const swapButtons = screen.getAllByRole("button", { name: /swap question and answer/i });
+    await user.click(swapButtons[0]);
+
+    expect(updateCard).toHaveBeenCalledWith(
+      "card-1",
+      COURSE_ID,
+      expect.objectContaining({ question: "le chien", answer: "What is a dog?" }),
+    );
+    expect(await screen.findByText("le chien")).toBeInTheDocument();
+  });
+
+  it("CM11f: swap button inside edit form swaps the input field values without saving", async () => {
+    const user = userEvent.setup();
+    setup();
+
+    await screen.findByText("What is a dog?");
+    const editButtons = screen.getAllByRole("button", { name: /edit/i });
+    await user.click(editButtons[0]);
+
+    expect(screen.getByRole("textbox", { name: /question/i })).toHaveValue("What is a dog?");
+    expect(screen.getByRole("textbox", { name: /answer/i })).toHaveValue("le chien");
+
+    // card-1 is in edit mode; DOM order is [edit-form swap, card-2 read-only swap]
+    const swapButtons = screen.getAllByRole("button", { name: /swap question and answer/i });
+    await user.click(swapButtons[0]);
+
+    expect(screen.getByRole("textbox", { name: /question/i })).toHaveValue("le chien");
+    expect(screen.getByRole("textbox", { name: /answer/i })).toHaveValue("What is a dog?");
+  });
+
+  it("CM11e: swap button in new card form swaps question and answer fields", async () => {
+    const user = userEvent.setup();
+    setup();
+
+    await screen.findByText("What is a dog?");
+    await user.click(screen.getByRole("button", { name: /new card/i }));
+
+    await user.type(screen.getByRole("textbox", { name: /question/i }), "Hello");
+    await user.type(screen.getByRole("textbox", { name: /answer/i }), "Bonjour");
+
+    // two card rows each have a 🔄, plus the new-card form — click the last one
+    const swapButtons = screen.getAllByRole("button", { name: /swap question and answer/i });
+    await user.click(swapButtons[swapButtons.length - 1]);
+
+    expect(screen.getByRole("textbox", { name: /question/i })).toHaveValue("Bonjour");
+    expect(screen.getByRole("textbox", { name: /answer/i })).toHaveValue("Hello");
+  });
+
   it("CM-BULK1: groups cards by upload_id with manual cards under Manual", async () => {
     const grouped = [
       { ...SEED_CARDS[0], upload_id: null },

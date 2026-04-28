@@ -167,4 +167,27 @@ describe("Settings", () => {
     expect(patchMe).toHaveBeenCalledWith({ settings: { theme: "arcade" } });
     expect(document.documentElement.getAttribute("data-theme-name")).toBe("arcade");
   });
+
+  it("SF-1: renders a study font size select", () => {
+    setup();
+    expect(screen.getByTestId("study-font-size-select")).toBeInTheDocument();
+  });
+
+  it("SF-2: pre-selects 'normal' when study_font_size is not set", () => {
+    setup({ initialUser: { id: "u1", name: "Lex", settings: {} } });
+    expect(screen.getByTestId("study-font-size-select")).toHaveValue("normal");
+  });
+
+  it("SF-3: pre-selects the value from user.settings.study_font_size", () => {
+    setup({ initialUser: { id: "u1", name: "Lex", settings: { study_font_size: "xlarge" } } });
+    expect(screen.getByTestId("study-font-size-select")).toHaveValue("xlarge");
+  });
+
+  it("SF-4: changing font size calls patchMe with settings.study_font_size", async () => {
+    const user = userEvent.setup();
+    const patchMe = vi.fn().mockResolvedValue({});
+    setup({ patchMe, initialUser: { id: "u1", name: "Lex", settings: { study_font_size: "normal" } } });
+    await user.selectOptions(screen.getByTestId("study-font-size-select"), "large");
+    expect(patchMe).toHaveBeenCalledWith({ settings: { study_font_size: "large" } });
+  });
 });

@@ -941,6 +941,8 @@ select.input {
   margin-top: var(--space-4);
 }
 .study-actions .btn { flex: 1 1 160px; }
+.study-actions--mcq { flex-direction: column; }
+.study-actions--mcq .btn { flex: none; width: 100%; }
 
 /* MCQ answer reveal */
 .mcq-reveal {

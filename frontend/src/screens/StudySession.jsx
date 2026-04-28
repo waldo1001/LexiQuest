@@ -171,6 +171,9 @@ export default function StudySession({
   const canSpeak = ttsAvailable && speechOn;
   const autoSpeak = canSpeak && Boolean(user?.settings?.auto_speak);
 
+  const FONT_SIZE_MAP = { normal: "1rem", large: "1.4rem", xlarge: "1.9rem" };
+  const cardFontSize = FONT_SIZE_MAP[user?.settings?.study_font_size] ?? "1rem";
+
   // Speed round timer
   const [timeRemaining, setTimeRemaining] = useState(60);
   const timerRef = useRef(null);
@@ -341,6 +344,7 @@ export default function StudySession({
       <div
         className="study-card"
         data-testid="study-card"
+        style={{ fontSize: cardFontSize }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -369,7 +373,7 @@ export default function StudySession({
         )}
       </div>
 
-      <div className="study-actions">
+      <div className={`study-actions${(state.phase === PHASE.QUESTION && isMcq) || state.phase === PHASE.MCQ_REVEAL ? " study-actions--mcq" : ""}`}>
         {state.phase === PHASE.QUESTION && !isMcq && (
           <button className="btn btn-primary" onClick={handleShowAnswer}>
             {t("study.showAnswer")}
