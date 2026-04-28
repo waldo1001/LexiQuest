@@ -465,4 +465,68 @@ describe("POST /api/cards/import", () => {
     expect(res.status).toBe(413);
     expect(deps.claude.extractCardsInputs.length).toBe(0);
   });
+
+  it("AC32: verifyCardLanguages is called when both questionLang and answerLang differ", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const body = { ...validBody, questionLang: "nl", answerLang: "fr" };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(200);
+
+    expect(deps.claude.verifyInputs.length).toBe(1);
+    const vi = deps.claude.verifyInputs[0];
+    expect(vi.questionLang).toBe("nl");
+    expect(vi.answerLang).toBe("fr");
+    expect(vi.cards).toEqual(CANDIDATES);
+  });
+
+  it("AC33: verifyCardLanguages is NOT called when only questionLang is provided", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const body = { ...validBody, questionLang: "nl" };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(200);
+    expect(deps.claude.verifyInputs.length).toBe(0);
+  });
+
+  it("AC34: response contains the swapped output from verifyCardLanguages", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = [
+      { question: "le chien", answer: "de hond", distractors: ["de kat", "de vogel"], question_lang: "nl", answer_lang: "fr" },
+    ];
+    deps.claude.nextVerifiedCards = [
+      { question: "de hond", answer: "le chien", distractors: ["le chat", "le pigeon"], question_lang: "nl", answer_lang: "fr" },
+    ];
+
+    const body = { ...validBody, questionLang: "nl", answerLang: "fr" };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(200);
+
+    const responseBody = res.jsonBody as Record<string, unknown>;
+    const candidates = responseBody.candidates as Array<Record<string, unknown>>;
+    expect(candidates[0].question).toBe("de hond");
+    expect(candidates[0].answer).toBe("le chien");
+  });
+
+  it("AC36: verifyCardLanguages is NOT called when questionLang and answerLang are the same", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const body = { ...validBody, questionLang: "fr", answerLang: "fr" };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(200);
+    expect(deps.claude.verifyInputs.length).toBe(0);
+  });
+
+  it("AC35: returns 502 when verifyCardLanguages throws a generic error", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+    deps.claude.nextVerifyError = new Error("verify rate limit");
+
+    const body = { ...validBody, questionLang: "nl", answerLang: "fr" };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(502);
+  });
 });

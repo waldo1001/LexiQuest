@@ -11,7 +11,7 @@ import type { SessionSigner } from "../shared/session-signer.js";
 import type { TableStorage } from "../shared/table-storage.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
-import type { ClaudeClient, ExtractCardsInput } from "../shared/claude.js";
+import type { ClaudeClient, ExtractCardsInput, VerifyLanguagesInput } from "../shared/claude.js";
 import { ClaudeJsonParseError } from "../shared/claude.js";
 import type { CourseRow } from "./courses-shared.js";
 
@@ -143,7 +143,7 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
     const uiLanguage = userRow?.ui_language ?? "en";
 
     try {
-      const candidates = await deps.claude.extractCards({
+      let candidates = await deps.claude.extractCards({
         imageBase64,
         mimeType,
         courseName: course.name,
@@ -152,6 +152,15 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
         questionLang: questionLang ?? null,
         answerLang: answerLang ?? null,
       });
+
+      if (questionLang && answerLang && questionLang !== answerLang) {
+        candidates = await deps.claude.verifyCardLanguages({
+          cards: candidates,
+          questionLang,
+          answerLang,
+        });
+      }
+
       return { status: 200, jsonBody: { candidates } };
     } catch (err) {
       if (err instanceof ClaudeJsonParseError) {

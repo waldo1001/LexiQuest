@@ -22,11 +22,18 @@ export interface EnrichInput {
   cards: Array<{ id: string; question: string; answer: string }>;
 }
 
+export interface VerifyLanguagesInput {
+  cards: CardCandidate[];
+  questionLang: string;
+  answerLang: string;
+}
+
 export interface ClaudeClient {
   extractCards(input: ExtractCardsInput): Promise<CardCandidate[]>;
   enrichDistractors(
     input: EnrichInput,
   ): Promise<Array<{ id: string; distractors: [string, string] }>>;
+  verifyCardLanguages(input: VerifyLanguagesInput): Promise<CardCandidate[]>;
 }
 
 export class ClaudeJsonParseError extends Error {
@@ -139,6 +146,31 @@ Return JSON only — no prose, no markdown fences:
             content: [fileBlock, { type: "text", text: prompt }],
           },
         ],
+      });
+
+      const block = msg.content.find((b) => b.type === "text");
+      const raw = block && block.type === "text" ? block.text : "";
+      return parseCards(raw);
+    },
+
+    async verifyCardLanguages(input) {
+      const cardList = JSON.stringify(input.cards);
+      const prompt = `You are a language-assignment verifier for study flashcards.
+Each card must have its question in ${input.questionLang} and its answer in ${input.answerLang}.
+For each card, detect the actual language of the question text.
+If the question text is actually in ${input.answerLang} (not ${input.questionLang}), swap question and answer. Distractors always travel with the answer side (swap them too when swapping).
+After any swap set question_lang to "${input.questionLang}" and answer_lang to "${input.answerLang}".
+
+Return JSON only — no prose, no markdown fences — same length as input:
+[{"question":"...","answer":"...","distractors":["...","..."],"question_lang":"...","answer_lang":"..."}]
+
+Cards:
+${cardList}`;
+
+      const msg = await client.messages.create({
+        model: MODEL,
+        max_tokens: 4096,
+        messages: [{ role: "user", content: prompt }],
       });
 
       const block = msg.content.find((b) => b.type === "text");
