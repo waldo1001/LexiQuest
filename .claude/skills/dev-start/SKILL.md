@@ -1,9 +1,17 @@
 ---
 name: dev-start
-description: Start the full LexiQuest local development environment (Azurite + Vite + SWA CLI). Use when the user wants to run the app locally, test a feature in the browser, or diagnose a runtime error that unit tests cannot catch.
+description: Start the full LexiQuest local development environment (Azurite + Vite + SWA CLI). ALWAYS kills any existing dev processes first, then starts clean — never tries to attach to a running stack. Use when the user wants to run the app locally, test a feature in the browser, or diagnose a runtime error that unit tests cannot catch.
 ---
 
 # /dev-start — Start the LexiQuest local dev environment
+
+**Operating principle: kill first, start clean — always.** Do not try to
+detect "is something already running and good?" and skip steps. A stale
+SWA proxy with a fresh func host (or vice versa) is the most common
+failure mode, and it is invisible to port checks. The fixed order is:
+**KILL EVERYTHING → start fresh**, every single invocation. This is
+fast (a couple of seconds) and removes a whole class of "but it was
+working a minute ago" confusion.
 
 ## Key pitfall — ANTHROPIC_API_KEY must be non-empty
 
@@ -17,11 +25,32 @@ an empty key and every `/api/cards/import` call returns 502.
 
 ---
 
-## Step 1 — Check what is already running
+## Step 1 — KILL EVERYTHING (always, unconditionally)
+
+Do not check first. Do not skip if "looks fine". Always run this block.
+
+```sh
+pkill -9 -f "swa start"  2>/dev/null
+pkill -9 -f "func start" 2>/dev/null
+pkill -9 -f "vite"       2>/dev/null
+pkill -9 -f "azurite"    2>/dev/null
+# belt-and-braces: free the ports even if a stray child survived pkill
+lsof -ti :4280,5173,7071,10000,10001,10002 2>/dev/null | xargs -r kill -9 2>/dev/null
+sleep 1
+```
+
+Verify the ports are free before continuing:
 
 ```sh
 lsof -i :4280,5173,7071,10000,10001,10002 | grep LISTEN
+# expect: NO output
 ```
+
+If anything is still listed, identify the PID and `kill -9` it explicitly
+before moving on.
+
+**Port reference (for diagnosis only — do NOT use to decide whether to
+skip Step 1):**
 
 - **5173** — Vite frontend dev server
 - **4280** — SWA emulator (frontend + API gateway)
@@ -30,21 +59,18 @@ lsof -i :4280,5173,7071,10000,10001,10002 | grep LISTEN
 
 ---
 
-## Step 2 — Kill any stale processes
+## Step 2 — Build the API so the func host loads fresh code
 
-If any of the ports above are occupied by a previous session:
+Stale `api/dist/` is the second-most-common failure mode after stale
+processes. Always rebuild before booting func.
 
 ```sh
-pkill -9 -f "swa start" 2>/dev/null
-pkill -9 -f "func" 2>/dev/null
-lsof -ti :4280,7071 | xargs kill -9 2>/dev/null
+npm --prefix api run build
 ```
-
-Wait a second and verify: `lsof -i :4280,7071 | grep LISTEN` should be empty.
 
 ---
 
-## Step 3 — Start Azurite (if not running)
+## Step 3 — Start Azurite
 
 ```sh
 azurite --silent --location /tmp/azurite &
@@ -54,7 +80,7 @@ Listens on 10000 (blob), 10001 (queue), 10002 (table).
 
 ---
 
-## Step 4 — Start the Vite frontend (if not running on 5173)
+## Step 4 — Start the Vite frontend
 
 ```sh
 cd frontend && npm run dev &
@@ -102,8 +128,9 @@ Open **http://localhost:4280** in the browser. Login screen should show all avat
 
 | Symptom | Fix |
 |---------|-----|
-| `Port 4280 is already taken` at SWA start | Run step 2 to kill stale processes |
-| `Port 7071 is unavailable` | `lsof -ti :7071 \| xargs kill -9` |
+| `Port 4280 is already taken` at SWA start | Step 1 was skipped — re-run it |
+| `Port 7071 is unavailable` | Step 1 was skipped — re-run it |
+| `Claude is unavailable` even after a fresh upload | `api/dist/` is stale — re-run step 2, then bounce func (re-run step 1 + step 5) |
 | `KEY_LEN=0` | Check `local.settings.json` has `ANTHROPIC_API_KEY` set; check nothing in your shell is exporting it as empty |
 | `Claude is unavailable — please try again later` (502) | The Functions host started with an empty key — repeat step 5 |
 | Login screen empty / no avatars | Azurite not running, or database not seeded — run `cd api && npm run seed` |
