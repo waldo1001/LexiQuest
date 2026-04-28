@@ -109,6 +109,12 @@ operation, or an architectural ambiguity that Design.md does not resolve.
   [PROGRESS.md](PROGRESS.md), [docs/setup.md](docs/setup.md),
   [docs/getting-started.md](docs/getting-started.md), and
   [docs/user-guide.md](docs/user-guide.md) in sync with reality.
+- [`/dev-start`](.claude/skills/dev-start/SKILL.md) — invoke when the
+  user wants to run the app in the browser locally. Starts Azurite,
+  Vite, and SWA CLI with the `ANTHROPIC_API_KEY` injected correctly
+  from `api/local.settings.json`. Includes the key pitfall: SWA skips
+  local.settings.json values for env vars already exported (even if
+  empty), which causes 502 on `/api/cards/import`.
 - [`/local-smoke`](.claude/skills/local-smoke/SKILL.md) — invoke before
   `/deploy-swa` (or whenever the user says "smoke test"). Boots
   `swa start` against Azurite on a non-default port and exercises the
