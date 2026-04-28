@@ -167,6 +167,9 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
         errorMessage,
         status: typeof sdkStatus === "number" ? sdkStatus : null,
       });
+      if (errorMessage.includes("image exceeds")) {
+        return { status: 413, jsonBody: { error: "image too large" } };
+      }
       return { status: 502, jsonBody: { error: "Claude request failed" } };
     }
   };

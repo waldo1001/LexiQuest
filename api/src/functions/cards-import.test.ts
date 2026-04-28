@@ -235,6 +235,16 @@ describe("POST /api/cards/import", () => {
     expect(res.status).toBe(502);
   });
 
+  it("AC14b: returns 413 when Claude throws an image-too-large error", async () => {
+    await seedCourse(deps);
+    deps.claude.nextError = new Error(
+      '400 {"type":"error","error":{"type":"invalid_request_error","message":"messages.0.content.0.image.source.base64: image exceeds 5 MB maximum: 5725160 bytes > 5242880 bytes"}}',
+    );
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+    expect(res.status).toBe(413);
+  });
+
   it("AC15: course found via cross-user scan (owner different partition)", async () => {
     await seedUser(deps, "u-mats");
     await seedCourse(deps); // owned by u-lex
