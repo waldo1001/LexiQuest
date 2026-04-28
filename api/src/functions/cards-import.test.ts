@@ -401,9 +401,9 @@ describe("POST /api/cards/import", () => {
     expect(failures.length).toBe(0);
   });
 
-  it("AC27: 413 when image exceeds 5 MB decoded cap, with maxBytes/actualBytes in body", async () => {
+  it("AC27: 413 when image base64 exceeds 5 MB, with maxBytes/actualBytes in body", async () => {
     await seedCourse(deps);
-    // 7_000_000 base64 chars decode to 5_250_000 bytes — just over 5 MB
+    // 7_000_000 base64 chars > 5 MB cap — guard fires
     const overCap = { ...validBody, imageBase64: "A".repeat(7_000_000) };
 
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), overCap), ctx);
@@ -436,10 +436,10 @@ describe("POST /api/cards/import", () => {
     expect(failures.length).toBe(0);
   });
 
-  it("AC30: PDF up to 32 MB decoded passes the size guard (still hits Claude path)", async () => {
+  it("AC30: PDF up to 32 MB base64 passes the size guard (still hits Claude path)", async () => {
     await seedCourse(deps);
     deps.claude.nextCards = CANDIDATES;
-    // 14_000_000 base64 chars decode to ~10.5 MB — under the 32 MB PDF cap, over the 5 MB image cap
+    // 14_000_000 base64 chars — under the 32 MB PDF cap, over the 5 MB image cap
     const pdfBody = {
       courseId: COURSE_ID,
       imageBase64: "A".repeat(14_000_000),
@@ -449,5 +449,20 @@ describe("POST /api/cards/import", () => {
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), pdfBody), ctx);
     expect(res.status).not.toBe(413);
     expect(res.status).toBe(200);
+  });
+
+  it("AC31: 413 when image base64 is just over 5 MB (real-world scenario)", async () => {
+    // Regression: a 5.46 MB photo arrives as ~5.7 M base64 chars. Decoded
+    // size (4.3 MB) is under the cap, but Anthropic compares the base64
+    // string length itself against 5 MB — so the guard must too.
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+    // 5_725_000 chars: matches the user's actual failing image. Decoded
+    // bytes ≈ 4_293_750 — under 5 MB. Base64 length — over 5 MB.
+    const realCase = { ...validBody, imageBase64: "A".repeat(5_725_000) };
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), realCase), ctx);
+    expect(res.status).toBe(413);
+    expect(deps.claude.extractCardsInputs.length).toBe(0);
   });
 });

@@ -381,3 +381,9 @@ Plan: [~/.claude/plans/test-the-import-feature-hashed-hartmanis.md](../.claude/p
   - Tests: 4 new in `cards-import.test.ts` (AC27 413 + maxBytes/actualBytes shape; AC28 413 path doesn't call Claude; AC29 413 doesn't emit `cards_import_claude_failed`; AC30 PDF up to 32 MB still passes). 1 new in `api.test.js` (413 → image_too_large). 1 new in `PhotoImport.test.jsx` (image_too_large → tooLarge string). Suites: 837 api + 552 frontend = 1389 passing
   - Coverage: cards-import.ts 100%/96.61%, api.js 97.71%, PhotoImport.jsx 98.77%, strings.js 100% — all above tier floors
   - **Decided against** client-side auto-downscale this slice: canvas/image manipulation is hard to TDD reliably in jsdom, the user-facing message is honest and self-resolvable (re-take the photo, or use the phone's lower-resolution mode). Revisit only if oversized photos remain a routine pain point
+
+- ✅ Slice 3 — Size-guard math fix: compare base64 length, not decoded bytes
+  - Bug: Slice 2's guard compared `imageBase64.length × 3 / 4` (decoded image bytes) against the 5 MB cap. Live retry showed Anthropic actually enforces the cap against the **base64 string length itself** — a 5.46 MB photo arrives as 5.72 M base64 chars (decodes to 4.3 MB), passes our decoded-bytes check, and is then rejected by the SDK. The user noticed and added a `errorMessage.includes("image exceeds") → 413` fallback inside the catch block as a workaround
+  - Fix: compare `imageBase64.length` directly to the cap. Renamed constants `MAX_IMAGE_DECODED_BYTES` → `MAX_IMAGE_PAYLOAD_BYTES` (and PDF equivalent) to reflect the actual semantic. The catch-block fallback stays as belt-and-braces for any edge case that slips through
+  - Tests: AC31 (new) — regression for the user's exact scenario (5.725 M chars, decoded < 5 MB, base64 > 5 MB → 413). Updated AC27/AC30 comments. Suites: 839 api passing
+  - Cards-import.ts coverage: 100% / 96.77%

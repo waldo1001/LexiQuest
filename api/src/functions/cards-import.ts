@@ -31,8 +31,10 @@ const VALID_MIME_TYPES = new Set([
   "application/pdf",
 ]);
 
-const MAX_IMAGE_DECODED_BYTES = 5 * 1024 * 1024;
-const MAX_PDF_DECODED_BYTES = 32 * 1024 * 1024;
+// Anthropic enforces these caps against the base64 string length
+// (request payload size), not the decoded image/PDF bytes.
+const MAX_IMAGE_PAYLOAD_BYTES = 5 * 1024 * 1024;
+const MAX_PDF_PAYLOAD_BYTES = 32 * 1024 * 1024;
 
 const BCP47_RE = /^[a-z]{2,3}(-[A-Z][a-zA-Z]{1,7})?$/;
 
@@ -117,12 +119,12 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
     const { courseId, imageBase64, mimeType, questionLang, answerLang } = validated;
 
     const isPdf = mimeType === "application/pdf";
-    const decodedBytes = Math.floor((imageBase64.length * 3) / 4);
-    const maxBytes = isPdf ? MAX_PDF_DECODED_BYTES : MAX_IMAGE_DECODED_BYTES;
-    if (decodedBytes > maxBytes) {
+    const payloadBytes = imageBase64.length;
+    const maxBytes = isPdf ? MAX_PDF_PAYLOAD_BYTES : MAX_IMAGE_PAYLOAD_BYTES;
+    if (payloadBytes > maxBytes) {
       return {
         status: 413,
-        jsonBody: { error: "Image too large", maxBytes, actualBytes: decodedBytes },
+        jsonBody: { error: "Image too large", maxBytes, actualBytes: payloadBytes },
       };
     }
 
