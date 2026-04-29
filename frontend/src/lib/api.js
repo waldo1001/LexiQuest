@@ -450,15 +450,16 @@ export async function startSession(body, { fetchFn = fetch } = {}) {
 
 /**
  * @param {{ sessionId: string, items: object[] }} body
- * @param {{ fetchFn?: typeof fetch }} [options]
+ * @param {{ fetchFn?: typeof fetch, keepalive?: boolean }} [options]
  * @returns {Promise<object>}
  */
-export async function postAttempts(body, { fetchFn = fetch } = {}) {
+export async function postAttempts(body, { fetchFn = fetch, keepalive = false } = {}) {
   const response = await fetchFn("/api/attempts", {
     method: "POST",
     headers: { "content-type": "application/json" },
     credentials: "include",
     body: JSON.stringify(body),
+    ...(keepalive ? { keepalive: true } : {}),
   });
   if (!response.ok) {
     throw new Error(`POST /api/attempts failed with status ${response.status}`);
@@ -469,15 +470,16 @@ export async function postAttempts(body, { fetchFn = fetch } = {}) {
 /**
  * @param {string} sessionId
  * @param {{ cards_studied: number, cards_correct: number }} body
- * @param {{ fetchFn?: typeof fetch }} [options]
+ * @param {{ fetchFn?: typeof fetch, keepalive?: boolean }} [options]
  * @returns {Promise<object>}
  */
-export async function closeSession(sessionId, body, { fetchFn = fetch } = {}) {
+export async function closeSession(sessionId, body, { fetchFn = fetch, keepalive = false } = {}) {
   const response = await fetchFn(`/api/sessions/${encodeURIComponent(sessionId)}`, {
     method: "PUT",
     headers: { "content-type": "application/json" },
     credentials: "include",
     body: JSON.stringify(body),
+    ...(keepalive ? { keepalive: true } : {}),
   });
   if (!response.ok) {
     throw new Error(`PUT /api/sessions/${sessionId} failed with status ${response.status}`);

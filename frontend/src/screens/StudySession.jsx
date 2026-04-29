@@ -135,6 +135,8 @@ function reducer(state, action) {
 
       return { ...state, phase: PHASE.FINISHING, pendingAttempts: newAttempts, firstTryResults: newFirstTry };
     }
+    case "END_EARLY":
+      return { ...state, phase: PHASE.FINISHING };
     case "ERROR":
       return { ...state, phase: PHASE.ERROR, error: action.error };
     default:
@@ -219,34 +221,81 @@ export default function StudySession({
     return () => { cancelled = true; };
   }, [courseId, mode, gameType, cardLimit, startSession]);
 
+  // Ref mirrors the latest state so the unmount/pagehide cleanup can read it.
+  const flushRef = useRef({ sessionId: null, pendingAttempts: [], firstTryResults: {}, saved: false });
+  flushRef.current.sessionId = state.sessionId;
+  flushRef.current.pendingAttempts = state.pendingAttempts;
+  flushRef.current.firstTryResults = state.firstTryResults;
+
   // Finish session when phase transitions to FINISHING
   const finishSession = useCallback(async () => {
     if (state.phase !== PHASE.FINISHING) return;
+    if (flushRef.current.saved) return;
+    flushRef.current.saved = true;
     try {
-      const cardsStudied = state.totalUnique;
+      const cardsStudied = Object.keys(state.firstTryResults).length;
       const cardsCorrect = Object.values(state.firstTryResults).filter(Boolean).length;
-      await postAttempts({ sessionId: state.sessionId, items: state.pendingAttempts });
-      const result = await closeSession(state.sessionId, { cards_studied: cardsStudied, cards_correct: cardsCorrect });
-      navigate(`/courses/${courseId}/results`, {
-        state: {
-          sessionId: state.sessionId,
-          courseName,
-          gameType,
-          cards_studied: result.cards_studied ?? cardsStudied,
-          cards_correct: result.cards_correct ?? cardsCorrect,
-          duration_seconds: result.duration_seconds ?? 0,
-          xp_earned: result.xp_earned ?? 0,
-        },
-        replace: true,
-      });
+      if (state.pendingAttempts.length > 0) {
+        await postAttempts({ sessionId: state.sessionId, items: state.pendingAttempts });
+        const result = await closeSession(state.sessionId, { cards_studied: cardsStudied, cards_correct: cardsCorrect });
+        navigate(`/courses/${courseId}/results`, {
+          state: {
+            sessionId: state.sessionId,
+            courseName,
+            gameType,
+            cards_studied: result.cards_studied ?? cardsStudied,
+            cards_correct: result.cards_correct ?? cardsCorrect,
+            duration_seconds: result.duration_seconds ?? 0,
+            xp_earned: result.xp_earned ?? 0,
+          },
+          replace: true,
+        });
+      } else {
+        // Nothing to save — just go back to courses.
+        navigate(`/courses`, { replace: true });
+      }
     } catch {
+      flushRef.current.saved = false;
       dispatch({ type: "ERROR", error: "save failed" });
     }
-  }, [state, courseId, courseName, postAttempts, closeSession, navigate]);
+  }, [state, courseId, courseName, gameType, postAttempts, closeSession, navigate]);
 
   useEffect(() => {
     if (state.phase === PHASE.FINISHING) finishSession();
   }, [state.phase, finishSession]);
+
+  // Keepalive flush on unmount / pagehide for in-app nav-away or tab close.
+  // Fire-and-forget; ignore errors. Skipped if finishSession already ran or
+  // the user hasn't answered any cards yet.
+  useEffect(() => {
+    const flush = () => {
+      const ref = flushRef.current;
+      if (ref.saved) return;
+      if (!ref.sessionId) return;
+      if (ref.pendingAttempts.length === 0) return;
+      ref.saved = true;
+      const cardsStudied = Object.keys(ref.firstTryResults).length;
+      const cardsCorrect = Object.values(ref.firstTryResults).filter(Boolean).length;
+      try {
+        postAttempts(
+          { sessionId: ref.sessionId, items: ref.pendingAttempts },
+          { keepalive: true },
+        );
+        closeSession(
+          ref.sessionId,
+          { cards_studied: cardsStudied, cards_correct: cardsCorrect },
+          { keepalive: true },
+        );
+      } catch {
+        // fire-and-forget; ignore network/transport errors
+      }
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [postAttempts, closeSession]);
 
   // Auto-speak question on new card, answer on reveal
   useEffect(() => {
@@ -262,6 +311,16 @@ export default function StudySession({
   const handleGrade = useCallback((correct, cardMode = "self_grade") => {
     dispatch({ type: "GRADE", correct, responseTimeMs: 0, cardMode });
   }, []);
+
+  const handleEndEarly = useCallback(() => {
+    if (state.pendingAttempts.length === 0) {
+      navigate(`/courses`, { replace: true });
+      return;
+    }
+    if (window.confirm(t("study.endNowConfirm"))) {
+      dispatch({ type: "END_EARLY" });
+    }
+  }, [state.pendingAttempts.length, navigate, t]);
 
   const handleMcqPick = useCallback((picked, correct) => {
     dispatch({ type: "MCQ_PICK", picked, correct });
@@ -337,6 +396,15 @@ export default function StudySession({
             onClick={() => setSpeechOn((v) => !v)}
           >
             {speechOn ? "\uD83D\uDD0A" : "\uD83D\uDD07"}
+          </button>
+        )}
+        {!isSpeedRound && (
+          <button
+            className="btn btn-ghost study-end-now"
+            aria-label={t("study.endNowAria")}
+            onClick={handleEndEarly}
+          >
+            {t("study.endNow")}
           </button>
         )}
       </div>

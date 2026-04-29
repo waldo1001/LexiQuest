@@ -387,3 +387,18 @@ Plan: [~/.claude/plans/test-the-import-feature-hashed-hartmanis.md](../.claude/p
   - Fix: compare `imageBase64.length` directly to the cap. Renamed constants `MAX_IMAGE_DECODED_BYTES` → `MAX_IMAGE_PAYLOAD_BYTES` (and PDF equivalent) to reflect the actual semantic. The catch-block fallback stays as belt-and-braces for any edge case that slips through
   - Tests: AC31 (new) — regression for the user's exact scenario (5.725 M chars, decoded < 5 MB, base64 > 5 MB → 413). Updated AC27/AC30 comments. Suites: 839 api passing
   - Cards-import.ts coverage: 100% / 96.77%
+
+## Post-v1 — Save partial study sessions
+
+Plan: [/Users/waldo/.claude/plans/when-any-does-a-robust-mountain.md](/Users/waldo/.claude/plans/when-any-does-a-robust-mountain.md)
+
+- ✅ Slice 1 — Save what the user answered when a session is left mid-flight
+  - Bug: `StudySession.jsx` only called `postAttempts` + `closeSession` once the queue and retry pile drained (or the speed-round timer expired). Closing the tab, navigating away, or just wanting to stop after 5 of 20 cards lost every grade — no SM-2 update, no XP, no streak credit, and the session row stayed open in storage with `ended_at = null`
+  - Fix: 3 frontend-only changes
+    1. New "End now" button in the study-progress bar (hidden in `speed_round`, which already self-finishes on its 60-second timer). Click → `window.confirm` → reducer dispatches `END_EARLY` → existing `FINISHING` flow runs with the partial counts, navigating to results. Zero-attempts End Now skips confirm and routes back to `/courses`
+    2. Auto-flush effect: `pagehide` listener + unmount cleanup re-use `postAttempts`/`closeSession` with `keepalive: true` (extended both wrappers in `api.js` to forward the option). A `flushRef` guards against double-save when `finishSession` and the cleanup race
+    3. Partial-count fix: `cardsStudied` now derives from `Object.keys(firstTryResults).length` (actually-answered) rather than `state.totalUnique` (planned). No-op for full sessions; correct for partial
+  - i18n: 3 new keys EN+NL (`study.endNow`, `study.endNowAria`, `study.endNowConfirm`)
+  - Tests: 9 new in `StudySession.test.jsx` (PS-1 to PS-9 — button visibility, partial save, zero-answer back-out, confirm-cancel, unmount flush, pagehide flush, no double-save). Suites: 571 frontend + 844 api passing
+  - Coverage: `StudySession.jsx` 93.78% lines / 71.42% functions (Tier B 70% met; was 69.23% before this slice). `api.js` 97.72% lines (Tier A 90% met)
+  - Backend untouched — `sessions-id.ts` already handled any `cards_studied >= 0`, so XP/streak/badges work for partial sessions automatically

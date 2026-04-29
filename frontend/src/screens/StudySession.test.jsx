@@ -639,3 +639,167 @@ describe("StudySession — game type features", () => {
     await waitFor(() => expect(screen.getByRole("heading", { name: /results/i })).toBeInTheDocument());
   });
 });
+
+describe("StudySession — partial save (early end)", () => {
+  it("PS-1: shows 'End now' button during card phases for classic mode", async () => {
+    setup();
+    await screen.findByText("What is a dog?");
+    expect(screen.getByRole("button", { name: /End now/i })).toBeInTheDocument();
+  });
+
+  it("PS-2: hides 'End now' button in speed_round", async () => {
+    setup({ gameType: "speed_round" });
+    await screen.findByText("What is a dog?");
+    expect(screen.queryByRole("button", { name: /End now/i })).toBeNull();
+  });
+
+  it("PS-3: clicking 'End now' after answering some cards saves attempts and navigates to results with partial counts", async () => {
+    const postAttempts = vi.fn().mockResolvedValue({ logged: 1 });
+    const closeSession = vi.fn().mockResolvedValue({
+      ended_at: "2026-04-22T10:05:00Z",
+      cards_studied: 1,
+      cards_correct: 1,
+      duration_seconds: 20,
+      xp_earned: 10,
+    });
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    setup({ postAttempts, closeSession });
+
+    await screen.findByText("What is a dog?");
+    // Answer just the first card correctly
+    await userEvent.click(screen.getByRole("button", { name: /show answer/i }));
+    await userEvent.click(screen.getByRole("button", { name: /knew it/i }));
+    // Now on card-2 — click End now without answering it
+    await screen.findByText("What is a cat?");
+    await userEvent.click(screen.getByRole("button", { name: /End now/i }));
+
+    await waitFor(() => {
+      expect(postAttempts).toHaveBeenCalledOnce();
+      expect(closeSession).toHaveBeenCalledOnce();
+    });
+
+    const attemptsCall = postAttempts.mock.calls[0][0];
+    expect(attemptsCall.sessionId).toBe(SESSION_ID);
+    expect(attemptsCall.items).toHaveLength(1);
+    expect(attemptsCall.items[0].correct).toBe(true);
+
+    const closeCall = closeSession.mock.calls[0][1];
+    expect(closeCall.cards_studied).toBe(1);
+    expect(closeCall.cards_correct).toBe(1);
+
+    await screen.findByText("Results");
+    confirmSpy.mockRestore();
+  });
+
+  it("PS-4: clicking 'End now' with zero answers does not save and navigates back", async () => {
+    const postAttempts = vi.fn();
+    const closeSession = vi.fn();
+    setup({ postAttempts, closeSession });
+
+    await screen.findByText("What is a dog?");
+    await userEvent.click(screen.getByRole("button", { name: /End now/i }));
+
+    // Should leave the study screen without calling save endpoints
+    await waitFor(() => {
+      expect(screen.queryByText("What is a dog?")).toBeNull();
+    });
+    expect(postAttempts).not.toHaveBeenCalled();
+    expect(closeSession).not.toHaveBeenCalled();
+  });
+
+  it("PS-5: clicking 'End now' and cancelling the confirm keeps the session active", async () => {
+    const postAttempts = vi.fn();
+    const closeSession = vi.fn();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    setup({ postAttempts, closeSession });
+
+    await screen.findByText("What is a dog?");
+    await userEvent.click(screen.getByRole("button", { name: /show answer/i }));
+    await userEvent.click(screen.getByRole("button", { name: /knew it/i }));
+    await screen.findByText("What is a cat?");
+    await userEvent.click(screen.getByRole("button", { name: /End now/i }));
+
+    expect(postAttempts).not.toHaveBeenCalled();
+    expect(closeSession).not.toHaveBeenCalled();
+    // Still on the study screen
+    expect(screen.getByText("What is a cat?")).toBeInTheDocument();
+    confirmSpy.mockRestore();
+  });
+
+  it("PS-6: unmounting mid-session flushes pending attempts via keepalive", async () => {
+    const postAttempts = vi.fn().mockResolvedValue({ logged: 1 });
+    const closeSession = vi.fn().mockResolvedValue({});
+    const { unmount } = setup({ postAttempts, closeSession });
+
+    await screen.findByText("What is a dog?");
+    await userEvent.click(screen.getByRole("button", { name: /show answer/i }));
+    await userEvent.click(screen.getByRole("button", { name: /knew it/i }));
+    await screen.findByText("What is a cat?");
+
+    unmount();
+
+    await waitFor(() => {
+      expect(postAttempts).toHaveBeenCalledOnce();
+      expect(closeSession).toHaveBeenCalledOnce();
+    });
+    expect(postAttempts.mock.calls[0][1]).toMatchObject({ keepalive: true });
+    expect(closeSession.mock.calls[0][2]).toMatchObject({ keepalive: true });
+    expect(closeSession.mock.calls[0][1]).toMatchObject({ cards_studied: 1, cards_correct: 1 });
+  });
+
+  it("PS-7: pagehide event flushes pending attempts via keepalive", async () => {
+    const postAttempts = vi.fn().mockResolvedValue({ logged: 1 });
+    const closeSession = vi.fn().mockResolvedValue({});
+    setup({ postAttempts, closeSession });
+
+    await screen.findByText("What is a dog?");
+    await userEvent.click(screen.getByRole("button", { name: /show answer/i }));
+    await userEvent.click(screen.getByRole("button", { name: /knew it/i }));
+    await screen.findByText("What is a cat?");
+
+    window.dispatchEvent(new Event("pagehide"));
+
+    await waitFor(() => {
+      expect(postAttempts).toHaveBeenCalledOnce();
+      expect(closeSession).toHaveBeenCalledOnce();
+    });
+    expect(postAttempts.mock.calls[0][1]).toMatchObject({ keepalive: true });
+  });
+
+  it("PS-8: unmount with zero attempts does not flush", async () => {
+    const postAttempts = vi.fn();
+    const closeSession = vi.fn();
+    const { unmount } = setup({ postAttempts, closeSession });
+
+    await screen.findByText("What is a dog?");
+    unmount();
+
+    expect(postAttempts).not.toHaveBeenCalled();
+    expect(closeSession).not.toHaveBeenCalled();
+  });
+
+  it("PS-9: completing a full session and then pagehide does not double-save", async () => {
+    const postAttempts = vi.fn().mockResolvedValue({ logged: 2 });
+    const closeSession = vi.fn().mockResolvedValue({
+      ended_at: "now", cards_studied: 2, cards_correct: 2, duration_seconds: 30, xp_earned: 20,
+    });
+    setup({ postAttempts, closeSession });
+
+    await screen.findByText("What is a dog?");
+    await userEvent.click(screen.getByRole("button", { name: /show answer/i }));
+    await userEvent.click(screen.getByRole("button", { name: /knew it/i }));
+    await screen.findByText("What is a cat?");
+    await userEvent.click(screen.getByRole("button", { name: /show answer/i }));
+    await userEvent.click(screen.getByRole("button", { name: /knew it/i }));
+
+    await screen.findByText("Results");
+    expect(postAttempts).toHaveBeenCalledOnce();
+    expect(closeSession).toHaveBeenCalledOnce();
+
+    // Now fire pagehide — should not trigger another save
+    window.dispatchEvent(new Event("pagehide"));
+    await new Promise((r) => setTimeout(r, 10));
+    expect(postAttempts).toHaveBeenCalledOnce();
+    expect(closeSession).toHaveBeenCalledOnce();
+  });
+});
