@@ -18,6 +18,7 @@ export interface UserRow extends Entity {
     preferred_mode: "self_grade" | "mcq" | "mixed" | "ask";
     daily_goal: number;
     theme?: "classic" | "playful" | "arcade";
+    study_font_size?: "normal" | "large" | "xlarge";
     streak?: number;
     last_session_date?: string | null;
     freeze_tokens?: number;

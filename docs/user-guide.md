@@ -157,6 +157,9 @@ onward (first login + dashboard) and gets sections added per phase:
 - **Settings** (Phase 17): UI language (NL / EN), auto-speak, daily goal,
   preferred study mode, streak freeze tokens, and:
   - **Display theme** — System default, Light, or Dark.
+  - **Study font size** — Normal, Large, or Extra large. Scales the
+    question/answer text on the study card for kids who need bigger
+    text without changing the rest of the UI.
   - **Export my data** — downloads `lexiquest-{name}-{date}.json` containing
     all your courses, cards, sessions, and attempts.
 - **Per-side TTS pronunciation** (post-v1): when you import cards via

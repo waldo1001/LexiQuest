@@ -18,6 +18,7 @@ type UiLanguage = UserRow["ui_language"];
 type UserSettings = UserRow["settings"];
 type PreferredMode = UserSettings["preferred_mode"];
 type Theme = NonNullable<UserSettings["theme"]>;
+type StudyFontSize = NonNullable<UserSettings["study_font_size"]>;
 
 const UI_LANGUAGES = new Set<UiLanguage>(["en", "nl"]);
 const PREFERRED_MODES = new Set<PreferredMode>([
@@ -27,6 +28,7 @@ const PREFERRED_MODES = new Set<PreferredMode>([
   "ask",
 ]);
 const THEMES = new Set<Theme>(["classic", "playful", "arcade"]);
+const STUDY_FONT_SIZES = new Set<StudyFontSize>(["normal", "large", "xlarge"]);
 
 function publicProfile(user: UserRow) {
   return {
@@ -103,6 +105,13 @@ function validatePatch(
         return { ok: false, error: "invalid theme" };
       }
       out.theme = th as Theme;
+    }
+    if ("study_font_size" in sr) {
+      const sf = sr.study_font_size;
+      if (typeof sf !== "string" || !STUDY_FONT_SIZES.has(sf as StudyFontSize)) {
+        return { ok: false, error: "invalid study_font_size" };
+      }
+      out.study_font_size = sf as StudyFontSize;
     }
     patch.settings = out;
   }

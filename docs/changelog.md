@@ -5,6 +5,7 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-04-29
 
+- Fixed the **Study font size** setting silently reverting after a reload. The frontend (Settings dropdown + StudySession inline `fontSize`) was wired correctly back in commit `1082292`, but the backend `validatePatch` in `api/src/functions/me.ts` had no allowlist branch for `study_font_size` — `PATCH /api/me` returned 200 OK while dropping the field. Added `study_font_size?: "normal"|"large"|"xlarge"` to `UserRow.settings` (`api/src/shared/seed.ts`), a `STUDY_FONT_SIZES` allowlist + validator branch in `me.ts`, and 3 new tests in `me.test.ts` (accept-and-persist round-tripping all three values, reject invalid string and non-string, preserve other settings on partial patch). `me.ts` 100% line/function coverage maintained; full api suite 847 passing (1 skipped Azure integration). Plan: [plans/done/post-v1-study-font-size-persistence.md](plans/done/post-v1-study-font-size-persistence.md).
 - Added User Picker (route `/`) as the 5th bottom-nav item — icon 👥, labels EN "Users" / NL "Gebruikers", positioned rightmost after Settings. Lets a logged-in user jump back to the who-are-you screen to switch accounts on a shared family device without manually editing the URL. 1 new test (BN-8) in `BottomNav.test.jsx`; `BottomNav.jsx` coverage 100% all metrics. Deployed `5e7bf1c` to Azure SWA; live probes green (root 200; `/api/users/public` returns 6 users, no hashes). Run: https://github.com/waldo1001/LexiQuest/actions/runs/25118820312.
 
 ## 2026-04-28

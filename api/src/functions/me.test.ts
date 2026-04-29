@@ -343,6 +343,77 @@ describe("PATCH /api/me", () => {
     expect(res.status).toBe(400);
   });
 
+  it("PATCH /me accepts valid study_font_size and persists it", async () => {
+    const resLarge = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { study_font_size: "large" } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(resLarge.status).toBe(200);
+    let stored = await tables.getById<UserRow>("users", "users", "u-alice");
+    expect(stored?.settings.study_font_size).toBe("large");
+
+    const resXLarge = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { study_font_size: "xlarge" } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(resXLarge.status).toBe(200);
+    stored = await tables.getById<UserRow>("users", "users", "u-alice");
+    expect(stored?.settings.study_font_size).toBe("xlarge");
+
+    const resNormal = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { study_font_size: "normal" } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(resNormal.status).toBe(200);
+    stored = await tables.getById<UserRow>("users", "users", "u-alice");
+    expect(stored?.settings.study_font_size).toBe("normal");
+  });
+
+  it("PATCH /me rejects invalid study_font_size with 400", async () => {
+    const resString = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { study_font_size: "huge" } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(resString.status).toBe(400);
+
+    const resNonString = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { study_font_size: 42 } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(resNonString.status).toBe(400);
+  });
+
+  it("PATCH /me preserves other settings when only study_font_size changes", async () => {
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { study_font_size: "large" } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(200);
+    const stored = await tables.getById<UserRow>("users", "users", "u-alice");
+    expect(stored?.settings.auto_speak).toBe(true);
+    expect(stored?.settings.preferred_mode).toBe("mcq");
+    expect(stored?.settings.daily_goal).toBe(15);
+    expect(stored?.settings.study_font_size).toBe("large");
+  });
+
   it("rejects a non-object body with 400", async () => {
     const res = (await makeMeHandler(deps)(
       req(validCookie, { method: "PATCH", body: "not-an-object" }),
