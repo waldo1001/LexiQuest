@@ -402,3 +402,13 @@ Plan: [/Users/waldo/.claude/plans/when-any-does-a-robust-mountain.md](/Users/wal
   - Tests: 9 new in `StudySession.test.jsx` (PS-1 to PS-9 — button visibility, partial save, zero-answer back-out, confirm-cancel, unmount flush, pagehide flush, no double-save). Suites: 571 frontend + 844 api passing
   - Coverage: `StudySession.jsx` 93.78% lines / 71.42% functions (Tier B 70% met; was 69.23% before this slice). `api.js` 97.72% lines (Tier A 90% met)
   - Backend untouched — `sessions-id.ts` already handled any `cards_studied >= 0`, so XP/streak/badges work for partial sessions automatically
+
+## Post-v1 — Picker in main menu
+
+Plan: [/Users/waldo/.claude/plans/i-want-the-picker-zany-beacon.md](/Users/waldo/.claude/plans/i-want-the-picker-zany-beacon.md)
+
+- ✅ Slice 1 — Add User Picker as 5th bottom-nav item
+  - Need: once signed in, the only way back to the user picker (`/`) was to edit the URL or clear the session — awkward on a shared family device
+  - Fix: append `{ to: "/", labelKey: "nav.picker", icon: "👥" }` to `LINKS` in `BottomNav.jsx`; new `nav.picker` translation in en (`Users`) + nl (`Gebruikers`). Position: rightmost, after Settings
+  - Tests: 1 new in `BottomNav.test.jsx` (BN-8 — link to `/` with name /users/i). Suites: 572 frontend passing
+  - Coverage: `BottomNav.jsx` 100% all metrics (Tier B 70% met)

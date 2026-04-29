@@ -6,6 +6,7 @@ const LINKS = [
   { to: "/home", labelKey: "nav.study", icon: "\u{1F4DA}" },
   { to: "/family", labelKey: "nav.family", icon: "\u{1F46A}" },
   { to: "/settings", labelKey: "nav.settings", icon: "\u2699\uFE0F" },
+  { to: "/", labelKey: "nav.picker", icon: "\u{1F465}" },
 ];
 
 function NavItem({ to, label, icon }) {

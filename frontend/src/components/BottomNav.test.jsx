@@ -51,4 +51,9 @@ describe("BottomNav", () => {
     setup("/dashboard");
     expect(screen.getByRole("link", { name: /study/i })).not.toHaveAttribute("aria-current", "page");
   });
+
+  it("BN-8: contains a link to / (Users picker)", () => {
+    setup();
+    expect(screen.getByRole("link", { name: /users/i })).toHaveAttribute("href", "/");
+  });
 });
