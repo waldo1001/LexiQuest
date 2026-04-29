@@ -3,6 +3,10 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-04-29
+
+- Added User Picker (route `/`) as the 5th bottom-nav item — icon 👥, labels EN "Users" / NL "Gebruikers", positioned rightmost after Settings. Lets a logged-in user jump back to the who-are-you screen to switch accounts on a shared family device without manually editing the URL. 1 new test (BN-8) in `BottomNav.test.jsx`; `BottomNav.jsx` coverage 100% all metrics. Deployed `5e7bf1c` to Azure SWA; live probes green (root 200; `/api/users/public` returns 6 users, no hashes). Run: https://github.com/waldo1001/LexiQuest/actions/runs/25118820312.
+
 ## 2026-04-28
 
 - Added a second Claude LLM call (`verifyCardLanguages`) in the card-import pipeline. When both `questionLang` and `answerLang` are specified (and differ), the API now calls Claude a second time to detect language-assignment mismatches and swap `question`/`answer` if the question text is actually in the answer language. 4 new tests (AC32–AC35) in `cards-import.test.ts`; `VerifyLanguagesInput` added to the `ClaudeClient` seam; `FakeClaudeClient` supports `nextVerifiedCards` / `nextVerifyError`. Tier A coverage maintained at 100% on both `cards-import.ts` and `claude.ts`.
