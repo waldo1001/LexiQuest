@@ -116,8 +116,23 @@ Export `ANTHROPIC_API_KEY` from `local.settings.json` into the shell
 from `local.settings.json` — and if the parent shell has it set to
 empty, the AI-import probe in 4.6 will 502.
 
+**Build the API first.** `swa start` runs the **compiled** Functions host
+out of `api/dist/src/index.js`. The npm `prestart` hook (which would
+normally run `tsc`) does **not** fire under `swa start`, so any newly
+added function will silently 404 in smoke even though the TS file exists
+and unit tests pass. Always run `npm run build` in `api/` before
+`swa start`. Production deploys are unaffected — the GitHub Actions SWA
+workflow builds the API as part of its pipeline — but local smoke needs
+this step explicitly. (Past incident: 2026-04-30, `cards/copy` 404 in
+smoke right after the slice shipped.)
+
 ```sh
-# (a) Start Vite on its default port 5173
+# (a) Compile the API to dist/ — required before swa start
+cd api && npm run build > "$SMOKE_DIR/api-build.log" 2>&1
+[ -f dist/src/index.js ] || { echo "API build failed — see $SMOKE_DIR/api-build.log"; exit 1; }
+cd ..
+
+# (b) Start Vite on its default port 5173
 cd frontend && npm run dev > "$SMOKE_DIR/vite.log" 2>&1 &
 VITE_PID=$!
 cd ..
@@ -127,7 +142,7 @@ until curl -sS -o /dev/null -w "" http://localhost:5173/ 2>/dev/null \
   sleep 1
 done
 
-# (b) Export the API key, then boot SWA → Functions on 7071, SWA on 4280
+# (c) Export the API key, then boot SWA → Functions on 7071, SWA on 4280
 export ANTHROPIC_API_KEY=$(node -e "process.stdout.write(require('./api/local.settings.json').Values.ANTHROPIC_API_KEY)")
 echo "KEY_LEN=${#ANTHROPIC_API_KEY}"  # must be > 0; if 0, AI-import probe will fail
 swa start http://localhost:5173 --api-location api > "$SMOKE_DIR/swa.log" 2>&1 &
