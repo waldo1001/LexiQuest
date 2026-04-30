@@ -596,6 +596,23 @@ export async function batchCreateCards(body, { fetchFn = fetch } = {}) {
 }
 
 /**
+ * @param {{ courseId: string, sourceUploadId: string, targetUploadId: string }} body
+ * @param {{ fetchFn?: typeof fetch }} [options]
+ * @returns {Promise<{ copied: number, skipped: number, copied_card_ids: string[] }>}
+ */
+export async function copyUploadCards(body, { fetchFn = fetch } = {}) {
+  const response = await fetchFn("/api/cards/copy", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (response.status === 403) throw new Error("forbidden");
+  if (!response.ok) throw new Error(`POST /api/cards/copy failed: ${response.status}`);
+  return response.json();
+}
+
+/**
  * @param {{ courseId: string, uploadId: string, uploadName: string }} body
  * @param {{ fetchFn?: typeof fetch }} [options]
  * @returns {Promise<{ updated: number }>}

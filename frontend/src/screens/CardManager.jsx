@@ -8,6 +8,7 @@ import {
   bulkDeleteCards as bulkDeleteCardsApi,
   reverseCards as reverseCardsApi,
   renameUpload as renameUploadApi,
+  copyUploadCards as copyUploadCardsApi,
 } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
 import { useAppContext, useTts } from "../context/AppContext.jsx";
@@ -57,6 +58,7 @@ function formatDate(iso) {
  *   bulkDeleteCards?: typeof bulkDeleteCardsApi,
  *   reverseCards?: typeof reverseCardsApi,
  *   renameUpload?: typeof renameUploadApi,
+ *   copyUploadCards?: typeof copyUploadCardsApi,
  *   confirmFn?: (msg: string) => boolean,
  * }} props
  */
@@ -68,6 +70,7 @@ export default function CardManager({
   bulkDeleteCards = bulkDeleteCardsApi,
   reverseCards = reverseCardsApi,
   renameUpload = renameUploadApi,
+  copyUploadCards = copyUploadCardsApi,
   confirmFn = typeof window !== "undefined"
     ? window.confirm.bind(window)
     : () => false,
@@ -96,6 +99,8 @@ export default function CardManager({
   const [expandedGroups, setExpandedGroups] = useState(() => new Set([MANUAL_KEY]));
   const [renamingUploadId, setRenamingUploadId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
+  const [copyingUploadId, setCopyingUploadId] = useState(null);
+  const [copyTargetId, setCopyTargetId] = useState("");
 
   useEffect(() => {
     if (!courseId) return;
@@ -347,6 +352,39 @@ export default function CardManager({
     setRenameValue(group.uploadName ?? "");
   }
 
+  function startCopy(group, eligibleTargets) {
+    setCopyingUploadId(group.uploadId);
+    setCopyTargetId(eligibleTargets[0]?.uploadId ?? "");
+  }
+
+  function cancelCopy() {
+    setCopyingUploadId(null);
+    setCopyTargetId("");
+  }
+
+  async function onConfirmCopy(sourceUploadId) {
+    if (!copyTargetId) return;
+    resetStatus();
+    try {
+      const result = await copyUploadCards({
+        courseId,
+        sourceUploadId,
+        targetUploadId: copyTargetId,
+      });
+      const refreshed = await fetchCards(courseId);
+      setCards(refreshed);
+      setStatus(t("cards.status.copied", { copied: result.copied, skipped: result.skipped }));
+      setCopyingUploadId(null);
+      setCopyTargetId("");
+    } catch (err) {
+      if (err?.message === "forbidden") {
+        setError(t("cards.error.forbidden"));
+      } else {
+        setError(t("errors.generic"));
+      }
+    }
+  }
+
   async function onSaveRename(uploadId) {
     if (!renameValue.trim()) return;
     resetStatus();
@@ -421,8 +459,11 @@ export default function CardManager({
 
       {groups.map((group) => {
         const isRenaming = renamingUploadId !== null && renamingUploadId === group.uploadId;
+        const isCopying = copyingUploadId !== null && copyingUploadId === group.uploadId;
         const isManual = group.uploadId === null;
         const isExpanded = expandedGroups.has(group.key);
+        const eligibleCopyTargets = uploadOptions.filter((opt) => opt.uploadId !== group.uploadId);
+        const canCopy = !isManual && eligibleCopyTargets.length > 0;
         const label =
           isManual
             ? t("cards.group.manual")
@@ -449,6 +490,29 @@ export default function CardManager({
                   {t("cards.action.cancel")}
                 </button>
               </div>
+            ) : isCopying ? (
+              <div className="copy-row">
+                <label>
+                  {t("cards.action.copyTargetLabel")}
+                  <select
+                    aria-label={t("cards.action.copyTargetLabel")}
+                    value={copyTargetId}
+                    onChange={(e) => setCopyTargetId(e.target.value)}
+                  >
+                    {eligibleCopyTargets.map((opt) => (
+                      <option key={opt.uploadId} value={opt.uploadId}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button type="button" onClick={() => onConfirmCopy(group.uploadId)}>
+                  {t("cards.action.copy")}
+                </button>
+                <button type="button" onClick={cancelCopy}>
+                  {t("cards.action.cancel")}
+                </button>
+              </div>
             ) : (
               <div className="card-group-header" role="button" tabIndex={0} onClick={() => toggleGroup(group.key)} onKeyDown={(e) => e.key === "Enter" && toggleGroup(group.key)}>
                 <span className="card-group-chevron">{isExpanded ? "▾" : "▸"}</span>
@@ -470,6 +534,14 @@ export default function CardManager({
                       onClick={(e) => e.stopPropagation()}
                       title={t("cards.action.importHere")}
                     >📷</Link>
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      data-testid={`upload-copy-${group.uploadId}`}
+                      disabled={!canCopy}
+                      onClick={(e) => { e.stopPropagation(); startCopy(group, eligibleCopyTargets); }}
+                      title={t("cards.action.copyToUpload")}
+                    >📋</button>
                     <button
                       type="button"
                       className="btn-icon"

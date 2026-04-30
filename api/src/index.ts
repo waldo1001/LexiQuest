@@ -29,6 +29,7 @@ import { registerStatsHeatmap } from "./functions/stats-heatmap.js";
 import { registerStatsUpload } from "./functions/stats-upload.js";
 import { registerCardsImport } from "./functions/cards-import.js";
 import { registerCardsBatch } from "./functions/cards-batch.js";
+import { registerCardsCopy } from "./functions/cards-copy.js";
 import { registerCardsBulkDelete } from "./functions/cards-bulk-delete.js";
 import { registerCardsReverse } from "./functions/cards-reverse.js";
 import { registerCardsEnrich } from "./functions/cards-enrich.js";
@@ -75,6 +76,7 @@ if (anthropicApiKey.trim().length === 0) {
 }
 registerCardsImport({ tables, signer, clock, claude, logger });
 registerCardsBatch({ tables, signer, clock, random });
+registerCardsCopy({ tables, signer, clock, random });
 registerCardsBulkDelete({ tables, signer, clock });
 registerCardsReverse({ tables, signer, clock, random });
 registerCardsEnrich({ tables, signer, clock, claude });

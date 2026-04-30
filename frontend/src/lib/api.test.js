@@ -23,6 +23,7 @@ import {
   updateYear,
   importCards,
   batchCreateCards,
+  copyUploadCards,
   bulkDeleteCards,
   enrichCards,
   reverseCards,
@@ -800,6 +801,45 @@ describe("batchCreateCards", () => {
   it("throws on non-ok", async () => {
     await expect(
       batchCreateCards({ courseId: "c1", cards: [] }, { fetchFn: vi.fn().mockResolvedValue(fail(500)) }),
+    ).rejects.toThrow(/500/);
+  });
+});
+
+describe("copyUploadCards", () => {
+  it("POSTs JSON to /api/cards/copy with credentials and returns parsed counts and ids", async () => {
+    const data = { copied: 3, skipped: 1, copied_card_ids: ["a", "b", "c"] };
+    const fetchFn = vi.fn().mockResolvedValue(ok(data));
+    const result = await copyUploadCards(
+      { courseId: "c1", sourceUploadId: "u-src", targetUploadId: "u-tgt" },
+      { fetchFn },
+    );
+    expect(fetchFn).toHaveBeenCalledWith(
+      "/api/cards/copy",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        headers: expect.objectContaining({ "content-type": "application/json" }),
+        body: JSON.stringify({ courseId: "c1", sourceUploadId: "u-src", targetUploadId: "u-tgt" }),
+      }),
+    );
+    expect(result).toEqual(data);
+  });
+
+  it("throws 'forbidden' on 403", async () => {
+    await expect(
+      copyUploadCards(
+        { courseId: "c1", sourceUploadId: "u-src", targetUploadId: "u-tgt" },
+        { fetchFn: vi.fn().mockResolvedValue(fail(403)) },
+      ),
+    ).rejects.toThrow("forbidden");
+  });
+
+  it("throws on generic non-ok", async () => {
+    await expect(
+      copyUploadCards(
+        { courseId: "c1", sourceUploadId: "u-src", targetUploadId: "u-tgt" },
+        { fetchFn: vi.fn().mockResolvedValue(fail(500)) },
+      ),
     ).rejects.toThrow(/500/);
   });
 });

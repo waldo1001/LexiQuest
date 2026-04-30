@@ -412,3 +412,16 @@ Plan: [/Users/waldo/.claude/plans/i-want-the-picker-zany-beacon.md](/Users/waldo
   - Fix: append `{ to: "/", labelKey: "nav.picker", icon: "👥" }` to `LINKS` in `BottomNav.jsx`; new `nav.picker` translation in en (`Users`) + nl (`Gebruikers`). Position: rightmost, after Settings
   - Tests: 1 new in `BottomNav.test.jsx` (BN-8 — link to `/` with name /users/i). Suites: 572 frontend passing
   - Coverage: `BottomNav.jsx` 100% all metrics (Tier B 70% met)
+
+## Post-v1 — Copy upload cards
+
+Plan: [/Users/waldo/.claude/plans/i-want-to-be-cosmic-goose.md](/Users/waldo/.claude/plans/i-want-to-be-cosmic-goose.md)
+
+- ✅ Slice 1 — Copy all forward cards from one upload to another (same course), skipping duplicate questions
+  - Need: re-organising or merging uploads required deleting + re-importing or hand-copying cards. Same applies when the user wants to seed a new pack from an old one without losing the SM-2 progress on the original
+  - API: new `POST /api/cards/copy` (`cards-copy.ts`) — body `{ courseId, sourceUploadId, targetUploadId }`, returns `{ copied, skipped, copied_card_ids }`. Reuses `findExistingUpload` (course-scoped); copies non-reverse forwards only (reverses are derived — user re-runs `cards-reverse` on the target if wanted); SM-2 fields reset to defaults; `created_at`/`next_review_at` set to now; target upload's `upload_name` inherited; `source` preserved. Dedup is `q.trim().toLowerCase().replace(/\s+/g, " ")` scoped to the **target upload only** (other uploads in the same course can keep duplicates), and dedups within the source itself
+  - Frontend: new `copyUploadCards` in `api.js`; `CardManager.jsx` adds 📋 button per upload group (testid `upload-copy-${uploadId}`) + inline `copy-row` mirroring the existing `rename-row` pattern. Button is disabled when no other uploads exist. Status banner shows "{copied} copied, {skipped} skipped"; cards refetch on success
+  - i18n: `cards.action.copyToUpload`, `cards.action.copy`, `cards.action.copyTargetLabel`, `cards.status.copied` (en + nl)
+  - Tests: 29 new in `cards-copy.test.ts` (auth, validation, course/upload not-found, ownership, copy semantics, SM-2 reset, dedup variants — case/whitespace/answer-ignored/target-scoped/within-source, reverse-skip, admin override, no-mutation), 3 in `api.test.js` (copyUploadCards), 7 + 2 in `CardManager.test.jsx` (CC-1..7 copy, CR-1..2 rename — opportunistically lifted CardManager function-coverage from a pre-existing 65% to 80%). Suites: 876 api + 584 frontend = 1460 passing
+  - Coverage: `cards-copy.ts` 100% all metrics (Tier A 90% met). `api.js` 97.77% lines / 97.36% functions (Tier A). `CardManager.jsx` 95.35% lines / 80% functions (Tier B 70% met). Auth-boundary meta-test still passes (invariant #1)
+  - Out of scope: cross-course copy, copying selected cards only, creating a new target upload from the copy flow, copying reverses verbatim with id-remapping (regenerate them on the target instead)

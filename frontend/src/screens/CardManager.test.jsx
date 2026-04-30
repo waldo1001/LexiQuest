@@ -49,6 +49,8 @@ function setup({
   deleteCard,
   bulkDeleteCards,
   reverseCards,
+  copyUploadCards,
+  renameUpload,
   confirmFn,
   lang = "en",
   currentUser = { id: OWNER_ID, name: "Lex", isAdmin: false },
@@ -78,6 +80,8 @@ function setup({
                 deleteCard={deleteCard ?? vi.fn()}
                 bulkDeleteCards={bulkDeleteCards ?? vi.fn().mockResolvedValue({ deleted: 0 })}
                 reverseCards={reverseCards ?? vi.fn().mockResolvedValue({ created: 0, skipped: 0 })}
+                copyUploadCards={copyUploadCards ?? vi.fn().mockResolvedValue({ copied: 0, skipped: 0, copied_card_ids: [] })}
+                renameUpload={renameUpload ?? vi.fn().mockResolvedValue({ updated: 0 })}
                 confirmFn={confirmFn ?? vi.fn(() => false)}
               />
             }
@@ -912,5 +916,228 @@ describe("CardManager — Add card into existing upload", () => {
     // href is enough to verify the affordance exists; PI-B2 covers
     // pre-selection inside PhotoImport.
     expect(link).toHaveAttribute("href", expect.stringContaining(`/courses/${COURSE_ID}/import`));
+  });
+});
+
+// =====================================================================
+// Copy upload cards
+// =====================================================================
+describe("CardManager — Copy upload cards", () => {
+  const SEED_TWO_UPLOADS = [
+    {
+      id: "card-up1-a",
+      course_id: COURSE_ID,
+      question: "Q1A",
+      answer: "A1A",
+      distractors: [],
+      hint: null,
+      source: "ai_import",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: "2026-04-22T09:00:00Z",
+      created_at: "2026-04-22T09:00:00Z",
+      upload_id: "up-1",
+      upload_name: "Math homework",
+    },
+    {
+      id: "card-up1-b",
+      course_id: COURSE_ID,
+      question: "Q1B",
+      answer: "A1B",
+      distractors: [],
+      hint: null,
+      source: "ai_import",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: "2026-04-22T09:00:00Z",
+      created_at: "2026-04-22T09:00:00Z",
+      upload_id: "up-1",
+      upload_name: "Math homework",
+    },
+    {
+      id: "card-up2-a",
+      course_id: COURSE_ID,
+      question: "Q2A",
+      answer: "A2A",
+      distractors: [],
+      hint: null,
+      source: "ai_import",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: "2026-04-23T09:00:00Z",
+      created_at: "2026-04-23T09:00:00Z",
+      upload_id: "up-2",
+      upload_name: "Science homework",
+    },
+  ];
+
+  const SEED_ONE_UPLOAD = SEED_TWO_UPLOADS.filter((c) => c.upload_id === "up-1");
+
+  it("CC-1: 📋 copy button is rendered on each non-manual upload group", async () => {
+    setup({ fetchCards: vi.fn().mockResolvedValue(SEED_TWO_UPLOADS) });
+    await screen.findByText(/Math homework \(2\)/);
+    expect(await screen.findByTestId("upload-copy-up-1")).toBeInTheDocument();
+    expect(await screen.findByTestId("upload-copy-up-2")).toBeInTheDocument();
+  });
+
+  it("CC-2: copy button is disabled when only one upload exists in the course", async () => {
+    setup({ fetchCards: vi.fn().mockResolvedValue(SEED_ONE_UPLOAD) });
+    await screen.findByText(/Math homework \(2\)/);
+    const btn = await screen.findByTestId("upload-copy-up-1");
+    expect(btn).toBeDisabled();
+  });
+
+  it("CC-3: clicking the copy button reveals a target select with other uploads only (excludes self + manual)", async () => {
+    const user = userEvent.setup();
+    setup({ fetchCards: vi.fn().mockResolvedValue(SEED_TWO_UPLOADS) });
+    await screen.findByText(/Math homework \(2\)/);
+    const btn = await screen.findByTestId("upload-copy-up-1");
+    await user.click(btn);
+
+    const select = await screen.findByRole("combobox", { name: /copy to upload/i });
+    const labels = Array.from(select.options).map((o) => o.textContent);
+    expect(labels.some((l) => l.includes("Science homework"))).toBe(true);
+    // Self (Math homework) must NOT appear
+    expect(labels.some((l) => l.includes("Math homework"))).toBe(false);
+    // Manual cards must NOT appear (it's not an upload — there are no manual cards here anyway, but ensure no trailing manual entry)
+    expect(labels.some((l) => l === "Manual cards")).toBe(false);
+  });
+
+  it("CC-4: confirming the copy calls copyUploadCards with the right ids", async () => {
+    const user = userEvent.setup();
+    const copyMock = vi.fn().mockResolvedValue({ copied: 1, skipped: 0, copied_card_ids: ["new-1"] });
+    setup({
+      fetchCards: vi.fn().mockResolvedValue(SEED_TWO_UPLOADS),
+      copyUploadCards: copyMock,
+    });
+    await screen.findByText(/Math homework \(2\)/);
+    await user.click(await screen.findByTestId("upload-copy-up-1"));
+    await user.selectOptions(screen.getByRole("combobox", { name: /copy to upload/i }), "up-2");
+    await user.click(screen.getByRole("button", { name: /^Copy$/i }));
+
+    expect(copyMock).toHaveBeenCalledTimes(1);
+    expect(copyMock).toHaveBeenCalledWith({
+      courseId: COURSE_ID,
+      sourceUploadId: "up-1",
+      targetUploadId: "up-2",
+    });
+  });
+
+  it("CC-5: after a successful copy, status shows '{copied} copied, {skipped} skipped' and cards refetch", async () => {
+    const user = userEvent.setup();
+    const fetchCardsMock = vi
+      .fn()
+      .mockResolvedValueOnce(SEED_TWO_UPLOADS)
+      .mockResolvedValueOnce([
+        ...SEED_TWO_UPLOADS,
+        {
+          id: "card-up2-copy",
+          course_id: COURSE_ID,
+          question: "Q1A",
+          answer: "A1A",
+          distractors: [],
+          hint: null,
+          source: "ai_import",
+          sm2_ease: 2.5,
+          sm2_interval: 0,
+          sm2_reps: 0,
+          next_review_at: "2026-04-30T09:00:00Z",
+          created_at: "2026-04-30T09:00:00Z",
+          upload_id: "up-2",
+          upload_name: "Science homework",
+        },
+      ]);
+    const copyMock = vi.fn().mockResolvedValue({ copied: 1, skipped: 1, copied_card_ids: ["card-up2-copy"] });
+    setup({ fetchCards: fetchCardsMock, copyUploadCards: copyMock });
+
+    await screen.findByText(/Math homework \(2\)/);
+    await user.click(await screen.findByTestId("upload-copy-up-1"));
+    await user.selectOptions(screen.getByRole("combobox", { name: /copy to upload/i }), "up-2");
+    await user.click(screen.getByRole("button", { name: /^Copy$/i }));
+
+    expect(await screen.findByText(/1 copied, 1 skipped/i)).toBeInTheDocument();
+    // Refetch happened (twice: initial + after copy)
+    expect(fetchCardsMock).toHaveBeenCalledTimes(2);
+    // Science homework now has 2 cards
+    expect(await screen.findByText(/Science homework \(2\)/)).toBeInTheDocument();
+  });
+
+  it("CC-6: a 403 response shows the standard forbidden error", async () => {
+    const user = userEvent.setup();
+    const copyMock = vi.fn().mockRejectedValue(new Error("forbidden"));
+    setup({
+      fetchCards: vi.fn().mockResolvedValue(SEED_TWO_UPLOADS),
+      copyUploadCards: copyMock,
+    });
+    await screen.findByText(/Math homework \(2\)/);
+    await user.click(await screen.findByTestId("upload-copy-up-1"));
+    await user.selectOptions(screen.getByRole("combobox", { name: /copy to upload/i }), "up-2");
+    await user.click(screen.getByRole("button", { name: /^Copy$/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/permission/i);
+  });
+
+  it("CR-1: clicking ✏️ opens the rename row, saving calls renameUpload and updates the visible label", async () => {
+    const user = userEvent.setup();
+    const renameMock = vi.fn().mockResolvedValue({ updated: 2 });
+    setup({
+      fetchCards: vi.fn().mockResolvedValue(SEED_TWO_UPLOADS),
+      renameUpload: renameMock,
+    });
+    await screen.findByText(/Math homework \(2\)/);
+    // The rename buttons share data-testid="rename-btn" — pick the first (up-1)
+    const renameBtns = screen.getAllByTestId("rename-btn");
+    await user.click(renameBtns[0]);
+
+    const input = await screen.findByTestId("rename-input");
+    await user.clear(input);
+    await user.type(input, "Algebra unit");
+    await user.keyboard("{Enter}");
+
+    expect(renameMock).toHaveBeenCalledTimes(1);
+    // Groups render newest-first (Science homework before Math homework),
+    // so renameBtns[0] targets up-2 (Science homework).
+    expect(renameMock).toHaveBeenCalledWith({
+      courseId: COURSE_ID,
+      uploadId: "up-2",
+      uploadName: "Algebra unit",
+    });
+    expect(await screen.findByText(/Algebra unit \(1\)/)).toBeInTheDocument();
+  });
+
+  it("CR-2: rename Cancel closes the row without calling renameUpload", async () => {
+    const user = userEvent.setup();
+    const renameMock = vi.fn();
+    setup({
+      fetchCards: vi.fn().mockResolvedValue(SEED_TWO_UPLOADS),
+      renameUpload: renameMock,
+    });
+    await screen.findByText(/Math homework \(2\)/);
+    const renameBtns = screen.getAllByTestId("rename-btn");
+    await user.click(renameBtns[0]);
+    expect(await screen.findByTestId("rename-input")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^Cancel$/i }));
+    expect(screen.queryByTestId("rename-input")).toBeNull();
+    expect(renameMock).not.toHaveBeenCalled();
+  });
+
+  it("CC-7: cancel closes the copy-row without calling the API", async () => {
+    const user = userEvent.setup();
+    const copyMock = vi.fn();
+    setup({
+      fetchCards: vi.fn().mockResolvedValue(SEED_TWO_UPLOADS),
+      copyUploadCards: copyMock,
+    });
+    await screen.findByText(/Math homework \(2\)/);
+    await user.click(await screen.findByTestId("upload-copy-up-1"));
+    expect(screen.getByRole("combobox", { name: /copy to upload/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^Cancel$/i }));
+    expect(screen.queryByRole("combobox", { name: /copy to upload/i })).toBeNull();
+    expect(copyMock).not.toHaveBeenCalled();
   });
 });
