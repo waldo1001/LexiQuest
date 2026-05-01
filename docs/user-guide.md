@@ -83,10 +83,18 @@ onward (first login + dashboard) and gets sections added per phase:
   time taken, XP earned (with multiplier for Boss/Speed rounds), and
   cards-per-minute for Speed Rounds. A "Study again" button takes you
   back to the setup screen.
-- **Photo / PDF import** (Phase 12): from the Card Manager, click "Import
-  cards from photo or PDF". Choose a photo of a vocab sheet (or take one
-  with the camera) — or a multi-page PDF (e.g. an exported homework
-  sheet). If your course has a language set, two dropdowns appear:
+- **Photo / PDF / PowerPoint import** (Phase 12; .pptx added post-v1):
+  from the Card Manager, click "Import cards from photo or PDF". Choose a
+  photo of a vocab sheet (or take one with the camera), a multi-page PDF
+  (e.g. an exported homework sheet), or a PowerPoint deck (`.pptx`). For
+  PowerPoint, both the on-slide text and the speaker notes are read —
+  speaker notes often hold definitions / translations / examples that
+  pair with the slide text, and Claude is told to treat them as a pair
+  per slide. PowerPoint extraction is **text-only** in v1: any slide
+  with no extractable text (purely an image / diagram) is skipped, and
+  the Review screen shows a notice listing the skipped slide numbers so
+  you can revisit them manually. If your course has a language set, two
+  dropdowns appear:
   **Question language** and **Answer language** — pick the language of
   each side so the 🔊 buttons speak the right voice later. Defaults:
   question = course language, answer = your UI language. For single-
