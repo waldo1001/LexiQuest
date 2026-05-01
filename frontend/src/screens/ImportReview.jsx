@@ -13,7 +13,7 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { candidates = [], courseName = "", courseLang = null, uploadId = null, uploadName: existingUploadName = null } = location.state ?? {};
+  const { candidates = [], courseName = "", courseLang = null, uploadId = null, uploadName: existingUploadName = null, skippedSlides = null } = location.state ?? {};
 
   const [cards, setCards] = useState(candidates);
   const [checked, setChecked] = useState(() =>
@@ -92,6 +92,12 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
       <Link to={`/courses/${courseId}/import`} state={location.state}>
         {t("review.back")}
       </Link>
+
+      {skippedSlides?.length > 0 && (
+        <p data-testid="skipped-slides-notice" role="status">
+          {t("review.skippedSlides", { indices: skippedSlides.join(", ") })}
+        </p>
+      )}
 
       <label>
         <input

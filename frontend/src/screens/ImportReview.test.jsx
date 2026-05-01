@@ -21,13 +21,14 @@ function setup({
   currentUser,
   uploadId,
   uploadName,
+  skippedSlides,
 } = {}) {
   return render(
     <AppProvider initialLang={lang} initialUser={currentUser}>
       <MemoryRouter
         initialEntries={[{
           pathname: `/courses/${COURSE_ID}/import/review`,
-          state: { courseId: COURSE_ID, courseName: COURSE_NAME, candidates, courseLang, uploadId, uploadName },
+          state: { courseId: COURSE_ID, courseName: COURSE_NAME, candidates, courseLang, uploadId, uploadName, skippedSlides },
         }]}
       >
         <Routes>
@@ -381,5 +382,18 @@ describe("ImportReview — append to existing upload", () => {
     const saved = batchCreateCards.mock.calls[0][0].cards;
     expect(saved[0].question).toBe("le chien");
     expect(saved[0].answer).toBe("the dog");
+  });
+
+  it("AC94: renders the skipped-slides notice when skippedSlides has entries", () => {
+    setup({ skippedSlides: [3, 7] });
+    const notice = screen.getByTestId("skipped-slides-notice");
+    expect(notice).toBeInTheDocument();
+    expect(notice.textContent).toMatch(/3/);
+    expect(notice.textContent).toMatch(/7/);
+  });
+
+  it("AC95: hides the skipped-slides notice when skippedSlides is absent or empty", () => {
+    setup({ skippedSlides: undefined });
+    expect(screen.queryByTestId("skipped-slides-notice")).not.toBeInTheDocument();
   });
 });
