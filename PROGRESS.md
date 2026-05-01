@@ -455,3 +455,14 @@ Plan: [/Users/waldo/.claude/plans/when-i-import-a-giggly-manatee.md](/Users/wald
   - Tests: 13 new in `PhotoImport.test.jsx` (AC65–AC77: textarea + maxLength, payload includes/omits `extraInstructions`, dropdown rendered conditionally, preset selection prefills, Save-as-new happy path, empty-body error, 20-cap error, Update disabled without selection, Update body-replace, Delete with confirmation, prompt-cancel aborts). Suites: 901 api + 597 frontend = 1498 passing
   - Coverage: `PhotoImport.jsx` 96.89/83.96/100/96.89 (Tier B 70% lines/functions/statements met). `api.js` 97.77/97.05/97.36/97.77 (Tier A met). `AppContext.jsx` 100/93.1/100/100. `strings.js` 100/100/100/100
   - Smoke: passed — preset round-trip via PATCH /api/me persisted, import path with `extraInstructions` reached Claude end-to-end, frontend production build succeeded
+
+## Post-v1 — PowerPoint (.pptx) import
+
+Plan: [/Users/waldo/.claude/plans/would-it-make-sense-federated-mitten.md](/Users/waldo/.claude/plans/would-it-make-sense-federated-mitten.md)
+
+- ✅ Slice 1 — Backend pptx extractor module
+  - Need: study material is often distributed as PowerPoint decks. `.pptx` is just a zip of XML so slide text + speaker notes can be extracted server-side without OCR or vision cost. v1 is text-only; embedded slide images are not sent to Claude
+  - API: new pure module `pptx-extractor.ts` exporting `extractSlidesFromPptx(buffer): Promise<Slide[]>` where `Slide = { index, text, notes }`. Uses `jszip` to unzip, reads `ppt/slides/slide*.xml` and `ppt/notesSlides/notesSlide*.xml`, joins all `<a:t>` text runs per file, pairs slides with their notes by slide number, decodes the five XML entities (`&amp; &lt; &gt; &quot; &apos;` — `&amp;` last to avoid double-decoding). Throws `PptxParseError` on a non-zip buffer or a zip with zero slide files. Out-of-order slide entries are sorted numerically before return
+  - Tests: 8 new in `pptx-extractor.test.ts` (happy path with notes, no notesSlide file → empty notes, image-only slide → empty text, XML-entity decoding, multiple text runs joined with spaces, numeric ordering of out-of-order indices, malformed zip throws, zero-slide deck throws). Test fixture builder constructs minimal in-memory pptx zips via jszip — no binary fixtures committed
+  - Coverage: `pptx-extractor.ts` 100/100/100/100 (Tier A 90% met)
+  - Deps: added `jszip` (MIT, ~95KB) to `api/package.json`. No XML parser dependency — small regex over `<a:t>` runs is sufficient
