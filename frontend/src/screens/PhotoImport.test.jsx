@@ -22,9 +22,13 @@ function setup({
   questionLangDefault = null,
   answerLangDefault = null,
   uploadId = null,
+  initialUser = null,
+  patchMe = vi.fn(),
+  promptFn = () => null,
+  confirmFn = () => false,
 } = {}) {
   return render(
-    <AppProvider initialLang={lang}>
+    <AppProvider initialLang={lang} initialUser={initialUser} patchMe={patchMe}>
       <MemoryRouter
         initialEntries={[{
           pathname: `/courses/${COURSE_ID}/import`,
@@ -38,6 +42,9 @@ function setup({
               <PhotoImport
                 importCards={importCards}
                 fetchCards={fetchCards ?? vi.fn().mockResolvedValue([])}
+                patchMe={patchMe}
+                promptFn={promptFn}
+                confirmFn={confirmFn}
               />
             }
           />
@@ -381,5 +388,209 @@ describe("PhotoImport — Add to existing upload", () => {
     await waitFor(() => expect(fetchCards).toHaveBeenCalled());
     // No "Add to upload" combobox is shown when there are no uploads.
     expect(screen.queryByRole("combobox", { name: /add to upload/i })).toBeNull();
+  });
+});
+
+// =====================================================================
+// Slice 4 — Extra instructions + reusable presets
+// =====================================================================
+function userWithPresets(presets = []) {
+  return {
+    id: OWNER_ID,
+    name: "Lex",
+    isAdmin: false,
+    color: "#16a34a",
+    avatar_emoji: "🐯",
+    ui_language: "en",
+    settings: {
+      auto_speak: true,
+      preferred_mode: "ask",
+      daily_goal: 20,
+      import_instruction_presets: presets,
+    },
+  };
+}
+
+describe("PhotoImport — Extra instructions + presets", () => {
+  it("AC65: textarea is rendered with maxLength=1000", () => {
+    setup();
+    const ta = screen.getByLabelText(/extra instructions/i);
+    expect(ta.tagName).toBe("TEXTAREA");
+    expect(ta).toHaveAttribute("maxLength", "1000");
+  });
+
+  it("AC66: typed extraInstructions are sent in import payload", async () => {
+    const user = userEvent.setup();
+    const importCards = vi.fn().mockResolvedValue({ candidates: CANDIDATES });
+    setup({ importCards });
+
+    await user.type(screen.getByLabelText(/extra instructions/i), "only nouns, full sentences");
+    const file = new File(["img"], "p.jpg", { type: "image/jpeg" });
+    await user.upload(document.querySelector("input[type='file']"), file);
+    await user.click(screen.getByRole("button", { name: /extract cards/i }));
+
+    await waitFor(() => expect(importCards).toHaveBeenCalledOnce());
+    expect(importCards.mock.calls[0][0].extraInstructions).toBe("only nouns, full sentences");
+  });
+
+  it("AC67: blank/whitespace-only textarea omits extraInstructions", async () => {
+    const user = userEvent.setup();
+    const importCards = vi.fn().mockResolvedValue({ candidates: CANDIDATES });
+    setup({ importCards });
+
+    await user.type(screen.getByLabelText(/extra instructions/i), "   ");
+    const file = new File(["img"], "p.jpg", { type: "image/jpeg" });
+    await user.upload(document.querySelector("input[type='file']"), file);
+    await user.click(screen.getByRole("button", { name: /extract cards/i }));
+
+    await waitFor(() => expect(importCards).toHaveBeenCalledOnce());
+    expect(importCards.mock.calls[0][0].extraInstructions).toBeUndefined();
+  });
+
+  it("AC68: dropdown lists saved presets when user has any", () => {
+    setup({
+      initialUser: userWithPresets([
+        { id: "p-1", name: "Nouns only", body: "Only nouns." },
+        { id: "p-2", name: "FR-EN", body: "Question in French." },
+      ]),
+    });
+    const select = screen.getByLabelText(/use saved instructions/i);
+    const labels = Array.from(select.options).map((o) => o.textContent);
+    expect(labels).toContain("Nouns only");
+    expect(labels).toContain("FR-EN");
+  });
+
+  it("AC69: no preset dropdown when user has none / no user", () => {
+    setup({ initialUser: userWithPresets([]) });
+    expect(screen.queryByLabelText(/use saved instructions/i)).toBeNull();
+  });
+
+  it("AC70: selecting a preset prefills the textarea", async () => {
+    const user = userEvent.setup();
+    setup({
+      initialUser: userWithPresets([
+        { id: "p-1", name: "Nouns only", body: "Only nouns. Keep answers ≤ 3 words." },
+      ]),
+    });
+    await user.selectOptions(screen.getByLabelText(/use saved instructions/i), "p-1");
+    expect(screen.getByLabelText(/extra instructions/i)).toHaveValue("Only nouns. Keep answers ≤ 3 words.");
+  });
+
+  it("AC71: 'Save as new' prompts for a name then PATCHes /me with appended preset", async () => {
+    const user = userEvent.setup();
+    const patchMe = vi.fn().mockResolvedValue(userWithPresets([
+      { id: "existing", name: "Old", body: "old body" },
+      { id: "new-id", name: "Brand new", body: "fresh body" },
+    ]));
+    const promptFn = vi.fn().mockReturnValue("Brand new");
+    setup({
+      patchMe,
+      promptFn,
+      initialUser: userWithPresets([{ id: "existing", name: "Old", body: "old body" }]),
+    });
+
+    await user.type(screen.getByLabelText(/extra instructions/i), "fresh body");
+    await user.click(screen.getByRole("button", { name: /save as new/i }));
+
+    expect(promptFn).toHaveBeenCalled();
+    await waitFor(() => expect(patchMe).toHaveBeenCalled());
+    const arg = patchMe.mock.calls[0][0];
+    const presets = arg.settings.import_instruction_presets;
+    expect(presets).toHaveLength(2);
+    const added = presets[1];
+    expect(added.name).toBe("Brand new");
+    expect(added.body).toBe("fresh body");
+    expect(typeof added.id).toBe("string");
+    expect(added.id.length).toBeGreaterThan(0);
+  });
+
+  it("AC72: 'Save as new' with empty textarea shows inline error and does not PATCH", async () => {
+    const user = userEvent.setup();
+    const patchMe = vi.fn();
+    const promptFn = vi.fn();
+    setup({ patchMe, promptFn, initialUser: userWithPresets([]) });
+
+    await user.click(screen.getByRole("button", { name: /save as new/i }));
+
+    expect(patchMe).not.toHaveBeenCalled();
+    expect(promptFn).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+  });
+
+  it("AC73: 'Save as new' at the 20-preset cap shows inline error and does not PATCH", async () => {
+    const user = userEvent.setup();
+    const patchMe = vi.fn();
+    const promptFn = vi.fn().mockReturnValue("name");
+    const presets = Array.from({ length: 20 }, (_, i) => ({
+      id: `p-${i}`, name: `n${i}`, body: `b${i}`,
+    }));
+    setup({ patchMe, promptFn, initialUser: userWithPresets(presets) });
+
+    await user.type(screen.getByLabelText(/extra instructions/i), "another one");
+    await user.click(screen.getByRole("button", { name: /save as new/i }));
+
+    expect(patchMe).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+  });
+
+  it("AC74: 'Update' is disabled when no preset is selected", () => {
+    setup({
+      initialUser: userWithPresets([{ id: "p-1", name: "n", body: "b" }]),
+    });
+    expect(screen.getByRole("button", { name: /^update$/i })).toBeDisabled();
+  });
+
+  it("AC75: 'Update' PATCHes /me with the selected preset's body replaced", async () => {
+    const user = userEvent.setup();
+    const patchMe = vi.fn().mockResolvedValue(userWithPresets([
+      { id: "p-1", name: "n", body: "new body" },
+    ]));
+    setup({
+      patchMe,
+      initialUser: userWithPresets([{ id: "p-1", name: "n", body: "old body" }]),
+    });
+
+    await user.selectOptions(screen.getByLabelText(/use saved instructions/i), "p-1");
+    const ta = screen.getByLabelText(/extra instructions/i);
+    await user.clear(ta);
+    await user.type(ta, "new body");
+    await user.click(screen.getByRole("button", { name: /^update$/i }));
+
+    await waitFor(() => expect(patchMe).toHaveBeenCalled());
+    const arg = patchMe.mock.calls[0][0];
+    expect(arg.settings.import_instruction_presets).toEqual([
+      { id: "p-1", name: "n", body: "new body" },
+    ]);
+  });
+
+  it("AC76: 'Delete' confirms then PATCHes /me without the selected preset", async () => {
+    const user = userEvent.setup();
+    const patchMe = vi.fn().mockResolvedValue(userWithPresets([]));
+    const confirmFn = vi.fn().mockReturnValue(true);
+    setup({
+      patchMe,
+      confirmFn,
+      initialUser: userWithPresets([{ id: "p-1", name: "n", body: "b" }]),
+    });
+
+    await user.selectOptions(screen.getByLabelText(/use saved instructions/i), "p-1");
+    await user.click(screen.getByRole("button", { name: /^delete$/i }));
+
+    expect(confirmFn).toHaveBeenCalled();
+    await waitFor(() => expect(patchMe).toHaveBeenCalled());
+    expect(patchMe.mock.calls[0][0].settings.import_instruction_presets).toEqual([]);
+  });
+
+  it("AC77: cancelling 'Save as new' name prompt aborts (no PATCH)", async () => {
+    const user = userEvent.setup();
+    const patchMe = vi.fn();
+    const promptFn = vi.fn().mockReturnValue(null); // user pressed Cancel
+    setup({ patchMe, promptFn, initialUser: userWithPresets([]) });
+
+    await user.type(screen.getByLabelText(/extra instructions/i), "stuff");
+    await user.click(screen.getByRole("button", { name: /save as new/i }));
+
+    expect(promptFn).toHaveBeenCalled();
+    expect(patchMe).not.toHaveBeenCalled();
   });
 });
