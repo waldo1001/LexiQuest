@@ -425,3 +425,14 @@ Plan: [/Users/waldo/.claude/plans/i-want-to-be-cosmic-goose.md](/Users/waldo/.cl
   - Tests: 29 new in `cards-copy.test.ts` (auth, validation, course/upload not-found, ownership, copy semantics, SM-2 reset, dedup variants — case/whitespace/answer-ignored/target-scoped/within-source, reverse-skip, admin override, no-mutation), 3 in `api.test.js` (copyUploadCards), 7 + 2 in `CardManager.test.jsx` (CC-1..7 copy, CR-1..2 rename — opportunistically lifted CardManager function-coverage from a pre-existing 65% to 80%). Suites: 876 api + 584 frontend = 1460 passing
   - Coverage: `cards-copy.ts` 100% all metrics (Tier A 90% met). `api.js` 97.77% lines / 97.36% functions (Tier A). `CardManager.jsx` 95.35% lines / 80% functions (Tier B 70% met). Auth-boundary meta-test still passes (invariant #1)
   - Out of scope: cross-course copy, copying selected cards only, creating a new target upload from the copy flow, copying reverses verbatim with id-remapping (regenerate them on the target instead)
+
+## Post-v1 — Import instruction presets
+
+Plan: [/Users/waldo/.claude/plans/when-i-import-a-giggly-manatee.md](/Users/waldo/.claude/plans/when-i-import-a-giggly-manatee.md)
+
+- ✅ Slice 1 — API: accept and forward `extraInstructions` on `POST /api/cards/import`
+  - Need: users want to steer card extraction with free-text guidance ("only nouns", "questions in French, answers in English", "ignore page footers"), instead of getting whatever the model decides from a bare image/PDF
+  - API: `cards-import.ts` accepts an optional `extraInstructions: string` (≤1000 chars). Empty string treated as not specified (mirrors `questionLang`/`answerLang`). `ExtractCardsInput` extended with `extraInstructions?: string | null`. Plumbed end-to-end into `ClaudeClient.extractCards` — but the prompt itself is unchanged this slice (slice 2 weaves it in)
+  - Tests: 6 new in `cards-import.test.ts` (AC37–AC42: forwarded when provided, 1001-char rejected, non-string rejected, omitted → null, empty string → null, exactly 1000 chars accepted). Suites: 887 api + 584 frontend = 1471 passing
+  - Coverage: `cards-import.ts` 100/97.46/100/100 (Tier A met). `claude.ts` 100/100/100/100
+  - Smoke: passed end-to-end on Azurite — new field accepted by live wire, 1001-char body rejected with new 400 error

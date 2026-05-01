@@ -16,6 +16,7 @@ export interface ExtractCardsInput {
   uiLanguage: string;
   questionLang?: string | null;
   answerLang?: string | null;
+  extraInstructions?: string | null;
 }
 
 export interface EnrichInput {

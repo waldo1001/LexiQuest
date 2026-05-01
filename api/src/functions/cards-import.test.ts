@@ -529,4 +529,66 @@ describe("POST /api/cards/import", () => {
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
     expect(res.status).toBe(502);
   });
+
+  it("AC37: passes extraInstructions to extractCards when provided", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const body = { ...validBody, extraInstructions: "only nouns, full sentences" };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(200);
+
+    const input = deps.claude.extractCardsInputs[0];
+    expect(input.extraInstructions).toBe("only nouns, full sentences");
+  });
+
+  it("AC38: rejects extraInstructions longer than 1000 chars", async () => {
+    await seedCourse(deps);
+    const body = { ...validBody, extraInstructions: "x".repeat(1001) };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(400);
+    expect(deps.claude.extractCardsInputs.length).toBe(0);
+  });
+
+  it("AC39: rejects non-string extraInstructions", async () => {
+    await seedCourse(deps);
+    const body = { ...validBody, extraInstructions: 123 };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(400);
+    expect(deps.claude.extractCardsInputs.length).toBe(0);
+  });
+
+  it("AC40: omits extraInstructions when not provided", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+
+    const input = deps.claude.extractCardsInputs[0];
+    expect(input.extraInstructions).toBeNull();
+  });
+
+  it("AC41: treats empty string extraInstructions as not specified", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const body = { ...validBody, extraInstructions: "" };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(200);
+
+    const input = deps.claude.extractCardsInputs[0];
+    expect(input.extraInstructions).toBeNull();
+  });
+
+  it("AC42: accepts extraInstructions of exactly 1000 chars", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const body = { ...validBody, extraInstructions: "x".repeat(1000) };
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+    expect(res.status).toBe(200);
+
+    const input = deps.claude.extractCardsInputs[0];
+    expect((input.extraInstructions as string).length).toBe(1000);
+  });
 });

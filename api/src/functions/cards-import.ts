@@ -38,12 +38,15 @@ const MAX_PDF_PAYLOAD_BYTES = 32 * 1024 * 1024;
 
 const BCP47_RE = /^[a-z]{2,3}(-[A-Z][a-zA-Z]{1,7})?$/;
 
+const MAX_EXTRA_INSTRUCTIONS_LENGTH = 1000;
+
 interface ValidatedImportBody {
   courseId: string;
   imageBase64: string;
   mimeType: ExtractCardsInput["mimeType"];
   questionLang?: string;
   answerLang?: string;
+  extraInstructions?: string;
 }
 
 function validateBody(
@@ -82,6 +85,21 @@ function validateBody(
     result.answerLang = src.answerLang;
   }
 
+  if ("extraInstructions" in src && src.extraInstructions !== undefined && src.extraInstructions !== null) {
+    if (typeof src.extraInstructions !== "string") {
+      return { ok: false, error: "extraInstructions must be a string" };
+    }
+    if (src.extraInstructions.length > MAX_EXTRA_INSTRUCTIONS_LENGTH) {
+      return {
+        ok: false,
+        error: `extraInstructions must be ${MAX_EXTRA_INSTRUCTIONS_LENGTH} characters or fewer`,
+      };
+    }
+    if (src.extraInstructions.length > 0) {
+      result.extraInstructions = src.extraInstructions;
+    }
+  }
+
   return { ok: true, ...result };
 }
 
@@ -116,7 +134,7 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
     if (!validated.ok) {
       return { status: 400, jsonBody: { error: validated.error } };
     }
-    const { courseId, imageBase64, mimeType, questionLang, answerLang } = validated;
+    const { courseId, imageBase64, mimeType, questionLang, answerLang, extraInstructions } = validated;
 
     const isPdf = mimeType === "application/pdf";
     const payloadBytes = imageBase64.length;
@@ -151,6 +169,7 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
         uiLanguage,
         questionLang: questionLang ?? null,
         answerLang: answerLang ?? null,
+        extraInstructions: extraInstructions ?? null,
       });
 
       if (questionLang && answerLang && questionLang !== answerLang) {
