@@ -47,10 +47,12 @@ const BCP47_RE = /^[a-z]{2,3}(-[A-Z][a-zA-Z]{1,7})?$/;
 
 const MAX_EXTRA_INSTRUCTIONS_LENGTH = 1000;
 
+type AnyImportMimeType = ExtractCardsInput["mimeType"] | typeof PPTX_MIME;
+
 interface ValidatedImportBody {
   courseId: string;
   imageBase64: string;
-  mimeType: ExtractCardsInput["mimeType"];
+  mimeType: AnyImportMimeType;
   questionLang?: string;
   answerLang?: string;
   extraInstructions?: string;
@@ -80,7 +82,7 @@ function validateBody(
   const result: ValidatedImportBody = {
     courseId: src.courseId.trim(),
     imageBase64: src.imageBase64,
-    mimeType: src.mimeType as ExtractCardsInput["mimeType"],
+    mimeType: src.mimeType as AnyImportMimeType,
   };
 
   if (typeof src.questionLang === "string" && src.questionLang.length > 0) {

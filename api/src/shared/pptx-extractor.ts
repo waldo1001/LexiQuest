@@ -31,7 +31,7 @@ function extractTextRuns(xml: string): string {
   let match: RegExpExecArray | null;
   TEXT_RUN_RE.lastIndex = 0;
   while ((match = TEXT_RUN_RE.exec(xml)) !== null) {
-    const run = match[1].trim();
+    const run = (match[1] ?? "").trim();
     if (run.length > 0) runs.push(decodeXmlEntities(run));
   }
   return runs.join(" ");
