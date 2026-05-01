@@ -240,6 +240,204 @@ describe("PATCH /api/me", () => {
     expect((res.jsonBody as Record<string, unknown>).ui_language).toBe("en");
   });
 
+  it("AC51: round-trips a valid import_instruction_presets array", async () => {
+    const presets = [
+      { id: "p-1", name: "Nouns only", body: "Only nouns. Keep answers ≤ 3 words." },
+      { id: "p-2", name: "FR→EN", body: "Question in French, answer in English." },
+    ];
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: presets } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(200);
+
+    const getRes = (await makeMeHandler(deps)(
+      req(validCookie),
+      ctx,
+    )) as HttpResponseInit;
+    const settings = (getRes.jsonBody as Record<string, unknown>).settings as Record<string, unknown>;
+    expect(settings.import_instruction_presets).toEqual(presets);
+  });
+
+  it("AC52: rejects a non-array import_instruction_presets with 400", async () => {
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: "not-an-array" } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
+  it("AC53: rejects more than 20 presets", async () => {
+    const presets = Array.from({ length: 21 }, (_, i) => ({
+      id: `p-${i}`, name: `n${i}`, body: `b${i}`,
+    }));
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: presets } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
+  it("AC54: empty array is accepted (allows clearing all presets)", async () => {
+    await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: {
+          settings: {
+            import_instruction_presets: [{ id: "p-1", name: "n", body: "b" }],
+          },
+        },
+      }),
+      ctx,
+    );
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: [] } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(200);
+    const stored = await tables.getById<UserRow>("users", "users", "u-alice");
+    expect(stored?.settings.import_instruction_presets).toEqual([]);
+  });
+
+  it("AC55: rejects preset with name longer than 80 chars", async () => {
+    const presets = [{ id: "p-1", name: "x".repeat(81), body: "b" }];
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: presets } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
+  it("AC56: rejects preset with empty name", async () => {
+    const presets = [{ id: "p-1", name: "", body: "b" }];
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: presets } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
+  it("AC57: rejects preset with body longer than 1000 chars", async () => {
+    const presets = [{ id: "p-1", name: "n", body: "x".repeat(1001) }];
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: presets } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
+  it("AC58: rejects preset with empty body", async () => {
+    const presets = [{ id: "p-1", name: "n", body: "" }];
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: presets } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
+  it("AC59: rejects duplicate ids", async () => {
+    const presets = [
+      { id: "p-1", name: "a", body: "x" },
+      { id: "p-1", name: "b", body: "y" },
+    ];
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: presets } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
+  it("AC60: rejects preset with missing id", async () => {
+    const presets = [{ name: "n", body: "b" }];
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: presets } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
+  it("AC61: rejects preset with non-string id", async () => {
+    const presets = [{ id: 42, name: "n", body: "b" }];
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: presets } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
+  it("AC62: replacing presets does not clobber other settings", async () => {
+    const presets = [{ id: "p-1", name: "n", body: "b" }];
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: presets } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(200);
+    const stored = await tables.getById<UserRow>("users", "users", "u-alice");
+    expect(stored?.settings.auto_speak).toBe(true);
+    expect(stored?.settings.preferred_mode).toBe("mcq");
+    expect(stored?.settings.daily_goal).toBe(15);
+    expect(stored?.settings.import_instruction_presets).toEqual(presets);
+  });
+
+  it("AC63: rejects preset that is not an object (string in array)", async () => {
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: ["not-a-preset"] } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
+  it("AC64: rejects preset with id > 64 chars", async () => {
+    const presets = [{ id: "x".repeat(65), name: "n", body: "b" }];
+    const res = (await makeMeHandler(deps)(
+      req(validCookie, {
+        method: "PATCH",
+        body: { settings: { import_instruction_presets: presets } },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
+
   it("returns 404 when the signed userId no longer exists", async () => {
     const token = signer.sign({
       userId: "u-ghost",

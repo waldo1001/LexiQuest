@@ -442,3 +442,9 @@ Plan: [/Users/waldo/.claude/plans/when-i-import-a-giggly-manatee.md](/Users/wald
   - Tests: 8 new in `claude.test.ts` (AC43–AC50: schema description always present, block omitted when null/empty-string, included verbatim when provided, JSON-contract guard line fires, block placed before the JSON-only line, explicit Q/A langs pin lang fields, null courseLanguage produces no lang fields)
   - Coverage: `claude.ts` 100/100/100/100 (Tier A met)
   - Smoke: passed — both with and without `extraInstructions`, Claude responded end-to-end on the empty-pixel test (documented 422 PASS); no regression vs baseline
+- ✅ Slice 3 — API: store presets on `user.settings` via `PATCH /api/me`
+  - Need: free-text instructions for an import need to be reusable across imports — the user wants to type once, save under a name, pick from a dropdown next time, and edit/delete to refine over time
+  - API: `UserRow.settings` extended with optional `import_instruction_presets: Array<{id, name, body}>`. `PATCH /api/me` validates: array (≤20 entries), each preset has a non-empty `id` (≤64 chars, unique), `name` (1..80 chars), `body` (1..1000 chars — matches slice 1 cap on `extraInstructions`). Replaces (not merges) the array on update so deletes work; other settings keys preserved by the existing shallow merge. `GET /api/me` round-trips the array
+  - Tests: 14 new in `me.test.ts` (AC51–AC64: round-trip, non-array, >20 count, empty-array clear, name 81 chars, name empty, body 1001 chars, body empty, duplicate ids, missing id, non-string id, non-object preset, id >64 chars, replacement preserves other settings)
+  - Coverage: `me.ts` 100/98.7/100/100; `seed.ts` 100/100/100/100 (Tier A met)
+  - Smoke: passed — `PATCH /api/me` accepted 2 presets, rejected oversized body with new 400 error, cleared list with empty array

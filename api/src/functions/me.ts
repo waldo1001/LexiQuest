@@ -19,6 +19,9 @@ type UserSettings = UserRow["settings"];
 type PreferredMode = UserSettings["preferred_mode"];
 type Theme = NonNullable<UserSettings["theme"]>;
 type StudyFontSize = NonNullable<UserSettings["study_font_size"]>;
+type ImportInstructionPreset = NonNullable<
+  UserSettings["import_instruction_presets"]
+>[number];
 
 const UI_LANGUAGES = new Set<UiLanguage>(["en", "nl"]);
 const PREFERRED_MODES = new Set<PreferredMode>([
@@ -29,6 +32,71 @@ const PREFERRED_MODES = new Set<PreferredMode>([
 ]);
 const THEMES = new Set<Theme>(["classic", "playful", "arcade"]);
 const STUDY_FONT_SIZES = new Set<StudyFontSize>(["normal", "large", "xlarge"]);
+
+const MAX_PRESET_COUNT = 20;
+const MAX_PRESET_ID_LENGTH = 64;
+const MAX_PRESET_NAME_LENGTH = 80;
+const MAX_PRESET_BODY_LENGTH = 1000;
+
+function validatePresets(
+  raw: unknown,
+):
+  | { ok: true; presets: ImportInstructionPreset[] }
+  | { ok: false; error: string } {
+  if (!Array.isArray(raw)) {
+    return { ok: false, error: "import_instruction_presets must be an array" };
+  }
+  if (raw.length > MAX_PRESET_COUNT) {
+    return {
+      ok: false,
+      error: `import_instruction_presets cannot exceed ${MAX_PRESET_COUNT} entries`,
+    };
+  }
+  const seenIds = new Set<string>();
+  const presets: ImportInstructionPreset[] = [];
+  for (const p of raw) {
+    if (p === null || typeof p !== "object") {
+      return { ok: false, error: "each preset must be an object" };
+    }
+    const r = p as Record<string, unknown>;
+    if (
+      typeof r.id !== "string" ||
+      r.id.length === 0 ||
+      r.id.length > MAX_PRESET_ID_LENGTH
+    ) {
+      return {
+        ok: false,
+        error: `preset id must be a non-empty string of at most ${MAX_PRESET_ID_LENGTH} chars`,
+      };
+    }
+    if (seenIds.has(r.id)) {
+      return { ok: false, error: "preset ids must be unique" };
+    }
+    seenIds.add(r.id);
+    if (
+      typeof r.name !== "string" ||
+      r.name.length < 1 ||
+      r.name.length > MAX_PRESET_NAME_LENGTH
+    ) {
+      return {
+        ok: false,
+        error: `preset name must be 1..${MAX_PRESET_NAME_LENGTH} chars`,
+      };
+    }
+    if (
+      typeof r.body !== "string" ||
+      r.body.length < 1 ||
+      r.body.length > MAX_PRESET_BODY_LENGTH
+    ) {
+      return {
+        ok: false,
+        error: `preset body must be 1..${MAX_PRESET_BODY_LENGTH} chars`,
+      };
+    }
+    presets.push({ id: r.id, name: r.name, body: r.body });
+  }
+  return { ok: true, presets };
+}
 
 function publicProfile(user: UserRow) {
   return {
@@ -112,6 +180,11 @@ function validatePatch(
         return { ok: false, error: "invalid study_font_size" };
       }
       out.study_font_size = sf as StudyFontSize;
+    }
+    if ("import_instruction_presets" in sr) {
+      const result = validatePresets(sr.import_instruction_presets);
+      if (!result.ok) return { ok: false, error: result.error };
+      out.import_instruction_presets = result.presets;
     }
     patch.settings = out;
   }
