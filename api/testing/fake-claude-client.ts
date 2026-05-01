@@ -3,6 +3,7 @@ import type {
   ClaudeClient,
   EnrichInput,
   ExtractCardsInput,
+  ExtractCardsFromSlidesInput,
   VerifyLanguagesInput,
 } from "../src/shared/claude.js";
 
@@ -24,11 +25,20 @@ export class FakeClaudeClient implements ClaudeClient {
   nextVerifyError: Error | null = null;
 
   readonly extractCardsInputs: ExtractCardsInput[] = [];
+  readonly extractCardsFromSlidesInputs: ExtractCardsFromSlidesInput[] = [];
   readonly enrichInputs: EnrichInput[] = [];
   readonly verifyInputs: VerifyLanguagesInput[] = [];
 
   async extractCards(input: ExtractCardsInput): Promise<CardCandidate[]> {
     this.extractCardsInputs.push(input);
+    if (this.nextError) throw this.nextError;
+    return this.nextCards;
+  }
+
+  async extractCardsFromSlides(
+    input: ExtractCardsFromSlidesInput,
+  ): Promise<CardCandidate[]> {
+    this.extractCardsFromSlidesInputs.push(input);
     if (this.nextError) throw this.nextError;
     return this.nextCards;
   }
