@@ -104,6 +104,25 @@ onward (first login + dashboard) and gets sections added per phase:
   extraction results are never auto-saved. If Claude can't read the
   file (blank page, bad lighting), a friendly error message is shown
   instead of a crash.
+- **Steering imports with extra instructions** (post-v1): on the
+  import screen, an **Extra instructions** textarea (max 1000
+  characters) lets you tell Claude how you want the cards built — e.g.
+  *"Only nouns. Frame each question as 'What is …?'"*, *"Question in
+  French, answer in English."*, *"Ignore page footers."*, *"Use full
+  sentences as questions."* The text is folded into Claude's prompt
+  for that import only; the strict JSON output contract still wins, so
+  even a clever instruction can't break the extraction. Empty
+  textarea = behaves exactly like before.
+
+  You can **save** an instruction set under a name to reuse it next
+  time. Type your instructions, click *Save as new*, give it a name
+  (e.g. *"Vocab — nouns only"*). On future imports the saved set
+  appears in a **Use saved instructions** dropdown — pick it and the
+  textarea prefills. *Update* saves edits back to the selected preset
+  (so you can refine wording over time); *Delete* removes the
+  selected one. You can keep up to 20 presets per user; each is up to
+  80 characters in the name and 1000 in the body. Presets live with
+  your profile, so they follow you across devices.
 - **Stats** (Phase 15): three stats screens, all accessible to every family
   member:
   - **Family Dashboard** (`/family`): one-page overview of all users. Each
