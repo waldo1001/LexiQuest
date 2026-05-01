@@ -489,3 +489,16 @@ Plan: [/Users/waldo/.claude/plans/would-it-make-sense-federated-mitten.md](/User
   - i18n: 1 new key per locale: `review.skippedSlides` ("Skipped image-only slides: {indices}" / "Overgeslagen slides zonder tekst: {indices}")
   - Tests: 2 new in `ImportReview.test.jsx` (AC94–AC95: notice renders with correct indices when skippedSlides=[3,7]; notice hidden when skippedSlides undefined). 32/32 ImportReview tests pass; 603/603 frontend tests pass overall
   - Coverage: `ImportReview.jsx` 100/100/100/100 (Tier B met). `strings.js` 100/100/100/100 via `strings.test.js` (the per-test coverage scoping warning during the slice run was a vitest filter side-effect, not a real regression — full suite confirms 100%)
+
+## Post-v1 — Client-side photo compression
+
+Plan: [/Users/waldo/.claude/plans/in-some-cases-the-wobbly-newell.md](/Users/waldo/.claude/plans/in-some-cases-the-wobbly-newell.md)
+
+- ✅ Slice 1 — Auto-compress oversized images before import
+  - Need: phone cameras routinely produce 5–15 MB JPEGs. The backend rejects image base64 payloads above 5 MB (`MAX_IMAGE_PAYLOAD_BYTES` in `cards-import.ts`), so users were hitting a round-trip 413 after the upload completed. Pre-compress in the browser when raw bytes exceed ~3.5 MB so base64 lands under the 5 MB cap with margin
+  - Frontend: new pure module `frontend/src/lib/image-compress.js` exporting `compressImageIfNeeded(file, opts)`. Files at or below `DEFAULT_MAX_BYTES` (3.5 MB) — and any non-image MIME type (PDF, PPTX) — pass through unchanged. Oversized images decode via `createImageBitmap`, draw onto a `<canvas>` scaled so the longest side ≤ 2000 px (aspect preserved), and re-encode as `image/jpeg` at q=0.85 with one retry at q=0.7 if the first pass is still over target. Returns `{ file, compressed, originalSize, finalSize }`. Seams: `createImageBitmapImpl`, `canvasFactory` for testability. `PhotoImport.jsx` calls it before `readAsBase64` (skipping for `.pdf`/`.pptx`) and renders a `<p role="status">` notice "Photo compressed for upload (X MB → Y MB)" while the import is in flight; failures surface a localized `import.error.compressFailed` message and abort the import
+  - i18n: 2 new keys per locale (en/nl): `import.compressed`, `import.error.compressFailed`
+  - Tests: 10 new in `image-compress.test.js` (small file pass-through, PDF pass-through, landscape downscale to 2000×1500, portrait downscale to 1500×2000, already-small dimensions re-encode without resize, retry at fallback quality, PNG → JPEG conversion + filename swap, `createImageBitmap` rejection → `image_compress_failed`, double `toBlob` null → `image_compress_failed`, no-extension filename preserved). 5 new in `PhotoImport.test.jsx` (PI-C1–PI-C5: small image not compressed and no notice, large image compressed with notice and image/jpeg mimeType, compression failure shows error and skips importCards, PDF skips compression, PPTX skips compression). 617/617 frontend tests pass
+  - Coverage: `image-compress.js` 100/96.55/100/100 (Tier A 90% met). `PhotoImport.jsx` 97.22/84.74/100/97.22 (Tier B 70% met)
+  - Deps: zero new runtime dependencies — uses browser-native `createImageBitmap`, `<canvas>`, `Blob`, `File`
+  - Out of scope: HEIC support (separate slice — needs ~80 KB decode lib), PDF/PPTX compression (32 MB cap, no lossless browser path)

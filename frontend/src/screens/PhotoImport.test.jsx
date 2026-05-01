@@ -17,6 +17,7 @@ const CANDIDATES = [
 function setup({
   importCards = vi.fn(),
   fetchCards,
+  compressImage,
   lang = "en",
   courseLang = null,
   questionLangDefault = null,
@@ -45,6 +46,7 @@ function setup({
                 patchMe={patchMe}
                 promptFn={promptFn}
                 confirmFn={confirmFn}
+                {...(compressImage ? { compressImage } : {})}
               />
             }
           />
@@ -690,5 +692,122 @@ describe("PhotoImport — Extra instructions + presets", () => {
 
     expect(promptFn).toHaveBeenCalled();
     expect(patchMe).not.toHaveBeenCalled();
+  });
+});
+
+// =====================================================================
+// Slice — Client-side photo compression before import
+// =====================================================================
+describe("PhotoImport — client-side compression", () => {
+  it("PI-C1: small image is not compressed and shows no notice", async () => {
+    const user = userEvent.setup();
+    const importCards = vi.fn().mockResolvedValue({ candidates: CANDIDATES });
+    const compressImage = vi.fn(async (file) => ({
+      file,
+      compressed: false,
+      originalSize: file.size,
+      finalSize: file.size,
+    }));
+    setup({ importCards, compressImage });
+
+    const file = new File(["img"], "p.jpg", { type: "image/jpeg" });
+    await user.upload(document.querySelector("input[type='file']"), file);
+    await user.click(screen.getByRole("button", { name: /extract cards/i }));
+
+    await waitFor(() => expect(importCards).toHaveBeenCalledOnce());
+    expect(compressImage).toHaveBeenCalledOnce();
+    expect(compressImage.mock.calls[0][0]).toBe(file);
+    expect(screen.queryByText(/photo compressed for upload/i)).toBeNull();
+  });
+
+  it("PI-C2: large image is compressed and the compressed file's bytes are sent", async () => {
+    const user = userEvent.setup();
+    let resolveImport;
+    const importCards = vi.fn(
+      () => new Promise((res) => { resolveImport = res; }),
+    );
+    const compressedFile = new File(
+      [new Uint8Array(2 * 1024 * 1024)],
+      "p.jpg",
+      { type: "image/jpeg" },
+    );
+    const compressImage = vi.fn(async () => ({
+      file: compressedFile,
+      compressed: true,
+      originalSize: 8 * 1024 * 1024,
+      finalSize: 2 * 1024 * 1024,
+    }));
+    setup({ importCards, compressImage });
+
+    const original = new File([new Uint8Array(8 * 1024 * 1024)], "big.jpg", {
+      type: "image/jpeg",
+    });
+    await user.upload(document.querySelector("input[type='file']"), original);
+    await user.click(screen.getByRole("button", { name: /extract cards/i }));
+
+    // Notice is rendered while importCards is still pending (8.0 → 2.0 MB)
+    await waitFor(() =>
+      expect(
+        screen.getByText(/photo compressed for upload \(8\.0 MB → 2\.0 MB\)/i),
+      ).toBeInTheDocument(),
+    );
+
+    await waitFor(() => expect(importCards).toHaveBeenCalledOnce());
+    // Body's mimeType should be image/jpeg (compressed-file's type)
+    expect(importCards.mock.calls[0][0].mimeType).toBe("image/jpeg");
+
+    // Unblock the import so the test cleans up
+    resolveImport({ candidates: CANDIDATES });
+  });
+
+  it("PI-C3: compression failure surfaces a user-facing error and does not call importCards", async () => {
+    const user = userEvent.setup();
+    const importCards = vi.fn();
+    const compressImage = vi.fn().mockRejectedValue(new Error("image_compress_failed"));
+    setup({ importCards, compressImage });
+
+    const file = new File([new Uint8Array(8 * 1024 * 1024)], "big.jpg", {
+      type: "image/jpeg",
+    });
+    await user.upload(document.querySelector("input[type='file']"), file);
+    await user.click(screen.getByRole("button", { name: /extract cards/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/could not prepare that photo/i)).toBeInTheDocument(),
+    );
+    expect(importCards).not.toHaveBeenCalled();
+    // The Extract button must be re-enabled (loading cleared)
+    expect(screen.getByRole("button", { name: /extract cards/i })).not.toBeDisabled();
+  });
+
+  it("PI-C4: PDF skips compression entirely", async () => {
+    const user = userEvent.setup();
+    const importCards = vi.fn().mockResolvedValue({ candidates: CANDIDATES });
+    const compressImage = vi.fn();
+    setup({ importCards, compressImage });
+
+    const file = new File(["pdf-bytes"], "homework.pdf", { type: "application/pdf" });
+    await user.upload(document.querySelector("input[type='file']"), file);
+    await user.click(screen.getByRole("button", { name: /extract cards/i }));
+
+    await waitFor(() => expect(importCards).toHaveBeenCalledOnce());
+    expect(compressImage).not.toHaveBeenCalled();
+    expect(importCards.mock.calls[0][0].mimeType).toBe("application/pdf");
+  });
+
+  it("PI-C5: PPTX skips compression entirely", async () => {
+    const user = userEvent.setup();
+    const importCards = vi.fn().mockResolvedValue({ candidates: CANDIDATES });
+    const compressImage = vi.fn();
+    setup({ importCards, compressImage });
+
+    const file = new File(["pk-fake"], "deck.pptx", {
+      type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    });
+    await user.upload(document.querySelector("input[type='file']"), file);
+    await user.click(screen.getByRole("button", { name: /extract cards/i }));
+
+    await waitFor(() => expect(importCards).toHaveBeenCalledOnce());
+    expect(compressImage).not.toHaveBeenCalled();
   });
 });

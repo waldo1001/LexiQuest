@@ -5,6 +5,7 @@ import {
   fetchCards as fetchCardsApi,
   patchMe as patchMeApi,
 } from "../lib/api.js";
+import { compressImageIfNeeded } from "../lib/image-compress.js";
 import { useT } from "../i18n/useT.js";
 import { useAppContext } from "../context/AppContext.jsx";
 
@@ -34,11 +35,16 @@ function baseTag(code) {
   return code ? code.split("-")[0] : "";
 }
 
+function formatMb(bytes) {
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 /**
  * @param {{
  *   importCards?: typeof importCardsApi,
  *   fetchCards?: typeof fetchCardsApi,
  *   patchMe?: typeof patchMeApi,
+ *   compressImage?: typeof compressImageIfNeeded,
  *   promptFn?: (msg: string, defaultValue?: string) => string | null,
  *   confirmFn?: (msg: string) => boolean,
  * }} props
@@ -47,6 +53,7 @@ export default function PhotoImport({
   importCards = importCardsApi,
   fetchCards = fetchCardsApi,
   patchMe = patchMeApi,
+  compressImage = compressImageIfNeeded,
   promptFn = typeof window !== "undefined"
     ? window.prompt.bind(window)
     /* v8 ignore next */
@@ -66,6 +73,7 @@ export default function PhotoImport({
   const fileRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
   const [questionLang, setQuestionLang] = useState(() => courseLang ? (questionLangDefault ?? baseTag(uiLang)) : "");
   const [answerLang, setAnswerLang] = useState(() => courseLang ? (answerLangDefault ?? baseTag(uiLang)) : "");
   const [existingUploads, setExistingUploads] = useState([]);
@@ -181,14 +189,39 @@ export default function PhotoImport({
 
     setLoading(true);
     setError(null);
+    setNotice(null);
+
+    const isPptxByExt = file.name?.toLowerCase().endsWith(".pptx");
+    const isPdfByExt = file.name?.toLowerCase().endsWith(".pdf");
+    const isPdfByMime = file.type === "application/pdf";
+    const isCompressible = !isPptxByExt && !isPdfByExt && !isPdfByMime;
+
+    let workingFile = file;
+    if (isCompressible) {
+      try {
+        const result = await compressImage(file);
+        workingFile = result.file;
+        if (result.compressed) {
+          setNotice(
+            t("import.compressed", {
+              before: formatMb(result.originalSize),
+              after: formatMb(result.finalSize),
+            }),
+          );
+        }
+      } catch {
+        setError(t("import.error.compressFailed"));
+        setLoading(false);
+        return;
+      }
+    }
 
     try {
-      const base64 = await readAsBase64(file);
-      const isPptxByExt = file.name?.toLowerCase().endsWith(".pptx");
+      const base64 = await readAsBase64(workingFile);
       /* v8 ignore next */
       const mimeType = isPptxByExt
         ? PPTX_MIME
-        : file.type || (file.name?.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
+        : workingFile.type || (workingFile.name?.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
       const payload = { courseId, imageBase64: base64, mimeType };
       if (courseLang) {
         payload.questionLang = questionLang;
@@ -341,6 +374,7 @@ export default function PhotoImport({
         {presetError && <p role="alert">{presetError}</p>}
       </div>
 
+      {notice && <p role="status">{notice}</p>}
       {error && <p role="alert">{error}</p>}
 
       <button onClick={handleExtract} disabled={loading}>

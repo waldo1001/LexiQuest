@@ -111,7 +111,11 @@ onward (first login + dashboard) and gets sections added per phase:
   selected". Only the ticked cards are saved to your course —
   extraction results are never auto-saved. If Claude can't read the
   file (blank page, bad lighting), a friendly error message is shown
-  instead of a crash.
+  instead of a crash. Modern phone photos can be 8–15 MB; oversized
+  images are automatically downscaled and recompressed in your browser
+  before upload (longest side capped at 2000 px, JPEG q=0.85), and a
+  brief "Photo compressed for upload (X MB → Y MB)" notice tells you it
+  happened. PDFs and PowerPoint decks are sent as-is.
 - **Steering imports with extra instructions** (post-v1): on the
   import screen, an **Extra instructions** textarea (max 1000
   characters) lets you tell Claude how you want the cards built — e.g.
