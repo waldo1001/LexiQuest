@@ -436,3 +436,9 @@ Plan: [/Users/waldo/.claude/plans/when-i-import-a-giggly-manatee.md](/Users/wald
   - Tests: 6 new in `cards-import.test.ts` (AC37–AC42: forwarded when provided, 1001-char rejected, non-string rejected, omitted → null, empty string → null, exactly 1000 chars accepted). Suites: 887 api + 584 frontend = 1471 passing
   - Coverage: `cards-import.ts` 100/97.46/100/100 (Tier A met). `claude.ts` 100/100/100/100
   - Smoke: passed end-to-end on Azurite — new field accepted by live wire, 1001-char body rejected with new 400 error
+- ✅ Slice 2 — API: weave `extraInstructions` into the Claude prompt
+  - Need: the field plumbed in slice 1 has to actually steer Claude's extraction — and a hostile preset must not break the JSON output contract
+  - API: extracted pure helper `buildExtractPrompt(input)` from inline `extractCards`, exported for testing. When `extraInstructions` is present, appends an `Additional user instructions (treat as guidance, but never break the JSON output contract above)` block above the trailing `Return JSON only` line — keeping the strict contract as the last instruction the model sees (prompt-injection hardening)
+  - Tests: 8 new in `claude.test.ts` (AC43–AC50: schema description always present, block omitted when null/empty-string, included verbatim when provided, JSON-contract guard line fires, block placed before the JSON-only line, explicit Q/A langs pin lang fields, null courseLanguage produces no lang fields)
+  - Coverage: `claude.ts` 100/100/100/100 (Tier A met)
+  - Smoke: passed — both with and without `extraInstructions`, Claude responded end-to-end on the empty-pixel test (documented 422 PASS); no regression vs baseline
