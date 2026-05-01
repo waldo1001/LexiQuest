@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
 import PhotoImport from "./PhotoImport.jsx";
 import { AppProvider } from "../context/AppContext.jsx";
@@ -579,6 +579,104 @@ describe("PhotoImport — Extra instructions + presets", () => {
     expect(confirmFn).toHaveBeenCalled();
     await waitFor(() => expect(patchMe).toHaveBeenCalled());
     expect(patchMe.mock.calls[0][0].settings.import_instruction_presets).toEqual([]);
+  });
+
+  it("AC90: file input accepts .pptx alongside images and PDFs", () => {
+    setup();
+    const input = document.querySelector("input[type='file']");
+    expect(input.getAttribute("accept")).toMatch(/\.pptx/);
+    expect(input.getAttribute("accept")).toMatch(/presentationml\.presentation/);
+  });
+
+  it("AC91: pptx file selection sends the pptx mimeType in the import body", async () => {
+    const user = userEvent.setup();
+    const importCards = vi.fn().mockResolvedValue({ candidates: CANDIDATES });
+    setup({ importCards });
+
+    const file = new File(["pk-fake-zip"], "deck.pptx", {
+      type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    });
+    const input = document.querySelector("input[type='file']");
+    await user.upload(input, file);
+
+    await user.click(screen.getByRole("button", { name: /extract cards/i }));
+    await waitFor(() => expect(importCards).toHaveBeenCalled());
+
+    const body = importCards.mock.calls[0][0];
+    expect(body.mimeType).toBe(
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    );
+  });
+
+  it("AC92: a .pptx file with no MIME type still sends the pptx mimeType (extension fallback)", async () => {
+    const user = userEvent.setup();
+    const importCards = vi.fn().mockResolvedValue({ candidates: CANDIDATES });
+    setup({ importCards });
+
+    // Some platforms hand File.type === "" for .pptx — extension must drive the inference
+    const file = new File(["pk-fake-zip"], "deck.pptx", { type: "" });
+    const input = document.querySelector("input[type='file']");
+    await user.upload(input, file);
+
+    await user.click(screen.getByRole("button", { name: /extract cards/i }));
+    await waitFor(() => expect(importCards).toHaveBeenCalled());
+
+    expect(importCards.mock.calls[0][0].mimeType).toBe(
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    );
+  });
+
+  it("AC93: skippedSlides from the response is forwarded into navigation state", async () => {
+    const user = userEvent.setup();
+    const importCards = vi
+      .fn()
+      .mockResolvedValue({ candidates: CANDIDATES, skippedSlides: [3, 7] });
+
+    // Render with a custom review route that exposes location.state
+    function ReviewProbe() {
+      const loc = useLocation();
+      return <pre data-testid="state-json">{JSON.stringify(loc.state)}</pre>;
+    }
+
+    render(
+      <AppProvider initialLang="en" initialUser={null} patchMe={vi.fn()}>
+        <MemoryRouter
+          initialEntries={[{
+            pathname: `/courses/${COURSE_ID}/import`,
+            state: { courseId: COURSE_ID, courseName: COURSE_NAME, ownerId: OWNER_ID },
+          }]}
+        >
+          <Routes>
+            <Route
+              path="/courses/:courseId/import"
+              element={
+                <PhotoImport
+                  importCards={importCards}
+                  fetchCards={vi.fn().mockResolvedValue([])}
+                  patchMe={vi.fn()}
+                />
+              }
+            />
+            <Route
+              path="/courses/:courseId/import/review"
+              element={<ReviewProbe />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </AppProvider>,
+    );
+
+    const file = new File(["pk-fake-zip"], "deck.pptx", {
+      type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    });
+    const input = document.querySelector("input[type='file']");
+    await user.upload(input, file);
+
+    await user.click(screen.getByRole("button", { name: /extract cards/i }));
+    await waitFor(() => expect(screen.getByTestId("state-json")).toBeInTheDocument());
+
+    const state = JSON.parse(screen.getByTestId("state-json").textContent);
+    expect(state.skippedSlides).toEqual([3, 7]);
   });
 
   it("AC77: cancelling 'Save as new' name prompt aborts (no PATCH)", async () => {

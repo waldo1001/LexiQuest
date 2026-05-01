@@ -19,6 +19,7 @@ const LANG_OPTIONS = [
 
 const MAX_PRESETS = 20;
 const MAX_EXTRA_INSTRUCTIONS = 1000;
+const PPTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
 
 function newPresetId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -183,8 +184,11 @@ export default function PhotoImport({
 
     try {
       const base64 = await readAsBase64(file);
+      const isPptxByExt = file.name?.toLowerCase().endsWith(".pptx");
       /* v8 ignore next */
-      const mimeType = file.type || (file.name?.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
+      const mimeType = isPptxByExt
+        ? PPTX_MIME
+        : file.type || (file.name?.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
       const payload = { courseId, imageBase64: base64, mimeType };
       if (courseLang) {
         payload.questionLang = questionLang;
@@ -202,6 +206,7 @@ export default function PhotoImport({
           candidates: result.candidates,
           uploadId: selectedUploadId || null,
           uploadName: selectedUploadName,
+          skippedSlides: result.skippedSlides,
         },
       });
     } catch (err) {
@@ -254,7 +259,7 @@ export default function PhotoImport({
           <input
             ref={fileRef}
             type="file"
-            accept="image/*,application/pdf"
+            accept={`image/*,application/pdf,.pptx,${PPTX_MIME}`}
           />
         </label>
       </div>
