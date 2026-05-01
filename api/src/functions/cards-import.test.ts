@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { HttpRequest, InvocationContext } from "@azure/functions";
+import JSZip from "jszip";
 import { makeCardsImportHandler, type CardsImportDeps } from "./cards-import.js";
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
@@ -11,6 +12,29 @@ import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { CourseRow } from "./courses-shared.js";
 import type { CardCandidate } from "../shared/claude.js";
+
+const PPTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+
+async function buildPptxBase64(
+  entries: Array<{ index: number; slideRuns?: string[]; notesRuns?: string[] }>,
+): Promise<string> {
+  const zip = new JSZip();
+  for (const entry of entries) {
+    const runs = entry.slideRuns ?? [];
+    const slideXml = `<?xml version="1.0"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree>${runs
+      .map((r) => `<a:p><a:r><a:t>${r}</a:t></a:r></a:p>`)
+      .join("")}</p:spTree></p:cSld></p:sld>`;
+    zip.file(`ppt/slides/slide${entry.index}.xml`, slideXml);
+    if (entry.notesRuns) {
+      const notesXml = `<?xml version="1.0"?><p:notes xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree>${entry.notesRuns
+        .map((r) => `<a:p><a:r><a:t>${r}</a:t></a:r></a:p>`)
+        .join("")}</p:spTree></p:cSld></p:notes>`;
+      zip.file(`ppt/notesSlides/notesSlide${entry.index}.xml`, notesXml);
+    }
+  }
+  const buf = await zip.generateAsync({ type: "nodebuffer" });
+  return buf.toString("base64");
+}
 
 const ctx = {} as InvocationContext;
 const NOW = "2026-04-23T10:00:00.000Z";
@@ -590,5 +614,141 @@ describe("POST /api/cards/import", () => {
 
     const input = deps.claude.extractCardsInputs[0];
     expect((input.extraInstructions as string).length).toBe(1000);
+  });
+
+  it("AC82: accepts pptx mimeType and routes through extractCardsFromSlides", async () => {
+    await seedCourse(deps);
+    await seedUser(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const imageBase64 = await buildPptxBase64([
+      { index: 1, slideRuns: ["Bonjour"], notesRuns: ["French for hello"] },
+    ]);
+    const body = { courseId: COURSE_ID, imageBase64, mimeType: PPTX_MIME };
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+
+    expect(res.status).toBe(200);
+    expect(res.jsonBody).toMatchObject({ candidates: CANDIDATES });
+    expect(deps.claude.extractCardsFromSlidesInputs).toHaveLength(1);
+    expect(deps.claude.extractCardsInputs).toHaveLength(0);
+  });
+
+  it("AC83: returns 400 with parse_error for a corrupt pptx", async () => {
+    await seedCourse(deps);
+    await seedUser(deps);
+
+    const imageBase64 = Buffer.from("definitely not a zip").toString("base64");
+    const body = { courseId: COURSE_ID, imageBase64, mimeType: PPTX_MIME };
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+
+    expect(res.status).toBe(400);
+    expect((res.jsonBody as { error: string }).error).toMatch(/pptx/i);
+  });
+
+  it("AC84: returns 413 for an oversize pptx payload", async () => {
+    await seedCourse(deps);
+    await seedUser(deps);
+
+    // Construct a base64 string just over the 32MB cap without doing real work
+    const imageBase64 = "A".repeat(32 * 1024 * 1024 + 1);
+    const body = { courseId: COURSE_ID, imageBase64, mimeType: PPTX_MIME };
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+
+    expect(res.status).toBe(413);
+  });
+
+  it("AC85: forwards extraInstructions to extractCardsFromSlides for pptx", async () => {
+    await seedCourse(deps);
+    await seedUser(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const imageBase64 = await buildPptxBase64([{ index: 1, slideRuns: ["Hola"] }]);
+    const body = {
+      courseId: COURSE_ID,
+      imageBase64,
+      mimeType: PPTX_MIME,
+      extraInstructions: "Only nouns",
+    };
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+
+    expect(res.status).toBe(200);
+    expect(deps.claude.extractCardsFromSlidesInputs[0].extraInstructions).toBe("Only nouns");
+  });
+
+  it("AC86: reports image-only slides in skippedSlides response field", async () => {
+    await seedCourse(deps);
+    await seedUser(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const imageBase64 = await buildPptxBase64([
+      { index: 1, slideRuns: ["Has text"] },
+      { index: 2, slideRuns: [] }, // image-only
+      { index: 3, slideRuns: ["More text"] },
+      { index: 4, slideRuns: [] }, // image-only
+    ]);
+    const body = { courseId: COURSE_ID, imageBase64, mimeType: PPTX_MIME };
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+
+    expect(res.status).toBe(200);
+    expect((res.jsonBody as { skippedSlides: number[] }).skippedSlides).toEqual([2, 4]);
+  });
+
+  it("AC88: pptx path also runs language verification when Q≠A langs differ", async () => {
+    await seedCourse(deps);
+    await seedUser(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const imageBase64 = await buildPptxBase64([{ index: 1, slideRuns: ["Hola"] }]);
+    const body = {
+      courseId: COURSE_ID,
+      imageBase64,
+      mimeType: PPTX_MIME,
+      questionLang: "en",
+      answerLang: "es",
+    };
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+
+    expect(res.status).toBe(200);
+    expect(deps.claude.verifyInputs).toHaveLength(1);
+  });
+
+  it("AC89: pptx path returns 502 when Claude fails after slide extraction", async () => {
+    await seedCourse(deps);
+    await seedUser(deps);
+    deps.claude.nextError = new Error("Claude rate limit");
+
+    const imageBase64 = await buildPptxBase64([{ index: 1, slideRuns: ["Hola"] }]);
+    const body = { courseId: COURSE_ID, imageBase64, mimeType: PPTX_MIME };
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+
+    expect(res.status).toBe(502);
+  });
+
+  it("AC87: extractCardsFromSlidesInputs records slides shape with correct count and content", async () => {
+    await seedCourse(deps);
+    await seedUser(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    const imageBase64 = await buildPptxBase64([
+      { index: 1, slideRuns: ["Bonjour"], notesRuns: ["hello"] },
+      { index: 2, slideRuns: ["Au revoir"], notesRuns: ["goodbye"] },
+    ]);
+    const body = { courseId: COURSE_ID, imageBase64, mimeType: PPTX_MIME };
+
+    await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
+
+    const input = deps.claude.extractCardsFromSlidesInputs[0];
+    expect(input.slides).toHaveLength(2);
+    expect(input.slides[0]).toEqual({ index: 1, text: "Bonjour", notes: "hello" });
+    expect(input.slides[1]).toEqual({ index: 2, text: "Au revoir", notes: "goodbye" });
+    expect(input.courseName).toBe("French 🇫🇷");
+    expect(input.courseLanguage).toBe("fr-FR");
   });
 });

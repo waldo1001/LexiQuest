@@ -13,6 +13,7 @@ import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { ClaudeClient, ExtractCardsInput, VerifyLanguagesInput } from "../shared/claude.js";
 import { ClaudeJsonParseError } from "../shared/claude.js";
+import { extractSlidesFromPptx, PptxParseError } from "../shared/pptx-extractor.js";
 import type { CourseRow } from "./courses-shared.js";
 
 export interface CardsImportDeps {
@@ -23,18 +24,24 @@ export interface CardsImportDeps {
   logger: Logger;
 }
 
+const PPTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+
 const VALID_MIME_TYPES = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
   "image/gif",
   "application/pdf",
+  PPTX_MIME,
 ]);
 
 // Anthropic enforces these caps against the base64 string length
 // (request payload size), not the decoded image/PDF bytes.
+// PPTX is parsed locally (text-only) so we use the larger PDF cap —
+// study decks routinely run 10–20 MB once embedded images are included.
 const MAX_IMAGE_PAYLOAD_BYTES = 5 * 1024 * 1024;
 const MAX_PDF_PAYLOAD_BYTES = 32 * 1024 * 1024;
+const MAX_PPTX_PAYLOAD_BYTES = 32 * 1024 * 1024;
 
 const BCP47_RE = /^[a-z]{2,3}(-[A-Z][a-zA-Z]{1,7})?$/;
 
@@ -63,7 +70,11 @@ function validateBody(
     return { ok: false, error: "imageBase64 is required" };
   }
   if (typeof src.mimeType !== "string" || !VALID_MIME_TYPES.has(src.mimeType)) {
-    return { ok: false, error: "mimeType must be image/jpeg, image/png, image/webp, image/gif, or application/pdf" };
+    return {
+      ok: false,
+      error:
+        "mimeType must be image/jpeg, image/png, image/webp, image/gif, application/pdf, or application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    };
   }
 
   const result: ValidatedImportBody = {
@@ -137,8 +148,13 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
     const { courseId, imageBase64, mimeType, questionLang, answerLang, extraInstructions } = validated;
 
     const isPdf = mimeType === "application/pdf";
+    const isPptx = mimeType === PPTX_MIME;
     const payloadBytes = imageBase64.length;
-    const maxBytes = isPdf ? MAX_PDF_PAYLOAD_BYTES : MAX_IMAGE_PAYLOAD_BYTES;
+    const maxBytes = isPptx
+      ? MAX_PPTX_PAYLOAD_BYTES
+      : isPdf
+        ? MAX_PDF_PAYLOAD_BYTES
+        : MAX_IMAGE_PAYLOAD_BYTES;
     if (payloadBytes > maxBytes) {
       return {
         status: 413,
@@ -159,6 +175,43 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
     // Fetch caller's ui_language — fall back to "en" if row not found
     const userRow = await deps.tables.getById<UserRow>("users", PARTITIONS.users, auth.auth.userId);
     const uiLanguage = userRow?.ui_language ?? "en";
+
+    if (isPptx) {
+      let slides;
+      try {
+        slides = await extractSlidesFromPptx(Buffer.from(imageBase64, "base64"));
+      } catch (err) {
+        if (err instanceof PptxParseError) {
+          return { status: 400, jsonBody: { error: `pptx ${err.message}` } };
+        }
+        throw err;
+      }
+
+      try {
+        let candidates = await deps.claude.extractCardsFromSlides({
+          slides,
+          courseName: course.name,
+          courseLanguage: course.language,
+          uiLanguage,
+          questionLang: questionLang ?? null,
+          answerLang: answerLang ?? null,
+          extraInstructions: extraInstructions ?? null,
+        });
+
+        if (questionLang && answerLang && questionLang !== answerLang) {
+          candidates = await deps.claude.verifyCardLanguages({
+            cards: candidates,
+            questionLang,
+            answerLang,
+          });
+        }
+
+        const skippedSlides = slides.filter((s) => !s.text).map((s) => s.index);
+        return { status: 200, jsonBody: { candidates, skippedSlides } };
+      } catch (err) {
+        return handleClaudeError(err, deps.logger, auth.auth.userId, courseId, mimeType, imageBase64);
+      }
+    }
 
     try {
       let candidates = await deps.claude.extractCards({
@@ -182,27 +235,38 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
 
       return { status: 200, jsonBody: { candidates } };
     } catch (err) {
-      if (err instanceof ClaudeJsonParseError) {
-        return { status: 422, jsonBody: { error: "Claude returned unparseable JSON", raw: err.raw } };
-      }
-      const errorName = err instanceof Error ? err.name : "unknown";
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      const sdkStatus = (err as { status?: unknown })?.status;
-      deps.logger.error("cards_import_claude_failed", {
-        userId: auth.auth.userId,
-        courseId,
-        mimeType,
-        payloadKB: Math.round((imageBase64.length * 0.75) / 1024),
-        errorName,
-        errorMessage,
-        status: typeof sdkStatus === "number" ? sdkStatus : null,
-      });
-      if (errorMessage.includes("image exceeds")) {
-        return { status: 413, jsonBody: { error: "image too large" } };
-      }
-      return { status: 502, jsonBody: { error: "Claude request failed" } };
+      return handleClaudeError(err, deps.logger, auth.auth.userId, courseId, mimeType, imageBase64);
     }
   };
+}
+
+function handleClaudeError(
+  err: unknown,
+  logger: Logger,
+  userId: string,
+  courseId: string,
+  mimeType: string,
+  imageBase64: string,
+): HttpResponseInit {
+  if (err instanceof ClaudeJsonParseError) {
+    return { status: 422, jsonBody: { error: "Claude returned unparseable JSON", raw: err.raw } };
+  }
+  const errorName = err instanceof Error ? err.name : "unknown";
+  const errorMessage = err instanceof Error ? err.message : String(err);
+  const sdkStatus = (err as { status?: unknown })?.status;
+  logger.error("cards_import_claude_failed", {
+    userId,
+    courseId,
+    mimeType,
+    payloadKB: Math.round((imageBase64.length * 0.75) / 1024),
+    errorName,
+    errorMessage,
+    status: typeof sdkStatus === "number" ? sdkStatus : null,
+  });
+  if (errorMessage.includes("image exceeds")) {
+    return { status: 413, jsonBody: { error: "image too large" } };
+  }
+  return { status: 502, jsonBody: { error: "Claude request failed" } };
 }
 
 /* v8 ignore start */
