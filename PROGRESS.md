@@ -502,3 +502,17 @@ Plan: [/Users/waldo/.claude/plans/in-some-cases-the-wobbly-newell.md](/Users/wal
   - Coverage: `image-compress.js` 100/96.55/100/100 (Tier A 90% met). `PhotoImport.jsx` 97.22/84.74/100/97.22 (Tier B 70% met)
   - Deps: zero new runtime dependencies — uses browser-native `createImageBitmap`, `<canvas>`, `Blob`, `File`
   - Out of scope: HEIC support (separate slice — needs ~80 KB decode lib), PDF/PPTX compression (32 MB cap, no lossless browser path)
+
+## Post-v1 — Latin & Ancient Greek language options
+
+Plan: [docs/plans/done/post-v1-latin-greek-languages.md](docs/plans/done/post-v1-latin-greek-languages.md)
+
+- ✅ Slice 1 — Surface `la` (Latin) and `grc` (Ancient Greek) in course/import language pickers
+  - Need: Belgian-curriculum *Latijn* and *Grieks* courses couldn't be picked from the UI. The backend BCP-47 regex (`/^[a-z]{2,3}(-[A-Z]{2})?$/` in `api/src/functions/courses-shared.ts`) already accepted both codes; only the dropdowns were missing them
+  - Frontend: extended three arrays — `LANGUAGES` and `SIDE_LANGS` in `frontend/src/screens/CourseList.jsx`, `LANG_OPTIONS` in `frontend/src/screens/PhotoImport.jsx`. Added `{ value: "la", label: "la" }` / `{ value: "grc", label: "grc" }` to LANGUAGES (raw-code style matching `fr-FR`/`nl-BE` siblings), and `labelKey`-driven entries to SIDE_LANGS / LANG_OPTIONS so endonyms localize per UI language
+  - i18n: 2 new keys per locale (en/nl) — `courses.sideLang.la` ("Latin"/"Latijn") and `courses.sideLang.grc` ("Ancient Greek"/"Oudgrieks")
+  - Tests: 4 new — `CL-langs: course-level language dropdown includes la and grc`, `CL-langs: side-language dropdowns include Latin and Ancient Greek (en + nl labels)`, `CL-langs: side-language dropdowns show Dutch labels under lang=nl` (CourseList.test.jsx), `PI-langs: language dropdowns include Latin and Ancient Greek` (PhotoImport.test.jsx). 622/622 frontend tests pass
+  - Coverage: `CourseList.jsx` 98.73/90.21/75.86/98.73 (Tier B 70% met). `PhotoImport.jsx` 97.23/84.74/100/97.23 (Tier B 70% met)
+  - TTS: gracefully degrades — browsers don't ship Latin/Ancient-Greek voices, and `frontend/src/lib/tts.js` `isAvailable()` already returns false for absent voices, so the 🔊 button hides without code changes. Documented in user-guide
+  - Auth/Claude/secret seams untouched — security scan skipped per CLAUDE.md autonomous-mode rule
+  - Out of scope: Modern Greek (`el`); region-tagged variants like `la-VA`/`grc-GR`; new browser TTS voices

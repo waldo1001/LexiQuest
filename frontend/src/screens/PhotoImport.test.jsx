@@ -810,4 +810,16 @@ describe("PhotoImport — client-side compression", () => {
     await waitFor(() => expect(importCards).toHaveBeenCalledOnce());
     expect(compressImage).not.toHaveBeenCalled();
   });
+
+  it("PI-langs: language dropdowns include Latin and Ancient Greek", () => {
+    setup({ courseLang: "fr-FR", lang: "en" });
+
+    for (const labelRe of [/speak questions in/i, /speak answers in/i]) {
+      const select = screen.getByLabelText(labelRe);
+      const options = Array.from(select.querySelectorAll("option"));
+      const byValue = Object.fromEntries(options.map((o) => [o.value, o.textContent]));
+      expect(byValue["la"]).toBe("Latin");
+      expect(byValue["grc"]).toBe("Ancient Greek");
+    }
+  });
 });

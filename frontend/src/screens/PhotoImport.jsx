@@ -16,6 +16,8 @@ const LANG_OPTIONS = [
   { value: "fr", label: "Français" },
   { value: "de", label: "Deutsch" },
   { value: "es", label: "Español" },
+  { value: "la", labelKey: "courses.sideLang.la" },
+  { value: "grc", labelKey: "courses.sideLang.grc" },
 ];
 
 const MAX_PRESETS = 20;

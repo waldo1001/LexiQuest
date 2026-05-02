@@ -23,6 +23,14 @@ onward (first login + dashboard) and gets sections added per phase:
   confirmation) to remove it and all its cards. Admins can manage school
   years from the Admin Panel (School years section: create, rename, and
   mark a year as current).
+  - **Classical languages — Latin (`la`) and Ancient Greek (`grc`)**: both
+    appear in the course-language and per-side import-language dropdowns
+    (labelled "Latin"/"Latijn" and "Ancient Greek"/"Oudgrieks"). Card
+    creation, AI import and study work the same as for any other
+    language. The 🔊 audio button stays hidden for these courses because
+    browsers don't ship text-to-speech voices for Latin or Ancient
+    Greek — everything else (decks, study modes, MCQ, stats, streaks)
+    is identical.
 - **Adding cards** (Phase 7): from the Courses screen click "Manage cards"
   next to any of your courses (or any course you want to browse). You land
   on the Card Manager. If you own the course (or are an admin), you'll see
