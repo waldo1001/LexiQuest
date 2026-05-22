@@ -18,6 +18,8 @@ export interface ExtractCardsInput {
   questionLang?: string | null;
   answerLang?: string | null;
   extraInstructions?: string | null;
+  /** Override the extraction model. Defaults to {@link SONNET_MODEL}. */
+  model?: string;
 }
 
 export interface ExtractCardsFromSlidesInput {
@@ -59,7 +61,16 @@ export class ClaudeJsonParseError extends Error {
   }
 }
 
-const MODEL = "claude-sonnet-4-6";
+/** Default high-quality extraction model. */
+export const SONNET_MODEL = "claude-sonnet-4-6";
+/**
+ * Faster model used for PDF card extraction. PDF imports are split into small
+ * page batches client-side, each its own request; the faster model keeps every
+ * request under the Azure Static Web Apps 45s per-request cap (a single Sonnet
+ * batch was measured at 46–62s, over the cap).
+ */
+export const HAIKU_MODEL = "claude-haiku-4-5-20251001";
+const MODEL = SONNET_MODEL;
 
 /** Strip optional markdown code fences Claude sometimes wraps around JSON. */
 export function stripFences(text: string): string {
@@ -230,7 +241,7 @@ export function createClaudeClient(apiKey: string): ClaudeClient {
           };
 
       const msg = await client.messages.create({
-        model: MODEL,
+        model: input.model ?? SONNET_MODEL,
         max_tokens: 4096,
         messages: [
           {

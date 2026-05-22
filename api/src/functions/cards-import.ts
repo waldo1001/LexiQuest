@@ -12,7 +12,7 @@ import type { TableStorage } from "../shared/table-storage.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { ClaudeClient, ExtractCardsInput, VerifyLanguagesInput } from "../shared/claude.js";
-import { ClaudeJsonParseError } from "../shared/claude.js";
+import { ClaudeJsonParseError, HAIKU_MODEL, SONNET_MODEL } from "../shared/claude.js";
 import { extractSlidesFromPptx, PptxParseError } from "../shared/pptx-extractor.js";
 import type { CourseRow } from "./courses-shared.js";
 
@@ -225,6 +225,9 @@ export function makeCardsImportHandler(deps: CardsImportDeps): HttpHandler {
         questionLang: questionLang ?? null,
         answerLang: answerLang ?? null,
         extraInstructions: extraInstructions ?? null,
+        // PDFs are chunked client-side into small page batches; use the faster
+        // model so each request stays under the SWA 45s cap. Images keep Sonnet.
+        model: isPdf ? HAIKU_MODEL : SONNET_MODEL,
       });
 
       if (questionLang && answerLang && questionLang !== answerLang) {

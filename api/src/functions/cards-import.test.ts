@@ -12,6 +12,7 @@ import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { CourseRow } from "./courses-shared.js";
 import type { CardCandidate } from "../shared/claude.js";
+import { HAIKU_MODEL, SONNET_MODEL } from "../shared/claude.js";
 
 const PPTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
 
@@ -488,6 +489,27 @@ describe("POST /api/cards/import", () => {
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), realCase), ctx);
     expect(res.status).toBe(413);
     expect(deps.claude.extractCardsInputs.length).toBe(0);
+  });
+
+  it("AC90: PDF import requests the fast (Haiku) extraction model", async () => {
+    // PDF extraction is multi-batch (client-chunked) and latency-bound; the
+    // faster model keeps each /api/cards/import request under the SWA 45s cap.
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+    const pdfBody = { courseId: COURSE_ID, imageBase64: "JVBERi0x", mimeType: "application/pdf" as const };
+
+    await makeCardsImportHandler(deps)(makeReq(validCookie(deps), pdfBody), ctx);
+
+    expect(deps.claude.extractCardsInputs[0].model).toBe(HAIKU_MODEL);
+  });
+
+  it("AC91: image import uses the default (Sonnet) extraction model", async () => {
+    await seedCourse(deps);
+    deps.claude.nextCards = CANDIDATES;
+
+    await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx); // image/jpeg
+
+    expect(deps.claude.extractCardsInputs[0].model).toBe(SONNET_MODEL);
   });
 
   it("AC32: verifyCardLanguages is called when both questionLang and answerLang differ", async () => {

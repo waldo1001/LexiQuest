@@ -516,3 +516,17 @@ Plan: [docs/plans/done/post-v1-latin-greek-languages.md](docs/plans/done/post-v1
   - TTS: gracefully degrades — browsers don't ship Latin/Ancient-Greek voices, and `frontend/src/lib/tts.js` `isAvailable()` already returns false for absent voices, so the 🔊 button hides without code changes. Documented in user-guide
   - Auth/Claude/secret seams untouched — security scan skipped per CLAUDE.md autonomous-mode rule
   - Out of scope: Modern Greek (`el`); region-tagged variants like `la-VA`/`grc-GR`; new browser TTS voices
+
+## Post-v1 — Reliable PDF import under the SWA 45s cap
+
+Plan: [docs/plans/done/post-v1-pdf-chunked-import.md](docs/plans/done/post-v1-pdf-chunked-import.md)
+
+- ✅ Slice 1 — Backend: faster model for PDF extraction
+  - Bug: large/multi-page PDF imports failed in production with the generic "Something went wrong". Reproduced — a single Sonnet PDF `extractCards` call took ~62s, over the **Azure SWA hard 45s per-request cap**; the gateway killed it and the unmapped status fell through to `import.error.generic`. Smoke-tests proved latency is **output-bound** (cards generated), not page/payload-bound, so chunking alone was insufficient
+  - API: `ExtractCardsInput` gained optional `model`; `createClaudeClient.extractCards` uses `input.model ?? SONNET_MODEL`. Exported `SONNET_MODEL` (`claude-sonnet-4-6`) + `HAIKU_MODEL` (`claude-haiku-4-5-20251001`) from `claude.ts`. `cards-import.ts` passes `HAIKU_MODEL` for `application/pdf`, `SONNET_MODEL` otherwise (images/pptx unchanged)
+  - Tests: 2 new in `cards-import.test.ts` (AC90 PDF→Haiku, AC91 image→Sonnet via `FakeClaudeClient.extractCardsInputs`). 927 api pass. Coverage `cards-import.ts` 99.03 / `claude.ts` 100 (Tier A met). Security scan PASS (ClaudeClient seam touched; no secrets, no new logging, meta-tests 15/15)
+- ✅ Slice 2 — Frontend: client-side PDF page chunking
+  - New pure lib `frontend/src/lib/pdf-chunk.js` — `splitPdfBase64(base64, {pagesPerBatch})` returns ordered base64 PDFs (≤`PAGES_PER_BATCH=4` pages each), original returned unchanged when it already fits, `PdfSplitError` on unreadable input. `pdf-lib` lazy-imported (out of initial bundle). `PhotoImport.jsx` routes PDFs through an injectable `splitPdf` prop, sends each batch sequentially via `importCards`, shows `import.progress` ("Extracting part N of M…"), merges candidates in order to Import Review (invariant 3 preserved), and shows `import.error.pdfRead` on a split failure
+  - Smoke-validated on the real 35-page file: 7 batches at 4 pages each ran 6.4–12.2s on Haiku (slowest 12.2s) — ~3.7× margin under 45s, no truncation
+  - Tests: 5 in `pdf-chunk.test.js` (AC1–5) + 7 in `PhotoImport.test.jsx` (AC6–12). 634 frontend pass. Coverage `pdf-chunk.js` 100/91.66/100/100 (Tier A), `PhotoImport.jsx` 97.4 lines (Tier B). 2 new i18n keys/locale. New dep `pdf-lib` (zero npm-audit advisories)
+  - Deferred (out of scope): adaptive re-split-on-timeout retry (Haiku margin makes it low-value); bring-your-own Azure Functions (permanent fix to remove the 45s cap); same mitigation for dense single-image / large-pptx imports; parallel batch dispatch

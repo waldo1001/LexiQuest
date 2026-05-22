@@ -6,6 +6,7 @@ import {
   patchMe as patchMeApi,
 } from "../lib/api.js";
 import { compressImageIfNeeded } from "../lib/image-compress.js";
+import { splitPdfBase64 } from "../lib/pdf-chunk.js";
 import { useT } from "../i18n/useT.js";
 import { useAppContext } from "../context/AppContext.jsx";
 
@@ -47,6 +48,7 @@ function formatMb(bytes) {
  *   fetchCards?: typeof fetchCardsApi,
  *   patchMe?: typeof patchMeApi,
  *   compressImage?: typeof compressImageIfNeeded,
+ *   splitPdf?: typeof splitPdfBase64,
  *   promptFn?: (msg: string, defaultValue?: string) => string | null,
  *   confirmFn?: (msg: string) => boolean,
  * }} props
@@ -56,6 +58,7 @@ export default function PhotoImport({
   fetchCards = fetchCardsApi,
   patchMe = patchMeApi,
   compressImage = compressImageIfNeeded,
+  splitPdf = splitPdfBase64,
   promptFn = typeof window !== "undefined"
     ? window.prompt.bind(window)
     /* v8 ignore next */
@@ -224,24 +227,48 @@ export default function PhotoImport({
       const mimeType = isPptxByExt
         ? PPTX_MIME
         : workingFile.type || (workingFile.name?.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
-      const payload = { courseId, imageBase64: base64, mimeType };
-      if (courseLang) {
-        payload.questionLang = questionLang;
-        payload.answerLang = answerLang;
+      // A multi-page PDF can take Claude longer than the SWA 45s per-request
+      // cap, so split it into page-range batches and import each separately.
+      // Everything else is a single request.
+      let batches;
+      if (mimeType === "application/pdf") {
+        try {
+          batches = await splitPdf(base64);
+        } catch {
+          setError(t("import.error.pdfRead"));
+          return;
+        }
+      } else {
+        batches = [base64];
       }
+
       const trimmedExtra = extraInstructions.trim();
-      if (trimmedExtra) payload.extraInstructions = trimmedExtra;
-      const result = await importCards(payload);
+      const allCandidates = [];
+      let skippedSlides;
+      for (let i = 0; i < batches.length; i++) {
+        if (batches.length > 1) {
+          setNotice(t("import.progress", { current: i + 1, total: batches.length }));
+        }
+        const payload = { courseId, imageBase64: batches[i], mimeType };
+        if (courseLang) {
+          payload.questionLang = questionLang;
+          payload.answerLang = answerLang;
+        }
+        if (trimmedExtra) payload.extraInstructions = trimmedExtra;
+        const result = await importCards(payload);
+        allCandidates.push(...(result.candidates ?? []));
+        if (result.skippedSlides) skippedSlides = result.skippedSlides;
+      }
 
       navigate(`/courses/${courseId}/import/review`, {
         state: {
           courseId,
           courseName,
           ownerId,
-          candidates: result.candidates,
+          candidates: allCandidates,
           uploadId: selectedUploadId || null,
           uploadName: selectedUploadName,
-          skippedSlides: result.skippedSlides,
+          skippedSlides,
         },
       });
     } catch (err) {

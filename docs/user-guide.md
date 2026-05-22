@@ -113,7 +113,10 @@ onward (first login + dashboard) and gets sections added per phase:
   screen will then say *"Adding cards to: {name}"* instead of asking
   for a new upload name. Click "Extract cards" — Claude reads the file
   and returns a list of question/answer/distractor candidates (this
-  takes 5–15 seconds, longer for multi-page PDFs). On the Review screen,
+  takes 5–15 seconds per part). A long or multi-page PDF is split into
+  small page batches in your browser and each batch is extracted
+  separately — an **"Extracting part N of M…"** notice shows progress and
+  the results are merged into one list. On the Review screen,
   every extracted card is shown with a checkbox (all ticked by default).
   Untick cards you don't want, edit any field inline, then click "Save
   selected". Only the ticked cards are saved to your course —
@@ -123,7 +126,11 @@ onward (first login + dashboard) and gets sections added per phase:
   images are automatically downscaled and recompressed in your browser
   before upload (longest side capped at 2000 px, JPEG q=0.85), and a
   brief "Photo compressed for upload (X MB → Y MB)" notice tells you it
-  happened. PDFs and PowerPoint decks are sent as-is.
+  happened. PowerPoint decks are sent as-is; multi-page PDFs are split
+  into page batches in your browser (each batch its own request, so none
+  exceeds the server's per-request time limit) and extracted with a
+  faster model. If a PDF can't be read at all, a "We couldn't read this
+  PDF — try re-saving or exporting it again" message is shown.
 - **Steering imports with extra instructions** (post-v1): on the
   import screen, an **Extra instructions** textarea (max 1000
   characters) lets you tell Claude how you want the cards built — e.g.

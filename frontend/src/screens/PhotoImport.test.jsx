@@ -18,6 +18,7 @@ function setup({
   importCards = vi.fn(),
   fetchCards,
   compressImage,
+  splitPdf = vi.fn(async (b64) => [b64]),
   lang = "en",
   courseLang = null,
   questionLangDefault = null,
@@ -46,6 +47,7 @@ function setup({
                 patchMe={patchMe}
                 promptFn={promptFn}
                 confirmFn={confirmFn}
+                splitPdf={splitPdf}
                 {...(compressImage ? { compressImage } : {})}
               />
             }
@@ -821,5 +823,157 @@ describe("PhotoImport — client-side compression", () => {
       expect(byValue["la"]).toBe("Latin");
       expect(byValue["grc"]).toBe("Ancient Greek");
     }
+  });
+});
+
+// =====================================================================
+// Slice — Client-side PDF page chunking (sub-45s import batches)
+// =====================================================================
+describe("PhotoImport — PDF chunking", () => {
+  function StateProbe() {
+    const loc = useLocation();
+    return <pre data-testid="state-json">{JSON.stringify(loc.state)}</pre>;
+  }
+
+  function renderWithProbe({ importCards, splitPdf }) {
+    return render(
+      <AppProvider initialLang="en" initialUser={null} patchMe={vi.fn()}>
+        <MemoryRouter
+          initialEntries={[{
+            pathname: `/courses/${COURSE_ID}/import`,
+            state: { courseId: COURSE_ID, courseName: COURSE_NAME, ownerId: OWNER_ID },
+          }]}
+        >
+          <Routes>
+            <Route
+              path="/courses/:courseId/import"
+              element={
+                <PhotoImport
+                  importCards={importCards}
+                  fetchCards={vi.fn().mockResolvedValue([])}
+                  patchMe={vi.fn()}
+                  splitPdf={splitPdf}
+                />
+              }
+            />
+            <Route path="/courses/:courseId/import/review" element={<StateProbe />} />
+          </Routes>
+        </MemoryRouter>
+      </AppProvider>,
+    );
+  }
+
+  async function uploadPdfAndExtract(user, name = "long.pdf") {
+    const file = new File(["%PDF-fake"], name, { type: "application/pdf" });
+    await user.upload(document.querySelector("input[type='file']"), file);
+    await user.click(screen.getByRole("button", { name: /extract cards/i }));
+  }
+
+  it("AC6: a large PDF is split and each page-batch is sent as its own import request", async () => {
+    const user = userEvent.setup();
+    const splitPdf = vi.fn().mockResolvedValue(["B1", "B2", "B3"]);
+    const importCards = vi.fn().mockResolvedValue({ candidates: [] });
+    setup({ importCards, splitPdf });
+
+    await uploadPdfAndExtract(user);
+
+    await waitFor(() => expect(importCards).toHaveBeenCalledTimes(3));
+    expect(splitPdf).toHaveBeenCalledTimes(1);
+    expect(importCards.mock.calls.map((c) => c[0].imageBase64)).toEqual(["B1", "B2", "B3"]);
+    for (const [body] of importCards.mock.calls) {
+      expect(body.courseId).toBe(COURSE_ID);
+      expect(body.mimeType).toBe("application/pdf");
+    }
+  });
+
+  it("AC7: merges candidates from every PDF batch into the review screen in order", async () => {
+    const user = userEvent.setup();
+    const splitPdf = vi.fn().mockResolvedValue(["B1", "B2"]);
+    const importCards = vi
+      .fn()
+      .mockResolvedValueOnce({ candidates: [{ question: "q1", answer: "a1" }, { question: "q2", answer: "a2" }] })
+      .mockResolvedValueOnce({ candidates: [{ question: "q3", answer: "a3" }] });
+    renderWithProbe({ importCards, splitPdf });
+
+    await uploadPdfAndExtract(user);
+
+    await waitFor(() => expect(screen.getByTestId("state-json")).toBeInTheDocument());
+    const state = JSON.parse(screen.getByTestId("state-json").textContent);
+    expect(state.candidates.map((c) => c.question)).toEqual(["q1", "q2", "q3"]);
+  });
+
+  it("AC8: shows extract-progress while processing each PDF batch", async () => {
+    const user = userEvent.setup();
+    const splitPdf = vi.fn().mockResolvedValue(["B1", "B2"]);
+    let resolveFirst;
+    const importCards = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise((res) => { resolveFirst = res; }))
+      .mockResolvedValue({ candidates: [] });
+    setup({ importCards, splitPdf });
+
+    await uploadPdfAndExtract(user);
+
+    await waitFor(() =>
+      expect(screen.getByText(/part 1 of 2/i)).toBeInTheDocument(),
+    );
+    // Let the remaining batch settle so the component finishes inside act().
+    resolveFirst({ candidates: [] });
+    await waitFor(() => expect(importCards).toHaveBeenCalledTimes(2));
+  });
+
+  it("AC9: a small PDF is sent as a single import request", async () => {
+    const user = userEvent.setup();
+    const splitPdf = vi.fn().mockResolvedValue(["ONLY"]);
+    const importCards = vi.fn().mockResolvedValue({ candidates: CANDIDATES });
+    setup({ importCards, splitPdf });
+
+    await uploadPdfAndExtract(user, "short.pdf");
+
+    await waitFor(() => expect(screen.getByTestId("review-screen")).toBeInTheDocument());
+    expect(importCards).toHaveBeenCalledTimes(1);
+    expect(importCards.mock.calls[0][0].imageBase64).toBe("ONLY");
+  });
+
+  it("AC10: image imports do not go through PDF splitting", async () => {
+    const user = userEvent.setup();
+    const splitPdf = vi.fn();
+    const importCards = vi.fn().mockResolvedValue({ candidates: CANDIDATES });
+    setup({ importCards, splitPdf });
+
+    const file = new File(["img"], "photo.jpg", { type: "image/jpeg" });
+    await user.upload(document.querySelector("input[type='file']"), file);
+    await user.click(screen.getByRole("button", { name: /extract cards/i }));
+
+    await waitFor(() => expect(importCards).toHaveBeenCalledTimes(1));
+    expect(splitPdf).not.toHaveBeenCalled();
+  });
+
+  it("AC11: surfaces the mapped error and stops when a PDF batch fails", async () => {
+    const user = userEvent.setup();
+    const splitPdf = vi.fn().mockResolvedValue(["B1", "B2"]);
+    const importCards = vi.fn().mockRejectedValue(new Error("claude_error"));
+    setup({ importCards, splitPdf });
+
+    await uploadPdfAndExtract(user);
+
+    await waitFor(() =>
+      expect(screen.getByText(/claude is unavailable/i)).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("review-screen")).toBeNull();
+  });
+
+  it("AC12: shows the pdf-read error when the PDF cannot be split", async () => {
+    const user = userEvent.setup();
+    const splitPdf = vi.fn().mockRejectedValue(new Error("not a pdf"));
+    const importCards = vi.fn();
+    setup({ importCards, splitPdf });
+
+    await uploadPdfAndExtract(user);
+
+    await waitFor(() =>
+      expect(screen.getByText(/couldn't read this pdf/i)).toBeInTheDocument(),
+    );
+    expect(importCards).not.toHaveBeenCalled();
   });
 });
