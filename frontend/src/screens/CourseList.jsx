@@ -25,6 +25,7 @@ const LANGUAGES = [
   { value: "nl-BE", label: "nl-BE" },
   { value: "en-GB", label: "en-GB" },
   { value: "de-DE", label: "de-DE" },
+  { value: "el-GR", label: "el-GR" },
   { value: "la", label: "la" },
   { value: "grc", label: "grc" },
 ];
@@ -36,6 +37,7 @@ const SIDE_LANGS = [
   { value: "fr", label: "Français" },
   { value: "de", label: "Deutsch" },
   { value: "es", label: "Español" },
+  { value: "el", labelKey: "courses.sideLang.el" },
   { value: "la", labelKey: "courses.sideLang.la" },
   { value: "grc", labelKey: "courses.sideLang.grc" },
 ];

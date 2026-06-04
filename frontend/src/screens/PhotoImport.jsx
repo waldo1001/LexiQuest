@@ -17,6 +17,7 @@ const LANG_OPTIONS = [
   { value: "fr", label: "Français" },
   { value: "de", label: "Deutsch" },
   { value: "es", label: "Español" },
+  { value: "el", labelKey: "courses.sideLang.el" },
   { value: "la", labelKey: "courses.sideLang.la" },
   { value: "grc", labelKey: "courses.sideLang.grc" },
 ];
@@ -243,19 +244,43 @@ export default function PhotoImport({
       }
 
       const trimmedExtra = extraInstructions.trim();
+      const payloadBase = { courseId, mimeType };
+      if (courseLang) {
+        payloadBase.questionLang = questionLang;
+        payloadBase.answerLang = answerLang;
+      }
+      if (trimmedExtra) payloadBase.extraInstructions = trimmedExtra;
+
+      // Import one batch. If it fails with a non-terminal error — e.g. the SWA
+      // 45s gateway timeout on a page so dense it exceeds the cap even on the
+      // fast model — and it's a splittable PDF, re-split into single pages and
+      // retry each. Terminal errors (parse/claude/too-large/forbidden) and
+      // 1-page batches surface as-is, so there's no retry storm.
+      const TERMINAL = new Set(["parse_error", "claude_error", "image_too_large", "forbidden"]);
+      const importBatch = async (b64) => {
+        try {
+          return await importCards({ ...payloadBase, imageBase64: b64 });
+        } catch (err) {
+          const m = err?.message ?? "";
+          if (TERMINAL.has(m) || mimeType !== "application/pdf") throw err;
+          const singles = await splitPdf(b64, { pagesPerBatch: 1 });
+          if (singles.length <= 1) throw err;
+          const candidates = [];
+          for (const single of singles) {
+            const r = await importCards({ ...payloadBase, imageBase64: single });
+            candidates.push(...(r.candidates ?? []));
+          }
+          return { candidates };
+        }
+      };
+
       const allCandidates = [];
       let skippedSlides;
       for (let i = 0; i < batches.length; i++) {
         if (batches.length > 1) {
           setNotice(t("import.progress", { current: i + 1, total: batches.length }));
         }
-        const payload = { courseId, imageBase64: batches[i], mimeType };
-        if (courseLang) {
-          payload.questionLang = questionLang;
-          payload.answerLang = answerLang;
-        }
-        if (trimmedExtra) payload.extraInstructions = trimmedExtra;
-        const result = await importCards(payload);
+        const result = await importBatch(batches[i]);
         allCandidates.push(...(result.candidates ?? []));
         if (result.skippedSlides) skippedSlides = result.skippedSlides;
       }

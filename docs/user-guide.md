@@ -31,6 +31,12 @@ onward (first login + dashboard) and gets sections added per phase:
     browsers don't ship text-to-speech voices for Latin or Ancient
     Greek — everything else (decks, study modes, MCQ, stats, streaks)
     is identical.
+  - **Modern Greek (`el`)**: appears as the course language `el-GR` and in
+    both per-side import-language dropdowns (labelled "Greek"/"Grieks").
+    This is the *modern* language — distinct from Ancient Greek (`grc`)
+    above — so use it for everyday Greek vocabulary and grammar (e.g. a
+    contemporary textbook). Unlike the classical languages, the 🔊 audio
+    button works whenever your browser/OS has a Greek voice installed.
 - **Adding cards** (Phase 7): from the Courses screen click "Manage cards"
   next to any of your courses (or any course you want to browse). You land
   on the Card Manager. If you own the course (or are an admin), you'll see

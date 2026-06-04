@@ -504,4 +504,47 @@ describe("CourseList", () => {
     expect(byValue["la"]).toBe("Latijn");
     expect(byValue["grc"]).toBe("Oudgrieks");
   });
+
+  it("CL-langs: course-level language dropdown includes Modern Greek (el-GR)", async () => {
+    const user = userEvent.setup();
+    setup();
+    await screen.findByText("French");
+    await user.click(screen.getByRole("button", { name: /new course/i }));
+
+    const select = screen.getByLabelText(/^language$/i);
+    const values = within(select)
+      .getAllByRole("option")
+      .map((o) => o.value);
+    expect(values).toContain("el-GR");
+  });
+
+  it("CL-langs: side-language dropdowns include Modern Greek (en label)", async () => {
+    const user = userEvent.setup();
+    setup();
+    await screen.findByText("French");
+    const card = cardFor("French");
+    await user.click(within(card).getByRole("button", { name: /edit/i }));
+
+    const qSelect = within(card).getByLabelText(/speak questions in/i);
+    const aSelect = within(card).getByLabelText(/speak answers in/i);
+
+    for (const select of [qSelect, aSelect]) {
+      const options = within(select).getAllByRole("option");
+      const byValue = Object.fromEntries(options.map((o) => [o.value, o.textContent]));
+      expect(byValue["el"]).toBe("Greek");
+    }
+  });
+
+  it("CL-langs: side-language dropdowns show Dutch label for Greek under lang=nl", async () => {
+    const user = userEvent.setup();
+    setup({ lang: "nl" });
+    await screen.findByText("French");
+    const card = cardFor("French");
+    await user.click(within(card).getByRole("button", { name: /bewerken/i }));
+
+    const qSelect = within(card).getByLabelText(/vragen uitspreken in/i);
+    const options = within(qSelect).getAllByRole("option");
+    const byValue = Object.fromEntries(options.map((o) => [o.value, o.textContent]));
+    expect(byValue["el"]).toBe("Grieks");
+  });
 });

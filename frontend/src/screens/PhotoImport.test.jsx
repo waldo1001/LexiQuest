@@ -824,6 +824,17 @@ describe("PhotoImport — client-side compression", () => {
       expect(byValue["grc"]).toBe("Ancient Greek");
     }
   });
+
+  it("PI-langs: language dropdowns include Modern Greek", () => {
+    setup({ courseLang: "fr-FR", lang: "en" });
+
+    for (const labelRe of [/speak questions in/i, /speak answers in/i]) {
+      const select = screen.getByLabelText(labelRe);
+      const options = Array.from(select.querySelectorAll("option"));
+      const byValue = Object.fromEntries(options.map((o) => [o.value, o.textContent]));
+      expect(byValue["el"]).toBe("Greek");
+    }
+  });
 });
 
 // =====================================================================
@@ -975,5 +986,46 @@ describe("PhotoImport — PDF chunking", () => {
       expect(screen.getByText(/couldn't read this pdf/i)).toBeInTheDocument(),
     );
     expect(importCards).not.toHaveBeenCalled();
+  });
+
+  it("AC13: a non-terminal PDF batch failure re-splits into single pages and retries", async () => {
+    const user = userEvent.setup();
+    // Initial split → 2 batches; the failed batch "B2" re-splits into 2 single pages.
+    const splitPdf = vi.fn(async (b64) => (b64 === "B2" ? ["B2a", "B2b"] : ["B1", "B2"]));
+    const importCards = vi.fn(async (body) => {
+      if (body.imageBase64 === "B2") throw new Error("POST /api/cards/import failed: 504");
+      const map = { B1: [{ question: "q1" }], B2a: [{ question: "q2" }], B2b: [{ question: "q3" }] };
+      return { candidates: map[body.imageBase64] ?? [] };
+    });
+    renderWithProbe({ importCards, splitPdf });
+
+    await uploadPdfAndExtract(user);
+
+    await waitFor(() => expect(screen.getByTestId("state-json")).toBeInTheDocument());
+    const state = JSON.parse(screen.getByTestId("state-json").textContent);
+    expect(state.candidates.map((c) => c.question)).toEqual(["q1", "q2", "q3"]);
+    // initial split + exactly one re-split of the failed batch, at 1 page
+    expect(splitPdf).toHaveBeenCalledTimes(2);
+    expect(splitPdf.mock.calls[1]).toEqual(["B2", { pagesPerBatch: 1 }]);
+  });
+
+  it("AC14: a single-page batch failure surfaces the error without infinite retry", async () => {
+    const user = userEvent.setup();
+    // Both the initial split and the re-split return one batch — a 1-page PDF
+    // cannot be split smaller, so the failure must surface (no retry storm).
+    const splitPdf = vi.fn(async () => ["B1"]);
+    const importCards = vi.fn(async () => {
+      throw new Error("POST /api/cards/import failed: 504");
+    });
+    setup({ importCards, splitPdf });
+
+    await uploadPdfAndExtract(user);
+
+    await waitFor(() =>
+      expect(screen.getByText(/something went wrong/i)).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("review-screen")).toBeNull();
+    expect(importCards).toHaveBeenCalledTimes(1); // tried once; re-split [B1] can't help
+    expect(splitPdf).toHaveBeenCalledTimes(2); // initial + one re-split attempt
   });
 });
