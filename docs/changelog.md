@@ -5,6 +5,7 @@ plain English. Link the most relevant doc or plan.
 
 ## 2026-06-04
 
+- Deployed `fc5eb89` (Modern Greek `el` language + PDF re-split-on-timeout retry) to Azure SWA. GH Actions [run 26951156812](https://github.com/waldo1001/LexiQuest/actions/runs/26951156812) green in 1m43s. Live probes against `https://ashy-cliff-0c1975603.7.azurestaticapps.net`: `/api/hello` 200 `{msg}`; `/api/users/public` clean (no `password_hash`/`session`/`is_admin` — invariant #4 holds).
 - Added **Modern Greek (`el`)** as a first-class language. It now appears as a course language (`el-GR`) and in both import side-language pickers (labelled "Greek"/"Grieks"), mirroring the earlier Latin/Ancient-Greek addition. This fixes the gap where a Modern-Greek textbook could only be tagged as `grc` (Ancient Greek), a different language. Unlike Latin/Ancient Greek, the 🔊 audio button works for Modern Greek because browsers ship a Greek TTS voice (existing `tts.js` prefix match on `el`). Frontend-only — the backend BCP-47 validator already accepted `el`. 4 new tests (`CourseList.test.jsx`, `PhotoImport.test.jsx`); 640 frontend pass; `CourseList.jsx` 98.74% / `PhotoImport.jsx` 97.53% lines / `strings.js` 100% (thresholds met). Plan: [plans/done/post-v1-modern-greek-language.md](plans/done/post-v1-modern-greek-language.md).
 
 ## 2026-05-22
