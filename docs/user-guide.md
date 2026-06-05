@@ -82,6 +82,11 @@ onward (first login + dashboard) and gets sections added per phase:
     Default is 20. When you have more due cards than the limit, a smart
     priority algorithm picks the most important ones (balancing how
     overdue a card is with how weak your mastery is).
+  - **Card order** — *Random* (default) or *In order*. Random shuffles the
+    selected cards. *In order* presents them in the order the cards were
+    added to the deck (oldest first), which is handy for a numbered lesson
+    list you want to walk through top to bottom. Card order applies to
+    *Classic* study; the other game types keep their own deliberate order.
   - **Study mode** — self-grade or MCQ (when the course allows it).
   Click **Start** to begin. For each card:
   1. Read the **question**.

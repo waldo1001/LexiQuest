@@ -104,6 +104,37 @@ describe("SessionSetup", () => {
     );
   });
 
+  it("renders card-order picker with Random selected by default", () => {
+    renderSetup();
+    const randomBtn = screen.getByText("Random").closest("button");
+    const inOrderBtn = screen.getByText("In order").closest("button");
+    expect(randomBtn.className).toContain("selected");
+    expect(inOrderBtn.className).not.toContain("selected");
+  });
+
+  it("passes cardOrder 'sequential' in navigation state when In order is chosen", () => {
+    renderSetup();
+    fireEvent.click(screen.getByText("In order"));
+    fireEvent.click(screen.getByText(/Start session/));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/courses/c1/study",
+      expect.objectContaining({
+        state: expect.objectContaining({ cardOrder: "sequential" }),
+      }),
+    );
+  });
+
+  it("defaults cardOrder to 'random' in navigation state", () => {
+    renderSetup();
+    fireEvent.click(screen.getByText(/Start session/));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/courses/c1/study",
+      expect.objectContaining({
+        state: expect.objectContaining({ cardOrder: "random" }),
+      }),
+    );
+  });
+
   it("mode picker appears when defaultMode is ask", () => {
     renderSetup({ defaultMode: "ask" });
     expect(screen.getByText(/Self-grade/)).toBeTruthy();

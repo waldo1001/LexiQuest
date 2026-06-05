@@ -12,6 +12,11 @@ const GAME_TYPES = [
 
 const CARD_COUNTS = [10, 15, 20, 30, null]; // null = All
 
+const CARD_ORDERS = [
+  { value: "random", labelKey: "setup.cardOrder.random" },
+  { value: "sequential", labelKey: "setup.cardOrder.sequential" },
+];
+
 const MODES = [
   { value: "self_grade", labelKey: "courses.modePicker.self_grade" },
   { value: "mcq", labelKey: "courses.modePicker.mcq" },
@@ -36,6 +41,7 @@ export default function SessionSetup({ fetchCards = fetchCardsApi }) {
 
   const [gameType, setGameType] = useState("classic");
   const [cardLimit, setCardLimit] = useState(20);
+  const [cardOrder, setCardOrder] = useState("random");
   const [mode, setMode] = useState(defaultMode === "ask" ? "self_grade" : defaultMode);
   const [uploadId, setUploadId] = useState(null);
   const [uploads, setUploads] = useState([]);
@@ -78,6 +84,7 @@ export default function SessionSetup({ fetchCards = fetchCardsApi }) {
       state: {
         gameType,
         cardLimit,
+        cardOrder,
         mode,
         uploadId,
         courseName,
@@ -118,6 +125,21 @@ export default function SessionSetup({ fetchCards = fetchCardsApi }) {
               onClick={() => setCardLimit(count)}
             >
               {count ?? t("setup.cardCount.all")}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2>{t("setup.cardOrder")}</h2>
+        <div className="card-order-pills">
+          {CARD_ORDERS.map((co) => (
+            <button
+              key={co.value}
+              className={`btn pill ${cardOrder === co.value ? "selected" : ""}`}
+              onClick={() => setCardOrder(co.value)}
+            >
+              {t(co.labelKey)}
             </button>
           ))}
         </div>

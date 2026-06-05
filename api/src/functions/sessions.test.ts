@@ -279,6 +279,35 @@ describe("POST /api/sessions", () => {
     expect(sessions[0]?.card_limit).toBeNull();
   });
 
+  it("sequential cardOrder yields a deck-ordered queue and persists card_order on the session row", async () => {
+    // Reversing shuffle script — must stay UNUSED on the sequential path.
+    deps = makeDeps(["sess-1"], [[1, 0]]);
+    await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-A", {
+      created_at: "2026-04-20T00:00:00.000Z",
+      next_review_at: NOW,
+      sm2_reps: 2,
+    }));
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-B", {
+      created_at: "2026-04-21T00:00:00.000Z",
+      next_review_at: NOW,
+      sm2_reps: 2,
+    }));
+
+    const res = (await makeSessionsHandler(deps)(
+      makeReq(validCookie(deps, "u-lex"), {
+        body: { courseId: "c1", mode: "self_grade", cardOrder: "sequential" },
+      }),
+      ctx,
+    )) as HttpResponseInit;
+
+    const body = res.jsonBody as { cards: Array<{ id: string }> };
+    expect(body.cards.map((c) => c.id)).toEqual(["card-A", "card-B"]);
+
+    const sessions = await deps.tables.listByPartition<SessionRow>("sessions", "u-lex");
+    expect(sessions[0]?.card_order).toBe("sequential");
+  });
+
   it("with cardLimit=10 returns at most 10 cards", async () => {
     const identity10 = Array.from({ length: 10 }, (_, i) => i);
     deps = makeDeps(["sess-1"], [identity10]);

@@ -354,6 +354,93 @@ describe("buildQueue — review_blitz", () => {
   });
 });
 
+describe("buildQueue — cardOrder (sequential vs random)", () => {
+  const now = new Date("2026-01-15T12:00:00Z");
+
+  // Three due cards whose insertion (created_at) order differs from input order.
+  function deckCards(): CardRow[] {
+    const due = (rowKey: string, created_at: string): CardRow =>
+      makeCard({
+        rowKey,
+        created_at,
+        next_review_at: new Date("2026-01-10T12:00:00Z").toISOString(),
+        sm2_reps: 2,
+      });
+    // Input order C, A, B — created_at order A, B, C.
+    return [
+      due("C", "2026-01-03T00:00:00Z"),
+      due("A", "2026-01-01T00:00:00Z"),
+      due("B", "2026-01-02T00:00:00Z"),
+    ];
+  }
+
+  it("classic with cardOrder 'sequential' returns selected cards in created_at order without shuffling", () => {
+    let shuffleCalled = false;
+    const spyShuffle = <T>(arr: readonly T[]): T[] => {
+      shuffleCalled = true;
+      return [...arr].reverse();
+    };
+    const result = buildQueue(deckCards(), {
+      gameType: "classic",
+      cardLimit: null,
+      now,
+      shuffle: spyShuffle,
+      cardOrder: "sequential",
+    });
+    expect(shuffleCalled).toBe(false);
+    expect(result.map((c) => c.rowKey)).toEqual(["A", "B", "C"]);
+  });
+
+  it("classic with cardOrder 'random' shuffles the selected set as before", () => {
+    let shuffleCalled = false;
+    const spyShuffle = <T>(arr: readonly T[]): T[] => {
+      shuffleCalled = true;
+      return [...arr].reverse();
+    };
+    const result = buildQueue(deckCards(), {
+      gameType: "classic",
+      cardLimit: null,
+      now,
+      shuffle: spyShuffle,
+      cardOrder: "random",
+    });
+    expect(shuffleCalled).toBe(true);
+    // reversed input order C,A,B -> B,A,C
+    expect(result.map((c) => c.rowKey)).toEqual(["B", "A", "C"]);
+  });
+
+  it("buildQueue defaults to random order when cardOrder is omitted", () => {
+    let shuffleCalled = false;
+    const spyShuffle = <T>(arr: readonly T[]): T[] => {
+      shuffleCalled = true;
+      return [...arr];
+    };
+    buildQueue(deckCards(), {
+      gameType: "classic",
+      cardLimit: null,
+      now,
+      shuffle: spyShuffle,
+    });
+    expect(shuffleCalled).toBe(true);
+  });
+
+  it("sequential order breaks created_at ties by card id ascending", () => {
+    const sameTime = "2026-01-05T00:00:00Z";
+    const cards: CardRow[] = [
+      makeCard({ rowKey: "z-card", created_at: sameTime, next_review_at: "2026-01-10T12:00:00Z", sm2_reps: 2 }),
+      makeCard({ rowKey: "a-card", created_at: sameTime, next_review_at: "2026-01-10T12:00:00Z", sm2_reps: 2 }),
+    ];
+    const result = buildQueue(cards, {
+      gameType: "classic",
+      cardLimit: null,
+      now,
+      shuffle: noopShuffle,
+      cardOrder: "sequential",
+    });
+    expect(result.map((c) => c.rowKey)).toEqual(["a-card", "z-card"]);
+  });
+});
+
 describe("backfill — always fill to cardLimit", () => {
   const now = new Date("2026-01-15T12:00:00Z");
 

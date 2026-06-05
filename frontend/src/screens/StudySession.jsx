@@ -164,7 +164,7 @@ export default function StudySession({
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { courseName = "", mode = "self_grade", courseLang = null, questionLangDefault = null, answerLangDefault = null, gameType = "classic", cardLimit = null, uploadId = null } = location.state ?? {};
+  const { courseName = "", mode = "self_grade", courseLang = null, questionLangDefault = null, answerLangDefault = null, gameType = "classic", cardLimit = null, cardOrder = "random", uploadId = null } = location.state ?? {};
   const isSpeedRound = gameType === "speed_round";
   const ttsAvailable = Boolean(courseLang && tts.isAvailable(courseLang));
 
@@ -210,6 +210,7 @@ export default function StudySession({
     const body = { courseId, mode };
     if (gameType !== "classic") body.gameType = gameType;
     if (cardLimit !== null) body.cardLimit = cardLimit;
+    if (cardOrder !== "random") body.cardOrder = cardOrder;
     if (uploadId) body.uploadId = uploadId;
     startSession(body)
       .then((data) => {
@@ -219,7 +220,7 @@ export default function StudySession({
         if (!cancelled) dispatch({ type: "ERROR", error: String(err) });
       });
     return () => { cancelled = true; };
-  }, [courseId, mode, gameType, cardLimit, startSession]);
+  }, [courseId, mode, gameType, cardLimit, cardOrder, startSession]);
 
   // Ref mirrors the latest state so the unmount/pagehide cleanup can read it.
   const flushRef = useRef({ sessionId: null, pendingAttempts: [], firstTryResults: {}, saved: false });

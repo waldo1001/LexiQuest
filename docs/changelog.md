@@ -3,6 +3,10 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-06-05
+
+- Added a **card-order** option to Session Setup: questions stay **random** by default, with a new **In order** choice that presents Classic-study cards in deck order (`created_at` ascending, tie-broken by card id) instead of shuffled. Threaded through `POST /api/sessions` validation, `QueueOptions`/`buildQueue` (Classic only — the challenge game types keep their deliberate order), and persisted as `card_order` on the session row (legacy rows default to `random`). New Random / In order picker in `SessionSetup`; `StudySession` forwards `cardOrder` only when sequential. 13 new tests (`card-priority.test.ts`, `sessions-shared.test.ts`, `sessions.test.ts`, `SessionSetup.test.jsx`, `StudySession.test.jsx`); 934 api + 645 frontend pass; `card-priority.ts` 100% / `sessions.ts` 95% / `sessions-shared.ts` 100% (Tier A), `SessionSetup.jsx` 96.8% / `StudySession.jsx` 93.8% / `strings.js` 100% (Tier B). See [user-guide.md](user-guide.md) (Studying → Card order). Plan: [plans/done/post-v1-card-order.md](plans/done/post-v1-card-order.md).
+
 ## 2026-06-04
 
 - Deployed `fc5eb89` (Modern Greek `el` language + PDF re-split-on-timeout retry) to Azure SWA. GH Actions [run 26951156812](https://github.com/waldo1001/LexiQuest/actions/runs/26951156812) green in 1m43s. Live probes against `https://ashy-cliff-0c1975603.7.azurestaticapps.net`: `/api/hello` 200 `{msg}`; `/api/users/public` clean (no `password_hash`/`session`/`is_admin` — invariant #4 holds).

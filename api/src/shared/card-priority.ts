@@ -3,11 +3,36 @@ import type { CardRow } from "../functions/cards-shared.js";
 export type GameType = "classic" | "boss_round" | "speed_round" | "review_blitz";
 export const GAME_TYPES = new Set<GameType>(["classic", "boss_round", "speed_round", "review_blitz"]);
 
+/**
+ * Presentation order of the selected queue.
+ * - "random" — shuffle (the classic default).
+ * - "sequential" — deck order: ascending `created_at`, tie-broken by card id.
+ * Only `classic` honours this; the challenge game types keep their own
+ * deliberate ordering (difficulty / priority / overdue-first).
+ */
+export type CardOrder = "random" | "sequential";
+export const CARD_ORDERS = new Set<CardOrder>(["random", "sequential"]);
+
 export interface QueueOptions {
   gameType: GameType;
   cardLimit: number | null;
   now: Date;
   shuffle: <T>(arr: readonly T[]) => T[];
+  cardOrder?: CardOrder;
+}
+
+/**
+ * Order the final classic queue. Sequential = deck order (created_at asc,
+ * tie-broken by card id); random (default) = shuffle via the random seam.
+ */
+function orderClassic(cards: CardRow[], opts: QueueOptions): CardRow[] {
+  if (opts.cardOrder === "sequential") {
+    return [...cards].sort((a, b) => {
+      if (a.created_at !== b.created_at) return a.created_at < b.created_at ? -1 : 1;
+      return a.rowKey < b.rowKey ? -1 : a.rowKey > b.rowKey ? 1 : 0;
+    });
+  }
+  return opts.shuffle(cards);
 }
 
 const DAY_MS = 86_400_000;
@@ -74,7 +99,7 @@ function buildClassic(cards: CardRow[], opts: QueueOptions): CardRow[] {
 
   if (opts.cardLimit === null) {
     // Backward compat: all due + up to MAX_NEW_CARDS new
-    return opts.shuffle([...dueCards, ...newCards.slice(0, MAX_NEW_CARDS)]);
+    return orderClassic([...dueCards, ...newCards.slice(0, MAX_NEW_CARDS)], opts);
   }
 
   // Score and sort due cards by priority
@@ -93,7 +118,7 @@ function buildClassic(cards: CardRow[], opts: QueueOptions): CardRow[] {
   const selectedKeys = new Set(primary.map((c) => c.rowKey));
   const backfill = backfillWeakest(cards, selectedKeys, opts.cardLimit);
 
-  return opts.shuffle([...primary, ...backfill]);
+  return orderClassic([...primary, ...backfill], opts);
 }
 
 function buildBossRound(cards: CardRow[], opts: QueueOptions): CardRow[] {

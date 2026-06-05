@@ -1,10 +1,10 @@
 import type { Entity } from "../shared/table-storage.js";
-import { type GameType, GAME_TYPES } from "../shared/card-priority.js";
+import { type GameType, GAME_TYPES, type CardOrder, CARD_ORDERS } from "../shared/card-priority.js";
 
 export type SessionMode = "self_grade" | "mcq" | "mixed" | "ask";
 const SESSION_MODES = new Set<SessionMode>(["self_grade", "mcq", "mixed", "ask"]);
 
-export type { GameType };
+export type { GameType, CardOrder };
 
 export interface SessionRow extends Entity {
   partitionKey: string; // = user_id
@@ -14,6 +14,7 @@ export interface SessionRow extends Entity {
   mode: SessionMode;
   game_type: GameType;
   card_limit: number | null;
+  card_order: CardOrder;
   started_at: string;
   ended_at: string | null;
   cards_studied: number;
@@ -27,6 +28,7 @@ export interface SessionCreateBody {
   mode: SessionMode;
   gameType: GameType;
   cardLimit: number | null;
+  cardOrder: CardOrder;
   uploadId: string | null;
 }
 
@@ -58,6 +60,11 @@ export function validateSessionCreate(
     cardLimit = src.cardLimit;
   }
 
+  const cardOrder: CardOrder = (src.cardOrder as CardOrder) ?? "random";
+  if (!CARD_ORDERS.has(cardOrder)) {
+    return { ok: false, error: "cardOrder must be one of: random, sequential" };
+  }
+
   const uploadId = typeof src.uploadId === "string" && src.uploadId.trim().length > 0
     ? src.uploadId.trim()
     : null;
@@ -69,6 +76,7 @@ export function validateSessionCreate(
       mode: src.mode as SessionMode,
       gameType,
       cardLimit,
+      cardOrder,
       uploadId,
     },
   };
@@ -81,6 +89,7 @@ export interface SessionProfile {
   mode: SessionMode;
   game_type: GameType;
   card_limit: number | null;
+  card_order: CardOrder;
   started_at: string;
   ended_at: string | null;
   cards_studied: number;
@@ -97,6 +106,7 @@ export function sessionProfile(row: SessionRow): SessionProfile {
     mode: row.mode,
     game_type: (row as unknown as Record<string, unknown>).game_type as GameType ?? "classic",
     card_limit: (row as unknown as Record<string, unknown>).card_limit as number ?? null,
+    card_order: (row as unknown as Record<string, unknown>).card_order as CardOrder ?? "random",
     started_at: row.started_at,
     ended_at: row.ended_at ?? null,
     cards_studied: row.cards_studied,

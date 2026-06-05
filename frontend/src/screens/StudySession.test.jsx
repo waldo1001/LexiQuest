@@ -65,6 +65,7 @@ function setup({
   answerLangDefault = null,
   gameType = "classic",
   cardLimit = null,
+  cardOrder = "random",
   lang = "en",
   currentUser = { id: "u-lex", name: "Lex", is_admin: false },
   tts,
@@ -78,7 +79,7 @@ function setup({
     <AppProvider initialLang={lang} initialUser={currentUser} tts={tts}>
       <MemoryRouter
         initialEntries={[
-          { pathname: `/courses/${courseId}/study`, state: { courseName, mode, courseLang, questionLangDefault, answerLangDefault, gameType, cardLimit } },
+          { pathname: `/courses/${courseId}/study`, state: { courseName, mode, courseLang, questionLangDefault, answerLangDefault, gameType, cardLimit, cardOrder } },
         ]}
       >
         <Routes>
@@ -578,6 +579,23 @@ describe("StudySession — game type features", () => {
     expect(startSession).toHaveBeenCalledWith(
       expect.objectContaining({ gameType: "boss_round", cardLimit: 10 }),
     );
+  });
+
+  it("includes cardOrder 'sequential' in the start-session body", async () => {
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS });
+    setup({ startSession, cardOrder: "sequential" });
+    await screen.findByText("What is a dog?");
+    expect(startSession).toHaveBeenCalledWith(
+      expect.objectContaining({ cardOrder: "sequential" }),
+    );
+  });
+
+  it("omits cardOrder from the start-session body when random (default)", async () => {
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS });
+    setup({ startSession, cardOrder: "random" });
+    await screen.findByText("What is a dog?");
+    const body = startSession.mock.calls[0][0];
+    expect(body.cardOrder).toBeUndefined();
   });
 
   it("speed round MCQ choices stay stable across timer re-renders", async () => {

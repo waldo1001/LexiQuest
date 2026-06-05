@@ -42,7 +42,7 @@ export function makeSessionsHandler(deps: SessionsDeps): HttpHandler {
     if (!result.ok) {
       return { status: 400, jsonBody: { error: result.error } };
     }
-    const { courseId, mode, gameType, cardLimit, uploadId } = result.value;
+    const { courseId, mode, gameType, cardLimit, cardOrder, uploadId } = result.value;
 
     // Verify the course exists (scan the caller's partition then all)
     const course = await findCourseById(deps.tables, auth.auth.userId, courseId);
@@ -68,6 +68,7 @@ export function makeSessionsHandler(deps: SessionsDeps): HttpHandler {
       cardLimit,
       now,
       shuffle: deps.random.shuffle.bind(deps.random),
+      cardOrder,
     });
 
     const sessionId = deps.random.uuid();
@@ -81,6 +82,7 @@ export function makeSessionsHandler(deps: SessionsDeps): HttpHandler {
       mode,
       game_type: gameType,
       card_limit: cardLimit,
+      card_order: cardOrder,
       started_at: nowIso,
       ended_at: null,
       cards_studied: 0,

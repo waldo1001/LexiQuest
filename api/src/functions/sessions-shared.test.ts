@@ -116,6 +116,26 @@ describe("validateSessionCreate — gameType and cardLimit", () => {
   });
 });
 
+describe("validateSessionCreate — cardOrder", () => {
+  it("accepts cardOrder 'sequential'", () => {
+    const r = validateSessionCreate({ courseId: "c1", mode: "self_grade", cardOrder: "sequential" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.cardOrder).toBe("sequential");
+  });
+
+  it("defaults cardOrder to 'random' when omitted", () => {
+    const r = validateSessionCreate({ courseId: "c1", mode: "self_grade" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.cardOrder).toBe("random");
+  });
+
+  it("rejects cardOrder that is not random or sequential", () => {
+    const r = validateSessionCreate({ courseId: "c1", mode: "self_grade", cardOrder: "shuffled" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/cardOrder/);
+  });
+});
+
 describe("sessionProfile", () => {
   const row: SessionRow = {
     partitionKey: "u-lex",
@@ -134,13 +154,14 @@ describe("sessionProfile", () => {
   };
 
   it("maps row to profile including game_type and card_limit", () => {
-    const p = sessionProfile(row);
+    const p = sessionProfile({ ...row, card_order: "sequential" } as SessionRow);
     expect(p.id).toBe("sess-1");
     expect(p.user_id).toBe("u-lex");
     expect(p.course_id).toBe("c1");
     expect(p.mode).toBe("self_grade");
     expect(p.game_type).toBe("boss_round");
     expect(p.card_limit).toBe(15);
+    expect(p.card_order).toBe("sequential");
     expect(p.ended_at).toBeNull();
     expect(p.cards_studied).toBe(5);
     expect(p.cards_correct).toBe(3);
@@ -165,5 +186,6 @@ describe("sessionProfile", () => {
     const p = sessionProfile(legacyRow);
     expect(p.game_type).toBe("classic");
     expect(p.card_limit).toBeNull();
+    expect(p.card_order).toBe("random");
   });
 });
