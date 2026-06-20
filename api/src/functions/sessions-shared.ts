@@ -60,9 +60,9 @@ export function validateSessionCreate(
     cardLimit = src.cardLimit;
   }
 
-  const cardOrder: CardOrder = (src.cardOrder as CardOrder) ?? "random";
+  const cardOrder: CardOrder = (src.cardOrder as CardOrder) ?? "hardest_first";
   if (!CARD_ORDERS.has(cardOrder)) {
-    return { ok: false, error: "cardOrder must be one of: random, sequential" };
+    return { ok: false, error: "cardOrder must be one of: hardest_first, random, sequential" };
   }
 
   const uploadId = typeof src.uploadId === "string" && src.uploadId.trim().length > 0

@@ -90,7 +90,7 @@ describe("buildQueue — classic", () => {
     shuffle: noopShuffle,
   };
 
-  it("with cardLimit=null returns all due + up to 20 new (backward compat)", () => {
+  it("with cardLimit=null returns the full deck — every card, always", () => {
     const due = Array.from({ length: 5 }, (_, i) =>
       makeCard({
         rowKey: `due-${i}`,
@@ -113,9 +113,8 @@ describe("buildQueue — classic", () => {
       }),
     ];
     const result = buildQueue([...due, ...newCards, ...future], baseOpts);
-    // 5 due + 20 new (capped) = 25
-    expect(result).toHaveLength(25);
-    expect(result.filter((c) => c.sm2_reps === 0)).toHaveLength(20);
+    // "All" now means all 31 cards (no due/new filter), so the session is never thin
+    expect(result).toHaveLength(31);
   });
 
   it("with cardLimit=10 returns exactly 10 cards", () => {
@@ -425,19 +424,20 @@ describe("buildQueue — cardOrder (sequential vs random)", () => {
     expect(result.map((c) => c.rowKey)).toEqual(["B", "A", "C"]);
   });
 
-  it("buildQueue defaults to random order when cardOrder is omitted", () => {
-    let shuffleCalled = false;
-    const spyShuffle = <T>(arr: readonly T[]): T[] => {
-      shuffleCalled = true;
-      return [...arr];
-    };
-    buildQueue(deckCards(), {
+  it("classic defaults to hardest_first order when cardOrder is omitted", () => {
+    const cards: CardRow[] = [
+      makeCard({ rowKey: "easy", sm2_ease: 2.5, next_review_at: "2026-01-10T12:00:00Z", sm2_reps: 2 }),
+      makeCard({ rowKey: "hard", sm2_ease: 1.4, next_review_at: "2026-01-10T12:00:00Z", sm2_reps: 2 }),
+      makeCard({ rowKey: "medium", sm2_ease: 1.9, next_review_at: "2026-01-10T12:00:00Z", sm2_reps: 2 }),
+    ];
+    const result = buildQueue(cards, {
       gameType: "classic",
       cardLimit: null,
       now,
-      shuffle: spyShuffle,
+      shuffle: noopShuffle,
     });
-    expect(shuffleCalled).toBe(true);
+    // hardest first: hard(1.4), medium(1.9); then the easy 2.5 card
+    expect(result.map((c) => c.rowKey)).toEqual(["hard", "medium", "easy"]);
   });
 
   it("sequential order breaks created_at ties by card id ascending", () => {
@@ -491,7 +491,7 @@ describe("backfill — always fill to cardLimit", () => {
     expect(result).toHaveLength(5);
   });
 
-  it("classic with cardLimit=null does NOT backfill (backward compat)", () => {
+  it("classic with cardLimit=null now returns the whole deck (always a full session)", () => {
     const due = [
       makeCard({ rowKey: "due-1", next_review_at: "2026-01-10T12:00:00Z", sm2_reps: 2 }),
     ];
@@ -505,17 +505,16 @@ describe("backfill — always fill to cardLimit", () => {
       now,
       shuffle: noopShuffle,
     });
-    // Only the 1 due card — future cards are NOT backfilled
-    expect(result).toHaveLength(1);
+    // "All" pads with the two learned cards instead of returning just the 1 due card
+    expect(result).toHaveLength(3);
   });
 
-  it("backfill orders weakest first: new > low ease > high ease", () => {
-    // Only backfill cards, no due/new in the normal sense
+  it("classic orders the selected set hardest-first (low ease leads, easy tail behind)", () => {
     const cards = [
-      futureCard("easy-veteran", 2.5, 10),   // best known
-      futureCard("hard-practiced", 1.4, 5),  // weaker
-      futureCard("never-studied", 2.5, 0),   // weakest (never studied)
-      futureCard("medium", 2.0, 3),
+      futureCard("easy-veteran", 2.5, 10),
+      futureCard("hard-practiced", 1.4, 5),   // hardest
+      futureCard("never-studied", 2.5, 0),
+      futureCard("medium", 2.0, 3),           // second-hardest
     ];
     const result = buildQueue(cards, {
       gameType: "classic",
@@ -524,13 +523,25 @@ describe("backfill — always fill to cardLimit", () => {
       shuffle: noopShuffle,
     });
     expect(result).toHaveLength(4);
-    // With noopShuffle the primary (empty due, 1 new = never-studied) comes first,
-    // then backfill in weakness order
-    const ids = result.map((c) => c.rowKey);
-    // never-studied is picked as "new card" by classic (reps=0, future) and goes into primary
-    // Backfill fills remaining 3 in weakness order: hard > medium > easy
-    const backfillIds = ids.slice(1); // skip the new card
-    expect(backfillIds).toEqual(["hard-practiced", "medium", "easy-veteran"]);
+    // hard cards (ease<2.5) lead in ease order; the 2.5 "easy" cards form the (noop-)shuffled tail
+    expect(result.map((c) => c.rowKey)).toEqual([
+      "hard-practiced",
+      "medium",
+      "never-studied",
+      "easy-veteran",
+    ]);
+  });
+
+  it("classic 'All' leads with the hardest even when it is not due, and includes every card", () => {
+    const dueEasy = makeCard({ rowKey: "due-easy", sm2_ease: 2.5, sm2_reps: 2, next_review_at: "2026-01-10T12:00:00Z" });
+    const learnedHard = makeCard({ rowKey: "learned-hard", sm2_ease: 1.3, sm2_reps: 6, next_review_at: "2026-02-01T12:00:00Z" });
+    const result = buildQueue([dueEasy, learnedHard], {
+      gameType: "classic",
+      cardLimit: null,
+      now,
+      shuffle: noopShuffle,
+    });
+    expect(result.map((c) => c.rowKey)).toEqual(["learned-hard", "due-easy"]);
   });
 
   it("speed_round backfills to cardLimit", () => {

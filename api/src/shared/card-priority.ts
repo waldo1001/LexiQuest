@@ -5,13 +5,15 @@ export const GAME_TYPES = new Set<GameType>(["classic", "boss_round", "speed_rou
 
 /**
  * Presentation order of the selected queue.
- * - "random" — shuffle (the classic default).
+ * - "hardest_first" — hardest cards first (lowest SM-2 ease), with the
+ *   never-failed "easy" cards shuffled into the tail. The default.
+ * - "random" — pure shuffle.
  * - "sequential" — deck order: ascending `created_at`, tie-broken by card id.
  * Only `classic` honours this; the challenge game types keep their own
  * deliberate ordering (difficulty / priority / overdue-first).
  */
-export type CardOrder = "random" | "sequential";
-export const CARD_ORDERS = new Set<CardOrder>(["random", "sequential"]);
+export type CardOrder = "hardest_first" | "random" | "sequential";
+export const CARD_ORDERS = new Set<CardOrder>(["hardest_first", "random", "sequential"]);
 
 export interface QueueOptions {
   gameType: GameType;
@@ -22,8 +24,11 @@ export interface QueueOptions {
 }
 
 /**
- * Order the final classic queue. Sequential = deck order (created_at asc,
- * tie-broken by card id); random (default) = shuffle via the random seam.
+ * Order the final classic queue.
+ * - "sequential" — deck order (created_at asc, tie-broken by card id).
+ * - "random" — pure shuffle via the random seam.
+ * - "hardest_first" (default, incl. when cardOrder is omitted) — hardest
+ *   cards first, never-failed "easy" cards shuffled into the tail.
  */
 function orderClassic(cards: CardRow[], opts: QueueOptions): CardRow[] {
   if (opts.cardOrder === "sequential") {
@@ -32,11 +37,13 @@ function orderClassic(cards: CardRow[], opts: QueueOptions): CardRow[] {
       return a.rowKey < b.rowKey ? -1 : a.rowKey > b.rowKey ? 1 : 0;
     });
   }
-  return opts.shuffle(cards);
+  if (opts.cardOrder === "random") {
+    return opts.shuffle(cards);
+  }
+  return orderHardestFirst(cards, opts);
 }
 
 const DAY_MS = 86_400_000;
-const MAX_NEW_CARDS = 20;
 const OVERDUE_WEIGHT = 0.7;
 const MASTERY_WEIGHT = 0.3;
 const BOSS_EASE_THRESHOLD = 2.0;
@@ -87,7 +94,7 @@ export function buildQueue(cards: CardRow[], opts: QueueOptions): CardRow[] {
   // (the "you know it all" case). The mode's normal selection came back empty
   // but there is something to practice — fall back to the whole deck.
   if (queue.length === 0 && cards.length > 0) {
-    return fallbackHardestFirst(cards, opts);
+    return orderHardestFirst(cards, opts);
   }
   return queue;
 }
@@ -106,12 +113,13 @@ function selectQueue(cards: CardRow[], opts: QueueOptions): CardRow[] {
 }
 
 /**
- * Last-resort ordering when a mode's normal selection is empty but the course
- * still has cards. Hardest cards first — lowest SM-2 ease, ties broken by card
- * id for determinism — followed by the never-failed "easy" cards shuffled among
- * themselves: "most difficult first, stuffed by random easy ones".
+ * Hardest-first ordering: hardest cards first — lowest SM-2 ease, ties broken
+ * by card id for determinism — followed by the never-failed "easy" cards
+ * shuffled among themselves ("most difficult first, stuffed by random easy
+ * ones"). Used both as the classic default order and as the last-resort
+ * fallback when a mode's normal selection is empty but the course has cards.
  */
-function fallbackHardestFirst(cards: CardRow[], opts: QueueOptions): CardRow[] {
+function orderHardestFirst(cards: CardRow[], opts: QueueOptions): CardRow[] {
   const hard = cards.filter((c) => c.sm2_ease < NEVER_FAILED_EASE);
   const easy = cards.filter((c) => c.sm2_ease >= NEVER_FAILED_EASE);
   hard.sort((a, b) => {
@@ -127,8 +135,8 @@ function buildClassic(cards: CardRow[], opts: QueueOptions): CardRow[] {
   const newCards = cards.filter((c) => c.sm2_reps === 0 && c.next_review_at > nowIso);
 
   if (opts.cardLimit === null) {
-    // Backward compat: all due + up to MAX_NEW_CARDS new
-    return orderClassic([...dueCards, ...newCards.slice(0, MAX_NEW_CARDS)], opts);
+    // "All" — the full deck, always (never just due/new). Ordering applies.
+    return orderClassic([...cards], opts);
   }
 
   // Score and sort due cards by priority

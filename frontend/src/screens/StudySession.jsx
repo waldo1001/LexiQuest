@@ -164,7 +164,7 @@ export default function StudySession({
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { courseName = "", mode = "self_grade", courseLang = null, questionLangDefault = null, answerLangDefault = null, gameType = "classic", cardLimit = null, cardOrder = "random", uploadId = null } = location.state ?? {};
+  const { courseName = "", mode = "self_grade", courseLang = null, questionLangDefault = null, answerLangDefault = null, gameType = "classic", cardLimit = null, cardOrder = "hardest_first", uploadId = null } = location.state ?? {};
   const isSpeedRound = gameType === "speed_round";
   const ttsAvailable = Boolean(courseLang && tts.isAvailable(courseLang));
 
@@ -210,7 +210,7 @@ export default function StudySession({
     const body = { courseId, mode };
     if (gameType !== "classic") body.gameType = gameType;
     if (cardLimit !== null) body.cardLimit = cardLimit;
-    if (cardOrder !== "random") body.cardOrder = cardOrder;
+    if (cardOrder !== "hardest_first") body.cardOrder = cardOrder;
     if (uploadId) body.uploadId = uploadId;
     startSession(body)
       .then((data) => {

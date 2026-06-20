@@ -172,14 +172,19 @@ describe("POST /api/sessions", () => {
     expect(body.cards).toHaveLength(2);
   });
 
-  it("excludes cards where next_review_at is in the future (not due, not new)", async () => {
-    deps = makeDeps(["sess-1"], [[0]]);
+  it("'All' includes not-due learned cards too, hardest first", async () => {
+    deps = makeDeps(["sess-1"], [[0]]); // one easy card in the shuffled tail
     await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
-    // Due card (next_review_at <= now)
-    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-due", { next_review_at: NOW }));
-    // Future card that's been seen before (reps>0 → not new, not due)
-    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-future", {
+    // Due but easy card
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-due-easy", {
+      next_review_at: NOW,
+      sm2_ease: 2.5,
+      sm2_reps: 2,
+    }));
+    // Not-due, harder card (lower ease) — should lead despite not being due
+    await deps.tables.upsert<CardRow>("cards", makeCard("c1", "card-future-hard", {
       next_review_at: TOMORROW,
+      sm2_ease: 1.4,
       sm2_reps: 1,
     }));
 
@@ -189,13 +194,13 @@ describe("POST /api/sessions", () => {
     )) as HttpResponseInit;
 
     const body = res.jsonBody as { cards: Array<{ id: string }> };
-    expect(body.cards).toHaveLength(1);
-    expect(body.cards[0]?.id).toBe("card-due");
+    expect(body.cards).toHaveLength(2);
+    expect(body.cards[0]?.id).toBe("card-future-hard");
   });
 
-  it("caps new cards at 20", async () => {
-    const identity20 = Array.from({ length: 20 }, (_, i) => i);
-    deps = makeDeps(["sess-1"], [identity20]);
+  it("'All' returns every new card (no 20-cap)", async () => {
+    const identity25 = Array.from({ length: 25 }, (_, i) => i);
+    deps = makeDeps(["sess-1"], [identity25]);
     await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
     for (let i = 0; i < 25; i++) {
       await deps.tables.upsert<CardRow>(
@@ -210,7 +215,7 @@ describe("POST /api/sessions", () => {
     )) as HttpResponseInit;
 
     const body = res.jsonBody as { cards: unknown[] };
-    expect(body.cards).toHaveLength(20);
+    expect(body.cards).toHaveLength(25);
   });
 
   it("persists session row in table storage with ended_at=null", async () => {

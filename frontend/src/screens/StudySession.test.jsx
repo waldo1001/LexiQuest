@@ -65,7 +65,7 @@ function setup({
   answerLangDefault = null,
   gameType = "classic",
   cardLimit = null,
-  cardOrder = "random",
+  cardOrder = "hardest_first",
   lang = "en",
   currentUser = { id: "u-lex", name: "Lex", is_admin: false },
   tts,
@@ -590,9 +590,18 @@ describe("StudySession — game type features", () => {
     );
   });
 
-  it("omits cardOrder from the start-session body when random (default)", async () => {
+  it("includes cardOrder 'random' in the start-session body", async () => {
     const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS });
     setup({ startSession, cardOrder: "random" });
+    await screen.findByText("What is a dog?");
+    expect(startSession).toHaveBeenCalledWith(
+      expect.objectContaining({ cardOrder: "random" }),
+    );
+  });
+
+  it("omits cardOrder from the start-session body when hardest_first (default)", async () => {
+    const startSession = vi.fn().mockResolvedValue({ sessionId: SESSION_ID, cards: CARDS });
+    setup({ startSession, cardOrder: "hardest_first" });
     await screen.findByText("What is a dog?");
     const body = startSession.mock.calls[0][0];
     expect(body.cardOrder).toBeUndefined();

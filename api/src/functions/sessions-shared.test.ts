@@ -123,13 +123,19 @@ describe("validateSessionCreate — cardOrder", () => {
     if (r.ok) expect(r.value.cardOrder).toBe("sequential");
   });
 
-  it("defaults cardOrder to 'random' when omitted", () => {
-    const r = validateSessionCreate({ courseId: "c1", mode: "self_grade" });
+  it("accepts cardOrder 'hardest_first'", () => {
+    const r = validateSessionCreate({ courseId: "c1", mode: "self_grade", cardOrder: "hardest_first" });
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.value.cardOrder).toBe("random");
+    if (r.ok) expect(r.value.cardOrder).toBe("hardest_first");
   });
 
-  it("rejects cardOrder that is not random or sequential", () => {
+  it("defaults cardOrder to 'hardest_first' when omitted", () => {
+    const r = validateSessionCreate({ courseId: "c1", mode: "self_grade" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.cardOrder).toBe("hardest_first");
+  });
+
+  it("rejects an unknown cardOrder", () => {
     const r = validateSessionCreate({ courseId: "c1", mode: "self_grade", cardOrder: "shuffled" });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toMatch(/cardOrder/);

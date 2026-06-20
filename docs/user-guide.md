@@ -81,16 +81,21 @@ onward (first login + dashboard) and gets sections added per phase:
   - **Card count** — choose how many cards: 10, 15, 20, 30, or All.
     Default is 20. When you have more due cards than the limit, a smart
     priority algorithm picks the most important ones (balancing how
-    overdue a card is with how weak your mastery is). Once you've learned
-    everything and nothing is strictly "due", a session never comes back
-    empty: it falls back to the whole deck, your **hardest cards first**
-    (lowest ease), with the ones you've never gotten wrong shuffled in
-    behind — so you can always keep practising.
-  - **Card order** — *Random* (default) or *In order*. Random shuffles the
-    selected cards. *In order* presents them in the order the cards were
-    added to the deck (oldest first), which is handy for a numbered lesson
-    list you want to walk through top to bottom. Card order applies to
-    *Classic* study; the other game types keep their own deliberate order.
+    overdue a card is with how weak your mastery is), then **always pads
+    the session to a full deck** with cards you already know — so a
+    Classic session is never thin and never comes back empty, even once
+    you've learned everything. ("All" means the entire deck.)
+  - **Card order** — three choices for *Classic* study:
+    - *Hardest first* (default) — your hardest cards (lowest ease) lead,
+      with the ones you've never gotten wrong shuffled in behind. This is
+      "most difficult first, stuffed by random easy ones", so you always
+      drill what you struggle with first while still revisiting the rest.
+    - *Random* — pure shuffle of the selected cards.
+    - *In order* — deck order (oldest card first), handy for a numbered
+      lesson list you want to walk top to bottom.
+
+    Card order applies to *Classic* study; the other game types keep their
+    own deliberate order (Boss = hardest, Review Blitz = most overdue).
   - **Study mode** — self-grade or MCQ (when the course allows it).
   Click **Start** to begin. For each card:
   1. Read the **question**.

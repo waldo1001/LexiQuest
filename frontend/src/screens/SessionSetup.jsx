@@ -13,6 +13,7 @@ const GAME_TYPES = [
 const CARD_COUNTS = [10, 15, 20, 30, null]; // null = All
 
 const CARD_ORDERS = [
+  { value: "hardest_first", labelKey: "setup.cardOrder.hardest" },
   { value: "random", labelKey: "setup.cardOrder.random" },
   { value: "sequential", labelKey: "setup.cardOrder.sequential" },
 ];
@@ -41,7 +42,7 @@ export default function SessionSetup({ fetchCards = fetchCardsApi }) {
 
   const [gameType, setGameType] = useState("classic");
   const [cardLimit, setCardLimit] = useState(20);
-  const [cardOrder, setCardOrder] = useState("random");
+  const [cardOrder, setCardOrder] = useState("hardest_first");
   const [mode, setMode] = useState(defaultMode === "ask" ? "self_grade" : defaultMode);
   const [uploadId, setUploadId] = useState(null);
   const [uploads, setUploads] = useState([]);

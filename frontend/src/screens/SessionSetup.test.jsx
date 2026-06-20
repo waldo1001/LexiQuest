@@ -104,11 +104,13 @@ describe("SessionSetup", () => {
     );
   });
 
-  it("renders card-order picker with Random selected by default", () => {
+  it("renders card-order picker with Hardest first selected by default", () => {
     renderSetup();
+    const hardestBtn = screen.getByText("Hardest first").closest("button");
     const randomBtn = screen.getByText("Random").closest("button");
     const inOrderBtn = screen.getByText("In order").closest("button");
-    expect(randomBtn.className).toContain("selected");
+    expect(hardestBtn.className).toContain("selected");
+    expect(randomBtn.className).not.toContain("selected");
     expect(inOrderBtn.className).not.toContain("selected");
   });
 
@@ -124,13 +126,25 @@ describe("SessionSetup", () => {
     );
   });
 
-  it("defaults cardOrder to 'random' in navigation state", () => {
+  it("passes cardOrder 'random' in navigation state when Random is chosen", () => {
     renderSetup();
+    fireEvent.click(screen.getByText("Random"));
     fireEvent.click(screen.getByText(/Start session/));
     expect(mockNavigate).toHaveBeenCalledWith(
       "/courses/c1/study",
       expect.objectContaining({
         state: expect.objectContaining({ cardOrder: "random" }),
+      }),
+    );
+  });
+
+  it("defaults cardOrder to 'hardest_first' in navigation state", () => {
+    renderSetup();
+    fireEvent.click(screen.getByText(/Start session/));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/courses/c1/study",
+      expect.objectContaining({
+        state: expect.objectContaining({ cardOrder: "hardest_first" }),
       }),
     );
   });
