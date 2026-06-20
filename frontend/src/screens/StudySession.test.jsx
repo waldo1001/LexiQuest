@@ -102,6 +102,11 @@ function setup({
   );
 }
 
+/** Sound is off by default; click the speaker toggle to turn it on. */
+async function enableSound() {
+  await userEvent.click(screen.getByTestId("speech-toggle"));
+}
+
 describe("StudySession — loading state", () => {
   it("shows loading indicator initially", () => {
     const startSession = vi.fn(() => new Promise(() => {}));
@@ -248,10 +253,32 @@ describe("StudySession — session completion", () => {
 });
 
 describe("StudySession — TTS speak buttons", () => {
-  it("shows 🔊 on question when courseLang set and tts available (AC1)", async () => {
+  it("starts with sound OFF by default — no 🔊 until the speaker is toggled on", async () => {
     const tts = createFakeTts({ available: true });
     setup({ courseLang: "fr-FR", tts });
     await screen.findByText("What is a dog?");
+    // Default: speaker off, manual speak button hidden
+    expect(screen.queryByRole("button", { name: /Speak question/i })).toBeNull();
+    expect(screen.getByTestId("speech-toggle").className).toContain("off");
+    // Toggling sound on reveals the speak button
+    await userEvent.click(screen.getByTestId("speech-toggle"));
+    expect(screen.getByRole("button", { name: /Speak question/i })).toBeTruthy();
+  });
+
+  it("keeps sound ON when the user has auto_speak enabled (no regression)", async () => {
+    const tts = createFakeTts({ available: true });
+    const user = { id: "u-lex", name: "Lex", is_admin: false, settings: { auto_speak: true } };
+    setup({ courseLang: "fr-FR", tts, currentUser: user });
+    await screen.findByText("What is a dog?");
+    expect(screen.getByTestId("speech-toggle").className).toContain("on");
+    expect(screen.getByRole("button", { name: /Speak question/i })).toBeTruthy();
+  });
+
+  it("shows 🔊 on question when sound enabled, courseLang set and tts available (AC1)", async () => {
+    const tts = createFakeTts({ available: true });
+    setup({ courseLang: "fr-FR", tts });
+    await screen.findByText("What is a dog?");
+    await enableSound();
     expect(screen.getByRole("button", { name: /Speak question/i })).toBeTruthy();
   });
 
@@ -273,6 +300,7 @@ describe("StudySession — TTS speak buttons", () => {
     const tts = createFakeTts({ available: true });
     setup({ courseLang: "fr-FR", tts });
     await screen.findByText("What is a dog?");
+    await enableSound();
     await userEvent.click(screen.getByRole("button", { name: /Speak question/i }));
     expect(tts.lastSpoken).toMatchObject({ text: "What is a dog?", lang: "fr-FR" });
   });
@@ -281,6 +309,7 @@ describe("StudySession — TTS speak buttons", () => {
     const tts = createFakeTts({ available: true });
     setup({ courseLang: "fr-FR", tts });
     await screen.findByText("What is a dog?");
+    await enableSound();
     await userEvent.click(screen.getByRole("button", { name: /Show answer/i }));
     expect(screen.getByRole("button", { name: /Speak answer/i })).toBeTruthy();
   });
@@ -289,6 +318,7 @@ describe("StudySession — TTS speak buttons", () => {
     const tts = createFakeTts({ available: true });
     setup({ courseLang: "fr-FR", tts });
     await screen.findByText("What is a dog?");
+    await enableSound();
     await userEvent.click(screen.getByRole("button", { name: /Show answer/i }));
     await userEvent.click(screen.getByRole("button", { name: /Speak answer/i }));
     expect(tts.lastSpoken).toMatchObject({ text: "le chien", lang: "fr-FR" });
@@ -511,6 +541,7 @@ describe("StudySession — per-side language TTS", () => {
     setup({ startSession, courseLang: "fr-FR", tts });
 
     await screen.findByText("the dog");
+    await enableSound();
     await userEvent.click(screen.getByRole("button", { name: /Speak question/i }));
     expect(tts.lastSpoken).toMatchObject({ text: "the dog", lang: "en" });
   });
@@ -521,6 +552,7 @@ describe("StudySession — per-side language TTS", () => {
     setup({ startSession, courseLang: "fr-FR", tts });
 
     await screen.findByText("the dog");
+    await enableSound();
     await userEvent.click(screen.getByRole("button", { name: /Show answer/i }));
     await userEvent.click(screen.getByRole("button", { name: /Speak answer/i }));
     expect(tts.lastSpoken).toMatchObject({ text: "le chien", lang: "fr-FR" });

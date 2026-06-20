@@ -102,7 +102,10 @@ onward (first login + dashboard) and gets sections added per phase:
   2. Click **Show answer** to reveal the answer.
   3. Tap **Knew it** (correct) or **Didn't know** (wrong).
   Wrong cards go into a retry pile and appear again at the end of the session
-  (except in Speed Round, where there's no retry). When all cards (including
+  (except in Speed Round, where there's no retry). **Sound is off by default** —
+  tap the 🔇 speaker at the top to turn audio on (it becomes 🔊 and the per-card
+  speak buttons appear). If you've enabled **auto-speak** in Settings, sound
+  starts on. When all cards (including
   retries) are done, the session is saved automatically — SM-2 scheduling on
   every card updates so the next due date reflects how well you knew it.
   Correct cards on the first attempt are counted toward your daily goal

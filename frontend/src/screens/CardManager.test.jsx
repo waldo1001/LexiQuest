@@ -665,10 +665,26 @@ describe("CardManager — Pairing UI + linked delete", () => {
 describe("CardManager — TTS speak buttons", () => {
   const defaultFetch = vi.fn().mockResolvedValue(SEED_CARDS);
 
-  it("shows 🔊 buttons when courseLang set and tts available (AC7)", async () => {
+  /** Sound is off by default; click the speaker toggle to turn it on. */
+  async function enableSound() {
+    await userEvent.click(screen.getByTestId("speech-toggle"));
+  }
+
+  it("starts with sound OFF by default — no 🔊 buttons until the speaker is toggled on", async () => {
     const tts = createFakeTts({ available: true });
     setup({ fetchCards: defaultFetch, courseLang: "fr-FR", tts });
     await screen.findByText("What is a dog?");
+    expect(screen.queryByRole("button", { name: /Speak/i })).toBeNull();
+    expect(screen.getByTestId("speech-toggle").className).toContain("off");
+    await enableSound();
+    expect(screen.getAllByRole("button", { name: /Speak/i }).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("shows 🔊 buttons when sound enabled, courseLang set and tts available (AC7)", async () => {
+    const tts = createFakeTts({ available: true });
+    setup({ fetchCards: defaultFetch, courseLang: "fr-FR", tts });
+    await screen.findByText("What is a dog?");
+    await enableSound();
     const speakBtns = screen.getAllByRole("button", { name: /Speak/i });
     expect(speakBtns.length).toBeGreaterThanOrEqual(2);
   });
@@ -684,6 +700,7 @@ describe("CardManager — TTS speak buttons", () => {
     const tts = createFakeTts({ available: true });
     setup({ fetchCards: defaultFetch, courseLang: "fr-FR", tts });
     await screen.findByText("What is a dog?");
+    await enableSound();
     const speakBtns = screen.getAllByRole("button", { name: /Speak/i });
     await userEvent.click(speakBtns[0]);
     expect(tts.lastSpoken?.lang).toBe("fr-FR");
@@ -703,6 +720,7 @@ describe("CardManager — TTS speak buttons", () => {
     const tts = createFakeTts({ available: true });
     setup({ fetchCards: vi.fn().mockResolvedValue(cardsWithLang), courseLang: "fr-FR", tts });
     await screen.findAllByText("the dog");
+    await enableSound();
     const speakBtns = screen.getAllByRole("button", { name: /Speak/i });
     // First speak button is on the question column
     await userEvent.click(speakBtns[0]);
@@ -716,6 +734,7 @@ describe("CardManager — TTS speak buttons", () => {
     const tts = createFakeTts({ available: true });
     setup({ fetchCards: defaultFetch, courseLang: "fr-FR", tts });
     await screen.findByText("What is a dog?");
+    await enableSound();
     const speakBtns = screen.getAllByRole("button", { name: /Speak/i });
     await userEvent.click(speakBtns[0]);
     expect(tts.lastSpoken?.lang).toBe("fr-FR");
@@ -731,6 +750,7 @@ describe("CardManager — TTS speak buttons", () => {
       tts,
     });
     await screen.findByText("What is a dog?");
+    await enableSound();
     const speakBtns = screen.getAllByRole("button", { name: /Speak/i });
     // Question: card has no question_lang → falls back to questionLangDefault "fr"
     await userEvent.click(speakBtns[0]);

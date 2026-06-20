@@ -87,7 +87,8 @@ export default function CardManager({
     user !== null && (user.id === ownerId || user.isAdmin === true);
 
   const [cards, setCards] = useState(null);
-  const [speechOn, setSpeechOn] = useState(true);
+  // Sound is off by default; click the speaker toggle to preview card audio.
+  const [speechOn, setSpeechOn] = useState(false);
   const canSpeak = ttsAvailable && speechOn;
   const [status, setStatus] = useState(null);
   const [error, setError] = useState(null);

@@ -169,7 +169,8 @@ export default function StudySession({
   const ttsAvailable = Boolean(courseLang && tts.isAvailable(courseLang));
 
   const [state, dispatch] = useReducer(reducer, undefined, init);
-  const [speechOn, setSpeechOn] = useState(true);
+  // Sound is off by default; users who opted into auto-speak keep it on.
+  const [speechOn, setSpeechOn] = useState(() => Boolean(user?.settings?.auto_speak));
   const canSpeak = ttsAvailable && speechOn;
   const autoSpeak = canSpeak && Boolean(user?.settings?.auto_speak);
 
