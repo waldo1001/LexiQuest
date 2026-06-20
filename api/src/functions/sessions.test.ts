@@ -398,10 +398,13 @@ describe("POST /api/sessions", () => {
     expect(body.cards).toHaveLength(1);
   });
 
-  it("review_blitz with no overdue cards returns empty array", async () => {
-    deps = makeDeps(["sess-1"], [[]]);
+  it("review_blitz with no overdue cards still returns the deck (never empty)", async () => {
+    // The single not-overdue card is "easy" (default ease) and lands in the
+    // fallback's shuffled tail, so the shuffle script needs one slot.
+    deps = makeDeps(["sess-1"], [[0]]);
     await deps.tables.upsert<CourseRow>("courses", makeCourse("u-lex", "c1"));
-    // Only future card
+    // Only a future (not-overdue) card — review_blitz primary is empty, but
+    // the user should never be stranded on "No cards due".
     await deps.tables.upsert<CardRow>("cards", makeCard("c1", "future", {
       sm2_reps: 3,
       next_review_at: TOMORROW,
@@ -416,7 +419,7 @@ describe("POST /api/sessions", () => {
 
     expect(res.status).toBe(200);
     const body = res.jsonBody as { cards: unknown[] };
-    expect(body.cards).toHaveLength(0);
+    expect(body.cards).toHaveLength(1);
   });
 
   it("user_id comes from session token, not body", async () => {

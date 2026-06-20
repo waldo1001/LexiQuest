@@ -40,6 +40,8 @@ const MAX_NEW_CARDS = 20;
 const OVERDUE_WEIGHT = 0.7;
 const MASTERY_WEIGHT = 0.3;
 const BOSS_EASE_THRESHOLD = 2.0;
+/** SM-2 starting ease — a card at or above this has never been failed ("easy"). */
+const NEVER_FAILED_EASE = 2.5;
 
 /**
  * How well the user knows this card. Higher = better known.
@@ -80,6 +82,17 @@ export function scoreCard(card: CardRow, now: Date): number {
 }
 
 export function buildQueue(cards: CardRow[], opts: QueueOptions): CardRow[] {
+  const queue = selectQueue(cards, opts);
+  // Never strand the user on "No cards due" when the course still has cards
+  // (the "you know it all" case). The mode's normal selection came back empty
+  // but there is something to practice — fall back to the whole deck.
+  if (queue.length === 0 && cards.length > 0) {
+    return fallbackHardestFirst(cards, opts);
+  }
+  return queue;
+}
+
+function selectQueue(cards: CardRow[], opts: QueueOptions): CardRow[] {
   switch (opts.gameType) {
     case "classic":
       return buildClassic(cards, opts);
@@ -90,6 +103,22 @@ export function buildQueue(cards: CardRow[], opts: QueueOptions): CardRow[] {
     case "review_blitz":
       return buildReviewBlitz(cards, opts);
   }
+}
+
+/**
+ * Last-resort ordering when a mode's normal selection is empty but the course
+ * still has cards. Hardest cards first — lowest SM-2 ease, ties broken by card
+ * id for determinism — followed by the never-failed "easy" cards shuffled among
+ * themselves: "most difficult first, stuffed by random easy ones".
+ */
+function fallbackHardestFirst(cards: CardRow[], opts: QueueOptions): CardRow[] {
+  const hard = cards.filter((c) => c.sm2_ease < NEVER_FAILED_EASE);
+  const easy = cards.filter((c) => c.sm2_ease >= NEVER_FAILED_EASE);
+  hard.sort((a, b) => {
+    if (a.sm2_ease !== b.sm2_ease) return a.sm2_ease - b.sm2_ease;
+    return a.rowKey < b.rowKey ? -1 : a.rowKey > b.rowKey ? 1 : 0;
+  });
+  return [...hard, ...opts.shuffle(easy)];
 }
 
 function buildClassic(cards: CardRow[], opts: QueueOptions): CardRow[] {

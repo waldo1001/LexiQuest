@@ -81,7 +81,11 @@ onward (first login + dashboard) and gets sections added per phase:
   - **Card count** — choose how many cards: 10, 15, 20, 30, or All.
     Default is 20. When you have more due cards than the limit, a smart
     priority algorithm picks the most important ones (balancing how
-    overdue a card is with how weak your mastery is).
+    overdue a card is with how weak your mastery is). Once you've learned
+    everything and nothing is strictly "due", a session never comes back
+    empty: it falls back to the whole deck, your **hardest cards first**
+    (lowest ease), with the ones you've never gotten wrong shuffled in
+    behind — so you can always keep practising.
   - **Card order** — *Random* (default) or *In order*. Random shuffles the
     selected cards. *In order* presents them in the order the cards were
     added to the deck (oldest first), which is handy for a numbered lesson

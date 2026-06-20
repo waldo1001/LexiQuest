@@ -194,20 +194,28 @@ describe("buildQueue — boss_round", () => {
     expect(result[0].rowKey).toBe("hard");
   });
 
-  it("excludes new cards from primary selection (no backfill when cardLimit=null)", () => {
+  it("excludes new cards (reps=0) from boss primary selection", () => {
+    const hardOld = makeCard({
+      rowKey: "hard-old",
+      sm2_ease: 1.5,
+      sm2_reps: 2,
+      next_review_at: new Date("2026-01-10T12:00:00Z").toISOString(),
+    });
     const newHard = makeCard({
       rowKey: "new-hard",
       sm2_ease: 1.3,
       sm2_reps: 0,
-      next_review_at: new Date("2026-01-20T12:00:00Z").toISOString(),
+      next_review_at: new Date("2026-01-10T12:00:00Z").toISOString(),
     });
-    const result = buildQueue([newHard], {
+    const result = buildQueue([hardOld, newHard], {
       gameType: "boss_round",
       cardLimit: null,
       now,
       shuffle: noopShuffle,
     });
-    expect(result).toHaveLength(0);
+    // boss primary is reps>0 only; the primary is non-empty so there is no
+    // fallback, and the new card is dropped entirely.
+    expect(result.map((c) => c.rowKey)).toEqual(["hard-old"]);
   });
 
   it("with null cardLimit returns all hard cards", () => {
@@ -228,7 +236,7 @@ describe("buildQueue — boss_round", () => {
     expect(result).toHaveLength(5);
   });
 
-  it("returns empty when no hard cards exist and cardLimit=null", () => {
+  it("falls back to the deck (never empty) when no hard cards and cardLimit=null", () => {
     const easy = makeCard({
       rowKey: "easy",
       sm2_ease: 2.5,
@@ -241,7 +249,9 @@ describe("buildQueue — boss_round", () => {
       now,
       shuffle: noopShuffle,
     });
-    expect(result).toHaveLength(0);
+    // No hard-due cards, but the course has a card — never strand the user.
+    expect(result).toHaveLength(1);
+    expect(result[0].rowKey).toBe("easy");
   });
 });
 
@@ -337,20 +347,26 @@ describe("buildQueue — review_blitz", () => {
     expect(result).toHaveLength(5);
   });
 
-  it("excludes new cards from primary selection (cardLimit=null)", () => {
+  it("excludes new cards (reps=0) from review_blitz primary selection", () => {
+    const overdueOld = makeCard({
+      rowKey: "overdue-old",
+      sm2_reps: 2,
+      next_review_at: new Date("2026-01-10T12:00:00Z").toISOString(),
+    });
     const overdueNew = makeCard({
       rowKey: "overdue-new",
       sm2_reps: 0,
       next_review_at: new Date("2026-01-10T12:00:00Z").toISOString(),
     });
-    const result = buildQueue([overdueNew], {
+    const result = buildQueue([overdueOld, overdueNew], {
       gameType: "review_blitz",
       cardLimit: null,
       now,
       shuffle: noopShuffle,
     });
-    // review_blitz primary selection includes overdue cards with reps > 0 only
-    expect(result).toHaveLength(0);
+    // review_blitz primary includes overdue reps>0 only; the primary is
+    // non-empty so there is no fallback and the new card is dropped.
+    expect(result.map((c) => c.rowKey)).toEqual(["overdue-old"]);
   });
 });
 
@@ -592,19 +608,92 @@ describe("backfill — always fill to cardLimit", () => {
     expect(result).toHaveLength(2); // can't exceed total cards
   });
 
-  it("boss_round with cardLimit=null does not backfill", () => {
-    const easy = makeCard({
-      rowKey: "easy",
-      sm2_ease: 2.5,
-      next_review_at: "2026-01-10T12:00:00Z",
-      sm2_reps: 2,
-    });
-    const result = buildQueue([easy], {
+  it("boss_round with cardLimit=null falls back hardest-first when no hard-due cards", () => {
+    const cards = [
+      futureCard("less-hard", 1.9, 4),
+      futureCard("harder", 1.4, 4),
+    ];
+    const result = buildQueue(cards, {
       gameType: "boss_round",
       cardLimit: null,
       now,
       shuffle: noopShuffle,
     });
-    expect(result).toHaveLength(0); // no hard cards, no backfill
+    // Both not due -> boss primary empty -> never-empty fallback, lowest ease first.
+    expect(result.map((c) => c.rowKey)).toEqual(["harder", "less-hard"]);
+  });
+});
+
+describe("buildQueue — never empty (hardest-first fallback)", () => {
+  const now = new Date("2026-01-15T12:00:00Z");
+
+  // A learned card: studied (reps>0) and not due until well into the future.
+  function learned(rowKey: string, ease: number): CardRow {
+    return makeCard({
+      rowKey,
+      sm2_ease: ease,
+      sm2_reps: 5,
+      next_review_at: new Date("2026-02-01T12:00:00Z").toISOString(),
+    });
+  }
+
+  it("classic/null: an all-learned deck is non-empty, hardest (lowest ease) first", () => {
+    const cards = [learned("a", 2.5), learned("b", 1.4), learned("c", 1.9)];
+    const result = buildQueue(cards, {
+      gameType: "classic",
+      cardLimit: null,
+      now,
+      shuffle: noopShuffle,
+    });
+    // hard cards (ease<2.5) first, lowest ease first: b(1.4), c(1.9); then easy a(2.5)
+    expect(result.map((c) => c.rowKey)).toEqual(["b", "c", "a"]);
+  });
+
+  it("shuffles only the easy (never-failed) tail, keeps the hard head ordered", () => {
+    const reverse = <T,>(arr: readonly T[]): T[] => [...arr].reverse();
+    const cards = [
+      learned("hard-1", 1.3),
+      learned("hard-2", 1.6),
+      learned("easy-1", 2.5),
+      learned("easy-2", 2.6),
+    ];
+    const result = buildQueue(cards, {
+      gameType: "classic",
+      cardLimit: null,
+      now,
+      shuffle: reverse,
+    });
+    // hard head stays in ease order; easy tail (2.5, 2.6) goes through shuffle (reverse)
+    expect(result.map((c) => c.rowKey)).toEqual(["hard-1", "hard-2", "easy-2", "easy-1"]);
+  });
+
+  it("breaks ease ties by card id for deterministic order", () => {
+    const cards = [learned("z", 1.5), learned("a", 1.5)];
+    const result = buildQueue(cards, {
+      gameType: "classic",
+      cardLimit: null,
+      now,
+      shuffle: noopShuffle,
+    });
+    expect(result.map((c) => c.rowKey)).toEqual(["a", "z"]);
+  });
+
+  it.each(["classic", "boss_round", "speed_round", "review_blitz"] as const)(
+    "%s with cardLimit=null never returns empty when cards exist",
+    (gameType) => {
+      const cards = [learned("easy", 2.5), learned("hard", 1.5)];
+      const result = buildQueue(cards, { gameType, cardLimit: null, now, shuffle: noopShuffle });
+      expect(result.length).toBeGreaterThan(0);
+    },
+  );
+
+  it("returns empty for a truly empty deck (no cards at all)", () => {
+    const result = buildQueue([], {
+      gameType: "classic",
+      cardLimit: null,
+      now,
+      shuffle: noopShuffle,
+    });
+    expect(result).toHaveLength(0);
   });
 });

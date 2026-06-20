@@ -3,6 +3,10 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-06-20
+
+- Fixed the **"No cards due. Come back later!"** dead-end that appeared once a learner had mastered a whole course. A study session now **never comes back empty when the course has cards**: `buildQueue` falls back to the entire deck ordered **hardest cards first** (lowest SM-2 ease, ties broken by card id), with the cards you've never gotten wrong (`ease ≥ 2.5`) **shuffled in behind** — "most difficult first, stuffed by random easy ones", so you can always keep practising. One new helper (`fallbackHardestFirst`) plus a guard in `api/src/shared/card-priority.ts`; the numeric card-count paths already backfilled and are unchanged, and a truly empty course (or MCQ with no distractor-capable cards) still shows the empty screen. Difficulty is measured by SM-2 ease only (no extra data reads). 6 new tests + 4 flipped assertions (`card-priority.test.ts`, `sessions.test.ts`); 942 api + 645 frontend pass; `card-priority.ts` 100% lines / 95.77% branches (Tier A). No new deps; no API/UI/SM-2 changes. See [user-guide.md](user-guide.md) (Studying → Card count). Plan: [plans/done/post-v1-never-empty-hardest-first.md](plans/done/post-v1-never-empty-hardest-first.md).
+
 ## 2026-06-05
 
 - Deployed `71f637f` (card order option) to Azure SWA. GH Actions [run 27037428439](https://github.com/waldo1001/LexiQuest/actions/runs/27037428439) green in 1m40s. Live probes against `https://ashy-cliff-0c1975603.7.azurestaticapps.net`: `/api/hello` 200 `{msg}`; `/api/users/public` 9 users, no `password_hash`/`settings`/`is_admin` leak (invariant #4 holds); SPA root serves index. Pre-deploy `/local-smoke` PASS incl. the new `/api/sessions` cardOrder path (sequential → deck order, invalid → 400).
