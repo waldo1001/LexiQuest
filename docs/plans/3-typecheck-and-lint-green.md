@@ -1,7 +1,7 @@
 # Plan — typecheck and lint green (#3)
 
 Spec: [docs/specs/3-typecheck-and-lint-green.md](../specs/3-typecheck-and-lint-green.md)
-Status: waiting for owner approval (rated risky)
+Status: approved (rated risky; owner waldo approved the plan, 2026-10-18)
 
 ## Blast radius
 
