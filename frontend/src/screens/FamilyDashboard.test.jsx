@@ -41,7 +41,7 @@ function renderDash(props = {}) {
 
 describe("FamilyDashboard", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it("FD-1: shows loading while data is pending", () => {

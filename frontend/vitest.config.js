@@ -17,6 +17,9 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/testing/setup.js"],
     include: ["src/**/*.test.{js,jsx}"],
+    // Vitest 4's default test excludes shrink to node_modules/.git, so make the
+    // build output and coverage dirs explicit.
+    exclude: ["node_modules/**", "dist/**", "coverage/**"],
     allowOnly: !process.env.CI,
     testTimeout: 5_000,
     hookTimeout: 5_000,

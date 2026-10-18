@@ -32,7 +32,7 @@ function renderCourseStats({ stats = STATS, courseId = "c1" } = {}) {
 }
 
 describe("CourseStats", () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it("CS-1: shows loading while data pending", () => {
     const fetchStats = vi.fn(() => new Promise(() => {}));

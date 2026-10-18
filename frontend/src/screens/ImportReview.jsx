@@ -130,7 +130,7 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
             <label>
               <input
                 type="checkbox"
-                checked={/* v8 ignore next */ checked[idx] ?? true}
+                checked={/* v8 ignore next -- @preserve */ checked[idx] ?? true}
                 onChange={() => toggleCard(idx)}
               />
               <strong>{card.question}</strong>

@@ -30,7 +30,7 @@ function renderCV(overrides = {}) {
 }
 
 describe("CompareView", () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it("CV-1: shows loading while users pending", () => {
     renderCV({ fetchUsers: vi.fn(() => new Promise(() => {})) });
