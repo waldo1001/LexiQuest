@@ -139,6 +139,37 @@ describe("POST /api/sessions", () => {
     expect(res.status).toBe(404);
   });
 
+  it("starts a session on a family member's course (cross-user scan skips self)", async () => {
+    deps = makeDeps(["sess-1"], [[0]]); // one easy card in the shuffled tail
+    const CALLER = "u-lex";
+    const OWNER = "u-mats";
+    // Both users are in the table, and a third without the course precedes the
+    // owner — so the scan skips the caller, misses the third, then finds the
+    // owner's course (covers the skip-self and the not-found-here branches).
+    const mkUser = (id: string) => ({
+      partitionKey: "users",
+      rowKey: id,
+      name: id,
+      is_admin: false,
+      color: "#112233",
+      avatar_emoji: "🦊",
+      ui_language: "en",
+      settings: "{}",
+      created_at: NOW,
+    });
+    await deps.tables.upsert("users", mkUser(CALLER));
+    await deps.tables.upsert("users", mkUser("u-nobody"));
+    await deps.tables.upsert("users", mkUser(OWNER));
+    await deps.tables.upsert<CourseRow>("courses", makeCourse(OWNER, "c-shared"));
+    await deps.tables.upsert<CardRow>("cards", makeCard("c-shared", "card-1"));
+
+    const res = (await makeSessionsHandler(deps)(
+      makeReq(validCookie(deps, CALLER), { body: { courseId: "c-shared", mode: "self_grade" } }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(200);
+  });
+
   it("returns 400 on missing body", async () => {
     const res = (await makeSessionsHandler(deps)(
       makeReq(validCookie(deps)),

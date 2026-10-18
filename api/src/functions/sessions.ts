@@ -121,7 +121,7 @@ async function findCourseById(
   return null;
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerSessions(deps: SessionsDeps): void {
   app.http("sessions", {
     route: "sessions",
@@ -130,4 +130,4 @@ export function registerSessions(deps: SessionsDeps): void {
     handler: makeSessionsHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

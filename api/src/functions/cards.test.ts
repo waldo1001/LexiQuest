@@ -535,4 +535,12 @@ describe("POST /api/cards", () => {
     )) as HttpResponseInit;
     expect(res.status).toBe(400);
   });
+
+  it("POST /api/cards returns 400 when the body is missing or unparseable", async () => {
+    const res = (await makeCardsHandler(deps)(
+      makeReq(validCookie(deps, OWNER_ID), { method: "POST" }),
+      ctx,
+    )) as HttpResponseInit;
+    expect(res.status).toBe(400);
+  });
 });

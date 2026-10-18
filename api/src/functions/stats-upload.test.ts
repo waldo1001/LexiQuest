@@ -372,4 +372,30 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
     expect(upload.cardCount).toBe(2);
     expect(upload.createdAt).toBe("2026-04-20T10:00:00.000Z");
   });
+
+  it("uses the earliest card date per upload and sorts recency-first, nulls last", async () => {
+    const deps = makeDeps();
+    seedUser(deps.tables);
+    seedCourse(deps.tables);
+    // Upload A: the second card is created earlier than the first, so the
+    // per-upload earliest date is lowered (covers created_at < earliest).
+    seedCard(deps.tables, "a1", { upload_id: "up-A", upload_name: "A", created_at: "2026-04-20T10:00:00.000Z" });
+    seedCard(deps.tables, "a2", { upload_id: "up-A", upload_name: "A", created_at: "2026-04-18T10:00:00.000Z" });
+    // Upload B studied (older), Upload C never studied (lastStudiedAt null).
+    seedCard(deps.tables, "b1", { upload_id: "up-B", upload_name: "B" });
+    seedCard(deps.tables, "c1", { upload_id: "up-C", upload_name: "C" });
+    seedAttempt(deps.tables, "a1", { timestamp: "2026-04-22T11:00:00.000Z" });
+    seedAttempt(deps.tables, "b1", { timestamp: "2026-04-21T08:00:00.000Z" });
+
+    const res = await makeStatsUploadHandler(deps)(makeReq(validCookie(deps), COURSE_ID), ctx);
+    expect(res.status).toBe(200);
+    const body = bodyOf(res) as {
+      uploads: Array<{ uploadId: string; createdAt: string; lastStudiedAt: string | null }>;
+    };
+    expect(body.uploads.find((u) => u.uploadId === "up-A")?.createdAt).toBe("2026-04-18T10:00:00.000Z");
+    // Never-studied upload sorts last.
+    expect(body.uploads[body.uploads.length - 1]?.lastStudiedAt).toBeNull();
+    // A studied upload sorts first.
+    expect(body.uploads[0]?.lastStudiedAt).not.toBeNull();
+  });
 });

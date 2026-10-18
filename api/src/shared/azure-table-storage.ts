@@ -1,4 +1,4 @@
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 import { TableClient, odata } from "@azure/data-tables";
 import type { Entity, TableName, TableStorage } from "./table-storage.js";
 import {
@@ -118,4 +118,4 @@ export class AzureTableStorage implements TableStorage {
     }
   }
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

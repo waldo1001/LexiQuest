@@ -72,7 +72,7 @@ export function makeYearsHandler(deps: YearsDeps): HttpHandler {
   };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerYears(deps: YearsDeps): void {
   app.http("years", {
     route: "years",
@@ -81,4 +81,4 @@ export function registerYears(deps: YearsDeps): void {
     handler: makeYearsHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

@@ -233,7 +233,7 @@ export function makeMeHandler(deps: MeDeps): HttpHandler {
   };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerMe(deps: MeDeps): void {
   app.http("me", {
     route: "me",
@@ -242,4 +242,4 @@ export function registerMe(deps: MeDeps): void {
     handler: makeMeHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

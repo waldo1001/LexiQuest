@@ -38,6 +38,9 @@ export function makeStatsCourseHandler(deps: StatsCourseDeps): HttpHandler {
     if (!auth.ok) return auth.response;
 
     const params = (req as unknown as { params?: Record<string, string> }).params;
+    // The route always supplies params.courseId; the optional chain + ?? "" is
+    // a type-guard with no reachable fallback.
+    /* v8 ignore next -- @preserve */
     const courseId = params?.courseId ?? "";
 
     // Find the course across all user partitions (family visibility)
@@ -108,6 +111,9 @@ export function makeStatsCourseHandler(deps: StatsCourseDeps): HttpHandler {
       .slice(0, 20)
       .map(([cardId, failCount]) => ({
         cardId,
+        // cardId always resolves in cardById (struggle list is built from this
+        // course's cards); the ?. + ?? "" is an unreachable type-guard.
+        /* v8 ignore next -- @preserve */
         question: cardById.get(cardId)?.question ?? "",
         failCount,
       }));
@@ -161,7 +167,7 @@ async function findCourseAnywhere(
   return null;
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerStatsCourse(deps: StatsCourseDeps): void {
   app.http("stats-course", {
     route: "stats/course/{courseId}",
@@ -170,4 +176,4 @@ export function registerStatsCourse(deps: StatsCourseDeps): void {
     handler: makeStatsCourseHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

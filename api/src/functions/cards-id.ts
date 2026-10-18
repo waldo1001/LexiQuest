@@ -120,7 +120,7 @@ function readQuery(req: HttpRequest, name: string): string | null {
   return typeof v === "string" && v.length > 0 ? v : null;
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerCardsId(deps: CardsIdDeps): void {
   app.http("cards-id", {
     route: "cards/{id}",
@@ -129,4 +129,4 @@ export function registerCardsId(deps: CardsIdDeps): void {
     handler: makeCardsIdHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

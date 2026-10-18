@@ -708,3 +708,56 @@ describe("buildQueue — never empty (hardest-first fallback)", () => {
     expect(result).toHaveLength(0);
   });
 });
+
+describe("buildQueue — deterministic tie-breaks and never-studied backfill", () => {
+  const now = new Date("2026-01-15T12:00:00Z");
+  const due = new Date("2026-01-10T12:00:00Z").toISOString();
+
+  it("sequential order breaks created_at ties by card id (ascending)", () => {
+    const sameCreated = "2026-01-01T00:00:00.000Z";
+    const cards = ["b", "a", "c"].map((id) =>
+      makeCard({ rowKey: id, created_at: sameCreated, next_review_at: due, sm2_reps: 2 }),
+    );
+    const result = buildQueue(cards, {
+      gameType: "classic",
+      cardLimit: null,
+      now,
+      shuffle: noopShuffle,
+      cardOrder: "sequential",
+    });
+    expect(result.map((c) => c.rowKey)).toEqual(["a", "b", "c"]);
+  });
+
+  it("hardest-first order breaks ease ties by card id (ascending)", () => {
+    const cards = ["y", "x", "z"].map((id) =>
+      makeCard({ rowKey: id, sm2_ease: 1.5, next_review_at: due, sm2_reps: 2 }),
+    );
+    const result = buildQueue(cards, {
+      gameType: "classic",
+      cardLimit: null,
+      now,
+      shuffle: noopShuffle,
+      // no cardOrder → default hardest_first
+    });
+    expect(result.map((c) => c.rowKey)).toEqual(["x", "y", "z"]);
+  });
+
+  it("boss_round backfill scores never-studied cards (reps=0) as least known", () => {
+    const hard = ["h1", "h2"].map((id) =>
+      makeCard({ rowKey: id, sm2_ease: 1.5, sm2_reps: 3, next_review_at: due }),
+    );
+    const neverStudied = ["n1", "n2", "n3"].map((id) =>
+      makeCard({ rowKey: id, sm2_ease: 2.5, sm2_reps: 0, next_review_at: due }),
+    );
+    const result = buildQueue([...hard, ...neverStudied], {
+      gameType: "boss_round",
+      cardLimit: 5,
+      now,
+      shuffle: noopShuffle,
+    });
+    // 2 hard primary + 3 never-studied backfilled to fill the limit of 5
+    expect(result).toHaveLength(5);
+    const ids = new Set(result.map((c) => c.rowKey));
+    expect(ids.has("n1") && ids.has("n2") && ids.has("n3")).toBe(true);
+  });
+});

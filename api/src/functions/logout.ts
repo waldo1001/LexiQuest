@@ -16,7 +16,7 @@ export function makeLogoutHandler(deps: LogoutDeps): HttpHandler {
   });
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerLogout(deps: LogoutDeps): void {
   app.http("logout", {
     route: "logout",
@@ -25,4 +25,4 @@ export function registerLogout(deps: LogoutDeps): void {
     handler: makeLogoutHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

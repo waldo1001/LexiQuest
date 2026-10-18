@@ -198,6 +198,32 @@ describe("GET /api/stats/compare", () => {
     expect(apr20?.[USER_B]).toBe(60);
   });
 
+  it("computes the accuracy metric per day, including a zero-studied day", async () => {
+    const deps = makeDeps();
+    seedUser(deps.tables, USER_A);
+    // Day 1 has cards studied (ternary true); day 2 has none (ternary → 0).
+    seedSession(deps.tables, USER_A, {
+      started_at: "2026-04-20T09:00:00.000Z",
+      cards_studied: 10,
+      cards_correct: 7,
+    });
+    seedSession(deps.tables, USER_A, {
+      started_at: "2026-04-21T09:00:00.000Z",
+      rowKey: "2026-04-21T09:00:00.000Z_s-zero",
+      cards_studied: 0,
+      cards_correct: 0,
+    });
+    const handler = makeStatsCompareHandler(deps);
+    const res = await handler(
+      makeReq(validCookie(deps), "/compare", { userIds: USER_A, metric: "accuracy", range: "30d" }),
+      ctx,
+    );
+    expect(res.status).toBe(200);
+    const body = bodyOf(res) as { series: Array<Record<string, unknown>> };
+    expect(body.series.find((s) => s.date === "2026-04-20")?.[USER_A]).toBe(70);
+    expect(body.series.find((s) => s.date === "2026-04-21")?.[USER_A]).toBe(0);
+  });
+
   it("returns Cache-Control: private, max-age=60", async () => {
     const deps = makeDeps();
     seedUser(deps.tables, USER_A);
