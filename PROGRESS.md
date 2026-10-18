@@ -27,7 +27,8 @@ Specs in [docs/specs/](docs/specs/README.md) with `status: draft` or
 waldo.Jarvis's League once the owner applies `spec-approved` on the issue).
 One line each: `- ⬜ [title](docs/specs/<issue>-<slug>.md) — issue #<n>, proposed <date>`.
 
-None open.
+- ⬜ [`npm audit` clean: vitest 4, transitive patches, unused `uuid` removed, sharp 0.35, Anthropic SDK current](docs/specs/2-dependency-upgrades-npm-audit.md) — issue #2, proposed 2026-10-18 (human build only: touches protected `package.json` files)
+- ⬜ [`npm run typecheck` and `npm run lint` go green and join CI and the League's gate](docs/specs/3-typecheck-and-lint-green.md) — issue #3, proposed 2026-10-18
 
 ---
 
