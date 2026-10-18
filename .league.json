@@ -6,13 +6,25 @@
   },
   "build": "/sdd-build {spec}",
   "draft": "/sdd-draft {issue}",
-  "commands": [],
-  "pre_build": [],
+  "commands": [
+    "npm run test:api",
+    "npm run test:frontend",
+    "npm run test:file:api",
+    "npm run test:file:frontend",
+    "node scripts/validate-specs.js"
+  ],
+  "pre_build": [
+    "npm ci --prefix api --no-audit --no-fund",
+    "npm ci --prefix frontend --no-audit --no-fund"
+  ],
   "ci_required": [
-    "Azure Static Web Apps CI/CD"
+    "CI"
   ],
   "protected": [
-    "**/CHANGELOG.md",
-    "scripts/release*"
+    "api/package.json",
+    "frontend/package.json",
+    "api/host.json",
+    "staticwebapp.config.json",
+    "api/scripts/**"
   ]
 }
