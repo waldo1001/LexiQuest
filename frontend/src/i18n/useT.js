@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useAppContext } from "../context/AppContext.jsx";
+import { useAppContext } from "../context/app-hooks.js";
 import { translate } from "./strings.js";
 
 /**

@@ -12,7 +12,7 @@ import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
 import { FakeRandom } from "../../testing/fake-random.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 
 function makeReq(
@@ -99,7 +99,7 @@ function makeUser(userId: string, isAdmin = false): UserRow {
     avatar_emoji: "🦊",
     ui_language: "en",
     is_admin: isAdmin,
-    settings: "{}",
+    settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 10 },
     created_at: "2026-04-22T09:00:00.000Z",
   };
 }
@@ -174,7 +174,7 @@ describe("GET /api/cards", () => {
       ctx,
     )) as HttpResponseInit;
     expect(res.status).toBe(200);
-    const body = res.jsonBody as CardRow[];
+    const body = res.jsonBody as Array<CardRow & { id: string }>;
     expect(body).toHaveLength(2);
     expect(body.map((c) => c.id).sort()).toEqual(["card-1", "card-2"]);
   });
@@ -261,7 +261,7 @@ describe("POST /api/cards", () => {
       ctx,
     )) as HttpResponseInit;
     expect(res.status).toBe(201);
-    const body = res.jsonBody as CardRow;
+    const body = res.jsonBody as CardRow & { id: string };
     expect(body.id).toBe(CARD_UUID);
     expect(body.sm2_ease).toBe(2.5);
     expect(body.sm2_interval).toBe(0);
@@ -373,7 +373,7 @@ describe("POST /api/cards", () => {
     expect(res.status).toBe(201);
     const rows = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
     expect(rows).toHaveLength(1);
-    expect(rows[0].reverse_of).toBeNull();
+    expect(rows[0]!.reverse_of).toBeNull();
   });
 
   // -----------------------------------------------------------------

@@ -6,7 +6,7 @@ import {
   closeSession as closeSessionApi,
 } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
-import { useTts, useAppContext } from "../context/AppContext.jsx";
+import { useTts, useAppContext } from "../context/app-hooks.js";
 
 /**
  * @typedef {{ id: string, question: string, answer: string, distractors?: string[] }} Card
@@ -225,9 +225,15 @@ export default function StudySession({
 
   // Ref mirrors the latest state so the unmount/pagehide cleanup can read it.
   const flushRef = useRef({ sessionId: null, pendingAttempts: [], firstTryResults: {}, saved: false });
-  flushRef.current.sessionId = state.sessionId;
-  flushRef.current.pendingAttempts = state.pendingAttempts;
-  flushRef.current.firstTryResults = state.firstTryResults;
+  // Updated after every render (no dependency array), never during render.
+  useEffect(() => {
+    flushRef.current = {
+      ...flushRef.current,
+      sessionId: state.sessionId,
+      pendingAttempts: state.pendingAttempts,
+      firstTryResults: state.firstTryResults,
+    };
+  });
 
   // Finish session when phase transitions to FINISHING
   const finishSession = useCallback(async () => {

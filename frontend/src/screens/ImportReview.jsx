@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { batchCreateCards as batchCreateCardsApi } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
-import { useAppContext } from "../context/AppContext.jsx";
+import { useAppContext } from "../context/app-hooks.js";
 
 /**
  * @param {{ batchCreateCards?: typeof batchCreateCardsApi }} props

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useT } from "../i18n/useT.js";
-import { useAppContext } from "../context/AppContext.jsx";
+import { useAppContext } from "../context/app-hooks.js";
 import { patchMe as patchMeApi } from "../lib/api.js";
 
 /** @type {ReadonlyArray<"en"|"nl">} */

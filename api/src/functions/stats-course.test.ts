@@ -4,7 +4,8 @@ import { makeStatsCourseHandler, type StatsCourseDeps } from "./stats-course.js"
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { SessionRow } from "./sessions-shared.js";
@@ -82,6 +83,9 @@ function seedSession(tables: FakeTableStorage, overrides: Partial<SessionRow> = 
     user_id: USER_ID,
     course_id: COURSE_ID,
     mode: "self_grade",
+    game_type: "classic",
+    card_limit: null,
+    card_order: "random",
     started_at: started,
     ended_at: started,
     cards_studied: 10,
@@ -115,7 +119,6 @@ function seedAttempt(tables: FakeTableStorage, overrides: Partial<AttemptRow> = 
 function seedCard(tables: FakeTableStorage, overrides: Partial<CardRow> & { rowKey: string } = { rowKey: "card-1" }): CardRow {
   const row: CardRow = {
     partitionKey: COURSE_ID,
-    rowKey: overrides.rowKey,
     course_id: COURSE_ID,
     question: `Q-${overrides.rowKey}?`,
     answer: "A",
@@ -168,7 +171,7 @@ describe("GET /api/stats/course/:courseId", () => {
     const handler = makeStatsCourseHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     expect(body.sessionsPerDay).toEqual([]);
     expect(body.accuracyTrend).toEqual([]);
     expect(body.masteryDistribution).toEqual({ new: 0, learning: 0, young: 0, mature: 0, mastered: 0 });
@@ -192,12 +195,12 @@ describe("GET /api/stats/course/:courseId", () => {
 
     const handler = makeStatsCourseHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     const list = body.cardStruggleList as { cardId: string; question: string; failCount: number }[];
-    expect(list[0].cardId).toBe("card-1");
-    expect(list[0].failCount).toBe(3);
-    expect(list[1].cardId).toBe("card-2");
-    expect(list[1].failCount).toBe(1);
+    expect(list[0]!.cardId).toBe("card-1");
+    expect(list[0]!.failCount).toBe(3);
+    expect(list[1]!.cardId).toBe("card-2");
+    expect(list[1]!.failCount).toBe(1);
   });
 
   it("cardStruggleList limits to top 20", async () => {
@@ -213,7 +216,7 @@ describe("GET /api/stats/course/:courseId", () => {
     }
     const handler = makeStatsCourseHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     const list = body.cardStruggleList as unknown[];
     expect(list.length).toBeLessThanOrEqual(20);
   });
@@ -272,7 +275,7 @@ describe("GET /api/stats/course/:courseId", () => {
     seedSession(deps.tables, { started_at: "2026-04-20T09:00:00.000Z", course_id: COURSE_ID });
     const handler = makeStatsCourseHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     const spd = body.sessionsPerDay as { date: string; count: number }[];
     expect(spd.find((s) => s.date === "2026-04-20")).toBeDefined();
   });

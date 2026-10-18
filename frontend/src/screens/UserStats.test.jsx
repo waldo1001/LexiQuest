@@ -106,6 +106,26 @@ describe("UserStats", () => {
     );
   });
 
+  it("US-9: shows loading again when the range changes", async () => {
+    const fetchStats = vi.fn()
+      .mockResolvedValueOnce(STATS)
+      .mockImplementation(() => new Promise(() => {}));
+    const fetchHeatmap = vi.fn().mockResolvedValue(HEATMAP);
+    render(
+      <AppProvider initialUser={{ id: "u0", name: "Test" }}>
+        <MemoryRouter initialEntries={["/stats/user/u1"]}>
+          <Routes>
+            <Route path="/stats/user/:userId" element={<UserStats fetchStats={fetchStats} fetchHeatmap={fetchHeatmap} />} />
+          </Routes>
+        </MemoryRouter>
+      </AppProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("range-7d")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("range-7d"));
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("user-name")).not.toBeInTheDocument();
+  });
+
   it("US-7: fetchHeatmap called with the userId from the route", async () => {
     const { fetchHeatmap } = renderStats({ userId: "u1" });
     await waitFor(() => expect(screen.getByTestId("user-name")).toBeInTheDocument());

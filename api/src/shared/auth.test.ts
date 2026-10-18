@@ -3,7 +3,7 @@ import type { HttpRequest } from "@azure/functions";
 import { requireAuth } from "./auth.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
-import { buildSessionCookie } from "./session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
 
 function reqWithCookie(cookie: string | null): HttpRequest {
   const headers = {

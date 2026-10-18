@@ -4,7 +4,8 @@ import { makeStatsUserHandler, type StatsUserDeps } from "./stats-user.js";
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { SessionRow } from "./sessions-shared.js";
@@ -76,6 +77,9 @@ function seedSession(tables: FakeTableStorage, overrides: Partial<SessionRow> = 
     user_id: USER_ID,
     course_id: COURSE_ID,
     mode: "self_grade",
+    game_type: "classic",
+    card_limit: null,
+    card_order: "random",
     started_at: started,
     ended_at: overrides.ended_at ?? started,
     cards_studied: 10,
@@ -109,7 +113,6 @@ function seedAttempt(tables: FakeTableStorage, overrides: Partial<AttemptRow> = 
 function seedCard(tables: FakeTableStorage, overrides: Partial<CardRow> & { rowKey: string } = { rowKey: "card-1" }): CardRow {
   const row: CardRow = {
     partitionKey: COURSE_ID,
-    rowKey: overrides.rowKey,
     course_id: COURSE_ID,
     question: "Q?",
     answer: "A",
@@ -180,7 +183,7 @@ describe("GET /api/stats/user/:userId", () => {
     const handler = makeStatsUserHandler(deps);
     const res = await handler(makeReq(validCookie(deps), USER_ID), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     expect(body.totalXp).toBe(0);
     expect(body.level).toBe(0);
     expect(body.currentStreak).toBe(0);
@@ -198,7 +201,7 @@ describe("GET /api/stats/user/:userId", () => {
     const handler = makeStatsUserHandler(deps);
     const res = await handler(makeReq(validCookie(deps), USER_ID), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     expect(body.totalXp).toBe(1200);
     expect(body.level).toBe(6); // floor(1200 / 200)
     expect(body.currentStreak).toBe(5);
@@ -212,7 +215,7 @@ describe("GET /api/stats/user/:userId", () => {
     seedSession(deps.tables, { started_at: "2026-04-21T09:00:00.000Z", rowKey: "2026-04-21T09:00:00.000Z_s-2", cards_studied: 5, cards_correct: 4, duration_seconds: 180, xp_earned: 50 });
     const handler = makeStatsUserHandler(deps);
     const res = await handler(makeReq(validCookie(deps), USER_ID), ctx);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     expect(body.totalSessions).toBe(2);
     expect(body.totalCardsStudied).toBe(15);
     expect(body.totalMinutes).toBeCloseTo(8); // (300+180)/60 = 8
@@ -229,7 +232,7 @@ describe("GET /api/stats/user/:userId", () => {
     });
     const handler = makeStatsUserHandler(deps);
     const res = await handler(makeReq(validCookie(deps), USER_ID, "7d"), ctx);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     const sessionsPerDay = body.sessionsPerDay as { date: string; count: number }[];
     const inRange = sessionsPerDay.find((s) => s.date === "2026-04-20");
     expect(inRange).toBeDefined();
@@ -246,7 +249,7 @@ describe("GET /api/stats/user/:userId", () => {
     seedCard(deps.tables, { rowKey: "card-mastered", sm2_reps: 6, sm2_interval: 90 });
     const handler = makeStatsUserHandler(deps);
     const res = await handler(makeReq(validCookie(deps), USER_ID), ctx);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     const dist = body.masteryDistribution as Record<string, number>;
     expect(dist.new).toBe(1);
     expect(dist.learning).toBe(1);
@@ -279,7 +282,7 @@ describe("GET /api/stats/user/:userId", () => {
     const handler = makeStatsUserHandler(deps);
     const res = await handler(makeReq(validCookie(deps), USER_ID), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as { totalXp: number; currentStreak: number; badgesEarned: string[] };
+    const body = bodyOf(res) as { totalXp: number; currentStreak: number; badgesEarned: string[] };
     expect(body.totalXp).toBe(0);
     expect(body.currentStreak).toBe(0);
     expect(body.badgesEarned).toEqual([]);
@@ -296,7 +299,7 @@ describe("GET /api/stats/user/:userId", () => {
     const handler = makeStatsUserHandler(deps);
     const res = await handler(makeReq(validCookie(deps), USER_ID), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as { accuracyTrend: { date: string; pctFirstTry: number }[] };
+    const body = bodyOf(res) as { accuracyTrend: { date: string; pctFirstTry: number }[] };
     const entry = body.accuracyTrend.find((e) => e.date === "2026-04-20");
     expect(entry?.pctFirstTry).toBe(0);
   });
@@ -311,7 +314,7 @@ describe("GET /api/stats/user/:userId", () => {
     seedAttempt(deps.tables, { response_time_ms: 15000, timestamp: `${base}03:00.000Z`, rowKey: `${base}03:00.000Z_a-4` });
     const handler = makeStatsUserHandler(deps);
     const res = await handler(makeReq(validCookie(deps), USER_ID), ctx);
-    const body = res.jsonBody as { responseTimeBuckets: { bucket: string; count: number }[] };
+    const body = bodyOf(res) as { responseTimeBuckets: { bucket: string; count: number }[] };
     const buckets = Object.fromEntries(body.responseTimeBuckets.map((b) => [b.bucket, b.count]));
     expect(buckets["<1s"]).toBe(1);
     expect(buckets["1-3s"]).toBe(1);
@@ -328,7 +331,7 @@ describe("GET /api/stats/user/:userId", () => {
     seedAttempt(deps.tables, { timestamp: "2026-04-20T20:30:00.000Z", rowKey: "2026-04-20T20:30:00.000Z_a-2" });
     const handler = makeStatsUserHandler(deps);
     const res = await handler(makeReq(validCookie(deps), USER_ID), ctx);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     const hourOfDay = body.hourOfDay as { hour: number; attempts: number }[];
     expect(hourOfDay).toHaveLength(24);
     const h8 = hourOfDay.find((h) => h.hour === 8);

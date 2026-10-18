@@ -6,7 +6,8 @@ import { makeSessionRowKey } from "./sessions-shared.js";
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 
@@ -50,6 +51,9 @@ function seedSession(
     user_id: USER_ID,
     course_id: COURSE_ID,
     mode: "self_grade",
+    game_type: "classic",
+    card_limit: null,
+    card_order: "random",
     started_at: STARTED_AT,
     ended_at: NOW,
     cards_studied: 10,
@@ -82,7 +86,7 @@ describe("GET /api/stats/session/:id", () => {
     const cookie = validCookie(deps);
     const res = await makeStatsSessionHandler(deps)(makeReq(cookie, SESSION_ID), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     expect(body.id).toBe(SESSION_ID);
     expect(body.cards_studied).toBe(10);
     expect(body.cards_correct).toBe(8);
@@ -95,7 +99,7 @@ describe("GET /api/stats/session/:id", () => {
     seedSession(deps.tables);
     const cookie = validCookie(deps);
     const res = await makeStatsSessionHandler(deps)(makeReq(cookie, SESSION_ID), ctx);
-    expect((res.jsonBody as Record<string, unknown>).accuracy).toBe(80);
+    expect((bodyOf(res) as Record<string, unknown>).accuracy).toBe(80);
   });
 
   it("AC5: returns 0 accuracy when cards_studied is 0", async () => {
@@ -103,7 +107,7 @@ describe("GET /api/stats/session/:id", () => {
     seedSession(deps.tables, { cards_studied: 0, cards_correct: 0 });
     const cookie = validCookie(deps);
     const res = await makeStatsSessionHandler(deps)(makeReq(cookie, SESSION_ID), ctx);
-    expect((res.jsonBody as Record<string, unknown>).accuracy).toBe(0);
+    expect((bodyOf(res) as Record<string, unknown>).accuracy).toBe(0);
   });
 
   it("AC6: any authenticated user can read any session (stats are public within family)", async () => {
@@ -114,14 +118,13 @@ describe("GET /api/stats/session/:id", () => {
     const userRow: UserRow = {
       partitionKey: PARTITIONS.users,
       rowKey: USER_ID,
-      id: USER_ID,
       name: "Lex",
       password_hash: "x",
       is_admin: false,
       color: "#111",
       avatar_emoji: "🦊",
       ui_language: "en",
-      settings: JSON.stringify({ auto_speak: false, preferred_mode: "self_grade", daily_goal: 20 }),
+      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 20 },
       created_at: NOW,
     };
     void deps.tables.upsert("users", userRow);
@@ -155,16 +158,16 @@ describe("GET /api/stats/session/:id", () => {
 
     // Seed both users so the scanner sees u-lex + u-mats
     const lexRow: UserRow = {
-      partitionKey: PARTITIONS.users, rowKey: USER_ID, id: USER_ID,
+      partitionKey: PARTITIONS.users, rowKey: USER_ID,
       name: "Lex", password_hash: "x", is_admin: false,
       color: "#111", avatar_emoji: "🦊", ui_language: "en",
-      settings: JSON.stringify({}), created_at: NOW,
+      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 10 }, created_at: NOW,
     };
     const matsRow: UserRow = {
-      partitionKey: PARTITIONS.users, rowKey: "u-mats", id: "u-mats",
+      partitionKey: PARTITIONS.users, rowKey: "u-mats",
       name: "Mats", password_hash: "x", is_admin: false,
       color: "#222", avatar_emoji: "🐻", ui_language: "en",
-      settings: JSON.stringify({}), created_at: NOW,
+      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 10 }, created_at: NOW,
     };
     await deps.tables.upsert("users", lexRow);
     await deps.tables.upsert("users", matsRow);

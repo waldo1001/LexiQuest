@@ -8,15 +8,19 @@ const PERIODS = ["7d", "30d", "all"];
 export default function Leaderboard({ fetchLeaderboard = fetchLeaderboardApi }) {
   const t = useT();
   const [period, setPeriod] = useState("all");
-  const [data, setData] = useState(null);
+  // Keyed by the request parameters: a result for another key reads as "loading".
+  const [result, setResult] = useState({ key: null, data: null });
+  const key = period;
+  const data = result.key === key ? result.data : null;
 
   useEffect(() => {
     let cancelled = false;
-    setData(null);
     fetchLeaderboard({ period }, {}).then((d) => {
-      if (!cancelled) setData(d);
+      if (!cancelled) setResult({ key: period, data: d });
     }).catch(() => {
-      if (!cancelled) setData({ rankings: [], mostAccurate: null, longestStreak: null, mostSessions: null });
+      if (!cancelled) {
+        setResult({ key: period, data: { rankings: [], mostAccurate: null, longestStreak: null, mostSessions: null } });
+      }
     });
     return () => { cancelled = true; };
   }, [period, fetchLeaderboard]);

@@ -87,6 +87,17 @@ describe("FamilyDashboard", () => {
     );
   });
 
+  it("FD-9: shows loading again when the range changes", async () => {
+    const fetchFamily = vi.fn()
+      .mockResolvedValueOnce(makeFamily())
+      .mockImplementation(() => new Promise(() => {}));
+    renderDash({ fetchFamily });
+    await waitFor(() => expect(screen.getAllByTestId("family-user-card")).toHaveLength(2));
+    fireEvent.click(screen.getByTestId("range-90d"));
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("family-user-card-u1")).not.toBeInTheDocument();
+  });
+
   it("FD-6: renders XP over time section heading", async () => {
     renderDash();
     await waitFor(() => expect(screen.getAllByTestId("family-user-card")).toHaveLength(2));

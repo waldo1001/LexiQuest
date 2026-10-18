@@ -62,6 +62,17 @@ describe("Leaderboard", () => {
     );
   });
 
+  it("LB-UI-8: shows loading again when the period changes", async () => {
+    const fetchLeaderboard = vi.fn()
+      .mockResolvedValueOnce(LEADERBOARD)
+      .mockImplementation(() => new Promise(() => {}));
+    renderLB(fetchLeaderboard);
+    await waitFor(() => expect(screen.getAllByTestId("ranking-row")).toHaveLength(3));
+    fireEvent.click(screen.getByTestId("period-7d"));
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("ranking-row")).not.toBeInTheDocument();
+  });
+
   it("LB-UI-5: renders three secondary award cards (mostAccurate, longestStreak, mostSessions)", async () => {
     renderLB();
     await waitFor(() => expect(screen.getByTestId("award-mostAccurate")).toBeInTheDocument());

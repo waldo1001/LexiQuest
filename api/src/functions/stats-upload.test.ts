@@ -4,7 +4,8 @@ import { makeStatsUploadHandler, type StatsUploadDeps } from "./stats-upload.js"
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { CardRow } from "./cards-shared.js";
@@ -142,7 +143,7 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
     expect(res.status).toBe(200);
-    expect((res.jsonBody as { uploads: unknown[] }).uploads).toEqual([]);
+    expect((bodyOf(res) as { uploads: unknown[] }).uploads).toEqual([]);
   });
 
   it("returns correct masteryDistribution per upload", async () => {
@@ -156,10 +157,10 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
 
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const body = res.jsonBody as { uploads: Array<{ uploadId: string; masteryDistribution: Record<string, number> }> };
+    const body = bodyOf(res) as { uploads: Array<{ uploadId: string; masteryDistribution: Record<string, number> }> };
     expect(body.uploads).toHaveLength(1);
-    expect(body.uploads[0].uploadId).toBe("up-A");
-    expect(body.uploads[0].masteryDistribution).toEqual({
+    expect(body.uploads[0]!.uploadId).toBe("up-A");
+    expect(body.uploads[0]!.masteryDistribution).toEqual({
       new: 1, learning: 0, young: 1, mature: 0, mastered: 1,
     });
   });
@@ -180,7 +181,7 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
 
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const upload = (res.jsonBody as { uploads: Array<{ totalAttempts: number; correctAttempts: number; accuracyPct: number }> }).uploads[0];
+    const upload = (bodyOf(res) as { uploads: Array<{ totalAttempts: number; correctAttempts: number; accuracyPct: number }> }).uploads[0]!;
     expect(upload.totalAttempts).toBe(4);
     expect(upload.correctAttempts).toBe(3);
     expect(upload.accuracyPct).toBe(75);
@@ -197,7 +198,7 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
 
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const upload = (res.jsonBody as { uploads: Array<{ lastStudiedAt: string | null }> }).uploads[0];
+    const upload = (bodyOf(res) as { uploads: Array<{ lastStudiedAt: string | null }> }).uploads[0]!;
     expect(upload.lastStudiedAt).toBe("2026-04-22T14:30:00.000Z");
   });
 
@@ -210,7 +211,7 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
 
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const upload = (res.jsonBody as { uploads: Array<{ lastStudiedAt: string | null; totalAttempts: number }> }).uploads[0];
+    const upload = (bodyOf(res) as { uploads: Array<{ lastStudiedAt: string | null; totalAttempts: number }> }).uploads[0]!;
     expect(upload.lastStudiedAt).toBeNull();
     expect(upload.totalAttempts).toBe(0);
   });
@@ -224,7 +225,7 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
 
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const upload = (res.jsonBody as { uploads: Array<{ avgEase: number }> }).uploads[0];
+    const upload = (bodyOf(res) as { uploads: Array<{ avgEase: number }> }).uploads[0]!;
     expect(upload.avgEase).toBe(2.5);
   });
 
@@ -241,7 +242,7 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
 
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID, "7d"), ctx);
-    const upload = (res.jsonBody as { uploads: Array<{ totalAttempts: number }> }).uploads[0];
+    const upload = (bodyOf(res) as { uploads: Array<{ totalAttempts: number }> }).uploads[0]!;
     expect(upload.totalAttempts).toBe(1);
   });
 
@@ -257,7 +258,7 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
 
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const uploads = (res.jsonBody as { uploads: Array<{ uploadId: string; uploadName: string | null; totalAttempts: number; correctAttempts: number; accuracyPct: number }> }).uploads;
+    const uploads = (bodyOf(res) as { uploads: Array<{ uploadId: string; uploadName: string | null; totalAttempts: number; correctAttempts: number; accuracyPct: number }> }).uploads;
 
     expect(uploads).toHaveLength(2);
     const upA = uploads.find((u) => u.uploadId === "up-A")!;
@@ -283,12 +284,12 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
 
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const uploads = (res.jsonBody as { uploads: Array<{ uploadId: string; lastStudiedAt: string | null }> }).uploads;
+    const uploads = (bodyOf(res) as { uploads: Array<{ uploadId: string; lastStudiedAt: string | null }> }).uploads;
 
-    expect(uploads[0].uploadId).toBe("up-B"); // most recent
-    expect(uploads[1].uploadId).toBe("up-A");
-    expect(uploads[2].uploadId).toBe("up-C"); // null last
-    expect(uploads[2].lastStudiedAt).toBeNull();
+    expect(uploads[0]!.uploadId).toBe("up-B"); // most recent
+    expect(uploads[1]!.uploadId).toBe("up-A");
+    expect(uploads[2]!.uploadId).toBe("up-C"); // null last
+    expect(uploads[2]!.lastStudiedAt).toBeNull();
   });
 
   it("finds course owned by another user (family visibility)", async () => {
@@ -308,7 +309,7 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
     expect(res.status).toBe(200);
-    expect((res.jsonBody as { uploads: unknown[] }).uploads).toHaveLength(1);
+    expect((bodyOf(res) as { uploads: unknown[] }).uploads).toHaveLength(1);
   });
 
   it("sorts two never-studied uploads stably", async () => {
@@ -321,10 +322,10 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
 
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const uploads = (res.jsonBody as { uploads: Array<{ uploadId: string; lastStudiedAt: string | null }> }).uploads;
+    const uploads = (bodyOf(res) as { uploads: Array<{ uploadId: string; lastStudiedAt: string | null }> }).uploads;
     expect(uploads).toHaveLength(2);
-    expect(uploads[0].lastStudiedAt).toBeNull();
-    expect(uploads[1].lastStudiedAt).toBeNull();
+    expect(uploads[0]!.lastStudiedAt).toBeNull();
+    expect(uploads[1]!.lastStudiedAt).toBeNull();
   });
 
   it("ignores attempts for manual cards (no upload_id)", async () => {
@@ -339,9 +340,9 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
 
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const uploads = (res.jsonBody as { uploads: Array<{ totalAttempts: number }> }).uploads;
+    const uploads = (bodyOf(res) as { uploads: Array<{ totalAttempts: number }> }).uploads;
     expect(uploads).toHaveLength(1);
-    expect(uploads[0].totalAttempts).toBe(1); // Only the uploaded card's attempt
+    expect(uploads[0]!.totalAttempts).toBe(1); // Only the uploaded card's attempt
   });
 
   it("uses upload_name from any card in the group", async () => {
@@ -354,7 +355,7 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
 
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const upload = (res.jsonBody as { uploads: Array<{ uploadName: string | null }> }).uploads[0];
+    const upload = (bodyOf(res) as { uploads: Array<{ uploadName: string | null }> }).uploads[0]!;
     expect(upload.uploadName).toBe("Chapter 5");
   });
 
@@ -367,7 +368,7 @@ describe("GET /api/stats/course/:courseId/uploads", () => {
 
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeReq(validCookie(deps), COURSE_ID), ctx);
-    const upload = (res.jsonBody as { uploads: Array<{ cardCount: number; createdAt: string }> }).uploads[0];
+    const upload = (bodyOf(res) as { uploads: Array<{ cardCount: number; createdAt: string }> }).uploads[0]!;
     expect(upload.cardCount).toBe(2);
     expect(upload.createdAt).toBe("2026-04-20T10:00:00.000Z");
   });

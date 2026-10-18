@@ -11,7 +11,7 @@ import {
   copyUploadCards as copyUploadCardsApi,
 } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
-import { useAppContext, useTts } from "../context/AppContext.jsx";
+import { useAppContext, useTts } from "../context/app-hooks.js";
 
 const EMPTY_NEW = { question: "", answer: "", hint: "", uploadId: "" };
 const MANUAL_KEY = "__manual__";

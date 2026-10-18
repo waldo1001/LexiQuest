@@ -79,8 +79,8 @@ describe("extractSlidesFromPptx", () => {
 
     const slides = await extractSlidesFromPptx(buf);
 
-    expect(slides[0].text).toBe("A & B < C > D \"E\" 'F'");
-    expect(slides[0].notes).toBe("x & y");
+    expect(slides[0]!.text).toBe("A & B < C > D \"E\" 'F'");
+    expect(slides[0]!.notes).toBe("x & y");
   });
 
   it("joins multiple text runs within a slide with spaces", async () => {
@@ -90,7 +90,7 @@ describe("extractSlidesFromPptx", () => {
 
     const slides = await extractSlidesFromPptx(buf);
 
-    expect(slides[0].text).toBe("Hello world again");
+    expect(slides[0]!.text).toBe("Hello world again");
   });
 
   it("orders slides numerically by index regardless of zip entry order", async () => {

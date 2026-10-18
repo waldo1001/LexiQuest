@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchMe, logout as logoutApi } from "../lib/api.js";
 import { useT } from "../i18n/useT.js";
-import { useAppContext } from "../context/AppContext.jsx";
+import { useAppContext } from "../context/app-hooks.js";
 
 export default function Home({
   fetchMe: fetchMeInjected = fetchMe,

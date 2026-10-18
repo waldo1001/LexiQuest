@@ -12,16 +12,17 @@ export default function FamilyDashboard({
 }) {
   const t = useT();
   const [range, setRange] = useState("30d");
-  const [users, setUsers] = useState(null);
+  // Keyed by the request parameters: a result for another key reads as "loading".
+  const [usersResult, setUsersResult] = useState({ key: null, users: null });
+  const users = usersResult.key === range ? usersResult.users : null;
   const [xpSeries, setXpSeries] = useState([]);
   const [accuracySeries, setAccuracySeries] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
-    setUsers(null);
     fetchFamily({ range }, {}).then((data) => {
       if (cancelled) return;
-      setUsers(data.users);
+      setUsersResult({ key: range, users: data.users });
       const ids = data.users.map((u) => u.userId);
       const colors = Object.fromEntries(data.users.map((u) => [u.userId, u.color]));
       return Promise.all([
@@ -33,7 +34,7 @@ export default function FamilyDashboard({
         }),
       ]).then(() => colors);
     }).catch(() => {
-      if (!cancelled) setUsers([]);
+      if (!cancelled) setUsersResult({ key: range, users: [] });
     });
     return () => { cancelled = true; };
   }, [range, fetchFamily, fetchCompare]);

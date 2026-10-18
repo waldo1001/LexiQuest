@@ -90,6 +90,25 @@ describe("CourseStats", () => {
     );
   });
 
+  it("CS-9: shows loading again when the range changes", async () => {
+    const fetchStats = vi.fn()
+      .mockResolvedValueOnce(STATS)
+      .mockImplementation(() => new Promise(() => {}));
+    render(
+      <AppProvider initialUser={{ id: "u0", name: "Test" }}>
+        <MemoryRouter initialEntries={["/stats/course/c1"]}>
+          <Routes>
+            <Route path="/stats/course/:courseId" element={<CourseStats fetchStats={fetchStats} />} />
+          </Routes>
+        </MemoryRouter>
+      </AppProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("range-7d")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("range-7d"));
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("course-name")).not.toBeInTheDocument();
+  });
+
   it("CS-8: shows 404 message on not_found error", async () => {
     const fetchStats = vi.fn().mockRejectedValue(new Error("not_found"));
     render(

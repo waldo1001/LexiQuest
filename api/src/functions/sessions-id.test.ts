@@ -8,7 +8,7 @@ import { makeAttemptRowKey } from "./attempts-shared.js";
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 
@@ -65,6 +65,7 @@ function makeSession(userId = USER_ID, overrides: Partial<SessionRow> = {}): Ses
     mode: "self_grade",
     game_type: "classic",
     card_limit: null,
+    card_order: "random",
     started_at: STARTED_AT,
     ended_at: null,
     cards_studied: 0,
@@ -232,7 +233,7 @@ describe("PUT /api/sessions/:id", () => {
       rowKey: USER_ID,
       name: "Lex", password_hash: "x", is_admin: false,
       color: "#16a34a", avatar_emoji: "🐯", ui_language: "en",
-      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 20, badges: [] } as unknown as Record<string, unknown>,
+      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 20, badges: [] } as unknown as UserRow["settings"],
       created_at: STARTED_AT,
     };
     await deps.tables.upsert<UserRow>("users", userRow);
@@ -267,7 +268,7 @@ describe("PUT /api/sessions/:id", () => {
       rowKey: USER_ID,
       name: "Lex", password_hash: "x", is_admin: false,
       color: "#16a34a", avatar_emoji: "🐯", ui_language: "en",
-      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 20, badges: [] } as unknown as Record<string, unknown>,
+      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 20, badges: [] } as unknown as UserRow["settings"],
       created_at: STARTED_AT,
     };
     await deps.tables.upsert<UserRow>("users", userRow);
@@ -289,7 +290,7 @@ describe("PUT /api/sessions/:id", () => {
       rowKey: USER_ID,
       name: "Lex", password_hash: "x", is_admin: false,
       color: "#16a34a", avatar_emoji: "🐯", ui_language: "en",
-      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 20 } as unknown as Record<string, unknown>,
+      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 20 } as unknown as UserRow["settings"],
       created_at: STARTED_AT,
     };
     await deps.tables.upsert<UserRow>("users", userRow);
@@ -324,7 +325,7 @@ describe("PUT /api/sessions/:id", () => {
       rowKey: USER_ID,
       name: "Lex", password_hash: "x", is_admin: false,
       color: "#16a34a", avatar_emoji: "🐯", ui_language: "en",
-      settings: JSON.stringify({ auto_speak: false, preferred_mode: "self_grade", daily_goal: 20 }) as unknown as Record<string, unknown>,
+      settings: JSON.stringify({ auto_speak: false, preferred_mode: "self_grade", daily_goal: 20 }) as unknown as UserRow["settings"],
       created_at: STARTED_AT,
     };
     await deps.tables.upsert<UserRow>("users", userRow);

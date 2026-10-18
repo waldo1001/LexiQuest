@@ -4,7 +4,8 @@ import { makeExportHandler, type ExportDeps } from "./export.js";
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf, headersOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 
@@ -77,7 +78,7 @@ describe("GET /api/export", () => {
     const handler = makeExportHandler(deps);
     const res = await handler(makeReq(validCookie(deps)), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     expect(body).toHaveProperty("user");
     expect(body).toHaveProperty("courses");
     expect(body).toHaveProperty("cards");
@@ -90,7 +91,7 @@ describe("GET /api/export", () => {
     seedUser(deps.tables, USER_A);
     const handler = makeExportHandler(deps);
     const res = await handler(makeReq(validCookie(deps)), ctx);
-    const serialized = JSON.stringify(res.jsonBody);
+    const serialized = JSON.stringify(bodyOf(res));
     expect(serialized).not.toContain("password_hash");
     expect(serialized).not.toContain("secret-hash");
   });
@@ -111,7 +112,7 @@ describe("GET /api/export", () => {
     const handler = makeExportHandler(deps);
     const res = await handler(makeReq(validCookie(deps, USER_A, true), { userId: USER_B }), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as { user: { userId: string } };
+    const body = bodyOf(res) as { user: { userId: string } };
     expect(body.user.userId).toBe(USER_B);
   });
 
@@ -120,7 +121,7 @@ describe("GET /api/export", () => {
     seedUser(deps.tables, USER_A);
     const handler = makeExportHandler(deps);
     const res = await handler(makeReq(validCookie(deps)), ctx);
-    const body = res.jsonBody as { user: Record<string, unknown> };
+    const body = bodyOf(res) as { user: Record<string, unknown> };
     expect(body.user.userId).toBe(USER_A);
     expect(body.user.name).toBe("Lex");
     expect(body.user).not.toHaveProperty("password_hash");
@@ -131,7 +132,7 @@ describe("GET /api/export", () => {
     seedUser(deps.tables, USER_A);
     const handler = makeExportHandler(deps);
     const res = await handler(makeReq(validCookie(deps)), ctx);
-    expect(res.headers?.["Content-Disposition"]).toMatch(/attachment; filename=/);
+    expect(headersOf(res)["Content-Disposition"]).toMatch(/attachment; filename=/);
   });
 
   it("EX-9: admin requesting a non-existent userId gets 404", async () => {

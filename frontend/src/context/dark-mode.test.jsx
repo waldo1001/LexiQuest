@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { AppProvider, useAppContext } from "./AppContext.jsx";
+import { AppProvider } from "./AppContext.jsx";
+import { useAppContext } from "./app-hooks.js";
 
 const wrapper = ({ children }) => <AppProvider>{children}</AppProvider>;
 

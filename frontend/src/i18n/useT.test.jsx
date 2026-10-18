@@ -1,6 +1,7 @@
 import { render, screen, act } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { AppProvider, useAppContext } from "../context/AppContext.jsx";
+import { AppProvider } from "../context/AppContext.jsx";
+import { useAppContext } from "../context/app-hooks.js";
 import { useT } from "./useT.js";
 
 const noopPatch = () => vi.fn().mockResolvedValue({ ui_language: "nl" });

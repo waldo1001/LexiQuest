@@ -17,26 +17,29 @@ export default function UserStats({
   const t = useT();
   const { userId } = useParams();
   const [range, setRange] = useState("30d");
-  const [stats, setStats] = useState(null);
-  const [heatmap, setHeatmap] = useState([]);
+  // Keyed by the request parameters: a result for another key reads as "loading".
+  const [result, setResult] = useState({ key: null, stats: null, heatmap: [], notFound: false });
   const [tab, setTab] = useState("overview");
-  const [notFound, setNotFound] = useState(false);
+  const key = `${userId}|${range}`;
+  const current = result.key === key ? result : null;
+  const stats = current?.stats ?? null;
+  const notFound = current?.notFound ?? false;
+  const heatmap = result.heatmap;
 
   useEffect(() => {
     let cancelled = false;
-    setStats(null);
-    setNotFound(false);
+    const k = `${userId}|${range}`;
     Promise.all([
       fetchStats({ userId, range }, {}),
       fetchHeatmap({ userId, range: "1y" }, {}),
     ]).then(([s, h]) => {
       if (cancelled) return;
-      setStats(s);
-      setHeatmap(h.heatmap ?? []);
+      setResult({ key: k, stats: s, heatmap: h.heatmap ?? [], notFound: false });
     }).catch((err) => {
       if (cancelled) return;
-      if (err.message === "not_found") setNotFound(true);
-      else setStats(null);
+      if (err.message === "not_found") {
+        setResult((prev) => ({ key: k, stats: null, heatmap: prev.heatmap, notFound: true }));
+      }
     });
     return () => { cancelled = true; };
   }, [userId, range, fetchStats, fetchHeatmap]);

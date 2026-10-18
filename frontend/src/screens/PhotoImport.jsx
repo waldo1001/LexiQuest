@@ -8,7 +8,7 @@ import {
 import { compressImageIfNeeded } from "../lib/image-compress.js";
 import { splitPdfBase64 } from "../lib/pdf-chunk.js";
 import { useT } from "../i18n/useT.js";
-import { useAppContext } from "../context/AppContext.jsx";
+import { useAppContext } from "../context/app-hooks.js";
 
 const LANG_OPTIONS = [
   { value: "", labelKey: "import.langNone" },

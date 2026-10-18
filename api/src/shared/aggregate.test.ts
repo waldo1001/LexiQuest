@@ -141,7 +141,7 @@ describe("fetchAttempts", () => {
     const to = new Date("2026-04-20T23:59:59.999Z");
     const result = await fetchAttempts(tables, "u-1", from, to);
     expect(result).toHaveLength(1);
-    expect(result[0].timestamp).toBe("2026-04-15T10:00:00.000Z");
+    expect(result[0]!.timestamp).toBe("2026-04-15T10:00:00.000Z");
   });
 
   it("returns empty array when no attempts in range", async () => {
@@ -163,6 +163,9 @@ describe("fetchSessions", () => {
       user_id: "u-1",
       course_id: "course-1",
       mode: "self_grade",
+      game_type: "classic",
+      card_limit: null,
+      card_order: "random",
       started_at: startedAt,
       ended_at: startedAt,
       cards_studied: 5,
@@ -182,7 +185,7 @@ describe("fetchSessions", () => {
     const to = new Date("2026-04-20T23:59:59.999Z");
     const result = await fetchSessions(tables, "u-1", from, to);
     expect(result).toHaveLength(1);
-    expect(result[0].started_at).toBe("2026-04-15T10:00:00.000Z");
+    expect(result[0]!.started_at).toBe("2026-04-15T10:00:00.000Z");
   });
 });
 

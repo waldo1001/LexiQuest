@@ -151,6 +151,7 @@ describe("sessionProfile", () => {
     mode: "self_grade",
     game_type: "boss_round",
     card_limit: 15,
+    card_order: "random",
     started_at: "2026-04-22T10:00:00.000Z",
     ended_at: null,
     cards_studied: 5,

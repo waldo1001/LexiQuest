@@ -34,8 +34,8 @@ describe("parseCards", () => {
     const raw = '[{"question":"What is a dog?","answer":"le chien","distractors":["le chat","le cheval"]}]';
     const result = parseCards(raw);
     expect(result).toHaveLength(1);
-    expect(result[0].question).toBe("What is a dog?");
-    expect(result[0].distractors).toEqual(["le chat", "le cheval"]);
+    expect(result[0]!.question).toBe("What is a dog?");
+    expect(result[0]!.distractors).toEqual(["le chat", "le cheval"]);
   });
 
   it("handles JSON wrapped in fences (AC3)", () => {
@@ -71,15 +71,15 @@ describe("parseCards", () => {
       { question: "the dog", answer: "le chien", distractors: ["le chat", "le cheval"], question_lang: "en", answer_lang: "fr-FR" },
     ]);
     const result = parseCards(raw);
-    expect(result[0].question_lang).toBe("en");
-    expect(result[0].answer_lang).toBe("fr-FR");
+    expect(result[0]!.question_lang).toBe("en");
+    expect(result[0]!.answer_lang).toBe("fr-FR");
   });
 
   it("defaults missing question_lang and answer_lang to null (AC-lang2)", () => {
     const raw = '[{"question":"Q","answer":"A","distractors":["X","Y"]}]';
     const result = parseCards(raw);
-    expect(result[0].question_lang).toBeNull();
-    expect(result[0].answer_lang).toBeNull();
+    expect(result[0]!.question_lang).toBeNull();
+    expect(result[0]!.answer_lang).toBeNull();
   });
 });
 

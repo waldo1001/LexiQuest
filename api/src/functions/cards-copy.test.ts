@@ -5,7 +5,8 @@ import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
 import { FakeRandom } from "../../testing/fake-random.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { CourseRow } from "./courses-shared.js";
@@ -87,14 +88,13 @@ async function seedUser(deps: ReturnType<typeof makeDeps>, userId = USER_ID): Pr
   const row: UserRow = {
     partitionKey: PARTITIONS.users,
     rowKey: userId,
-    id: userId,
     name: "Lex",
     password_hash: "x",
     is_admin: false,
     color: "#111",
     avatar_emoji: "🦊",
     ui_language: "en",
-    settings: JSON.stringify({ auto_speak: false }),
+    settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 10 },
     created_at: NOW,
   };
   await deps.tables.upsert<UserRow>("users", row);
@@ -247,7 +247,7 @@ describe("POST /api/cards/copy", () => {
     const res = await makeCardsCopyHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
     expect(res.status).toBe(201);
 
-    const body = res.jsonBody as { copied: number; skipped: number; copied_card_ids: string[] };
+    const body = bodyOf(res) as { copied: number; skipped: number; copied_card_ids: string[] };
     expect(body.copied).toBe(2);
     expect(body.skipped).toBe(0);
     expect(body.copied_card_ids).toHaveLength(2);
@@ -333,7 +333,7 @@ describe("POST /api/cards/copy", () => {
     ]);
 
     const res = await makeCardsCopyHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
-    const body = res.jsonBody as { copied: number; skipped: number };
+    const body = bodyOf(res) as { copied: number; skipped: number };
     expect(body.copied).toBe(1);
     expect(body.skipped).toBe(1);
 
@@ -353,7 +353,7 @@ describe("POST /api/cards/copy", () => {
     ]);
 
     const res = await makeCardsCopyHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
-    const body = res.jsonBody as { copied: number; skipped: number };
+    const body = bodyOf(res) as { copied: number; skipped: number };
     expect(body.copied).toBe(0);
     expect(body.skipped).toBe(1);
   });
@@ -366,8 +366,8 @@ describe("POST /api/cards/copy", () => {
     ]);
 
     const res = await makeCardsCopyHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
-    expect((res.jsonBody as { copied: number }).copied).toBe(0);
-    expect((res.jsonBody as { skipped: number }).skipped).toBe(1);
+    expect((bodyOf(res) as { copied: number }).copied).toBe(0);
+    expect((bodyOf(res) as { skipped: number }).skipped).toBe(1);
   });
 
   it("dedup is scoped to target upload only (same Q in a third upload does not block)", async () => {
@@ -379,8 +379,8 @@ describe("POST /api/cards/copy", () => {
     ]);
 
     const res = await makeCardsCopyHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
-    expect((res.jsonBody as { copied: number }).copied).toBe(1);
-    expect((res.jsonBody as { skipped: number }).skipped).toBe(0);
+    expect((bodyOf(res) as { copied: number }).copied).toBe(1);
+    expect((bodyOf(res) as { skipped: number }).skipped).toBe(0);
   });
 
   it("skips reverse cards (reverse_of != null) from the source", async () => {
@@ -392,7 +392,7 @@ describe("POST /api/cards/copy", () => {
     ]);
 
     const res = await makeCardsCopyHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
-    const body = res.jsonBody as { copied: number; skipped: number };
+    const body = bodyOf(res) as { copied: number; skipped: number };
     expect(body.copied).toBe(1);
     // The reverse is not copied AND not counted as a skip — it's filtered out before dedup
     expect(body.skipped).toBe(0);
@@ -414,7 +414,7 @@ describe("POST /api/cards/copy", () => {
     ]);
 
     const res = await makeCardsCopyHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
-    const body = res.jsonBody as { copied: number; skipped: number };
+    const body = bodyOf(res) as { copied: number; skipped: number };
     expect(body.copied).toBe(1);
     expect(body.skipped).toBe(1);
   });
@@ -424,7 +424,7 @@ describe("POST /api/cards/copy", () => {
     await seedTwoUploads(deps);
 
     const res = await makeCardsCopyHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
-    const body = res.jsonBody as { copied_card_ids: string[] };
+    const body = bodyOf(res) as { copied_card_ids: string[] };
 
     const stored = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
     const newCards = stored.filter(
@@ -441,7 +441,7 @@ describe("POST /api/cards/copy", () => {
 
     const res = await makeCardsCopyHandler(deps)(makeReq(adminCookie(deps), validBody), ctx);
     expect(res.status).toBe(201);
-    expect((res.jsonBody as { copied: number }).copied).toBe(2);
+    expect((bodyOf(res) as { copied: number }).copied).toBe(2);
   });
 
   it("does not modify source cards or target's pre-existing cards", async () => {

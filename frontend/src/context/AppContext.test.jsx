@@ -1,6 +1,7 @@
 import { render, screen, act } from "@testing-library/react";
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { AppProvider, useAppContext, useTts } from "./AppContext.jsx";
+import { AppProvider } from "./AppContext.jsx";
+import { useAppContext, useTts } from "./app-hooks.js";
 import { createFakeTts } from "../testing/fake-tts.js";
 
 function Probe() {
@@ -218,6 +219,40 @@ describe("AppContext", () => {
       );
       // The useEffect on user should sync the theme
       expect(screen.getByTestId("theme-name").textContent).toBe("arcade");
+    });
+
+    it("theme follows user.settings.theme on login and the manual override until the user changes", async () => {
+      const patchMe = vi.fn().mockResolvedValue({});
+      function Switcher() {
+        const { setUser } = useAppContext();
+        return (
+          <div>
+            <button type="button" onClick={() => setUser({ id: "u2", settings: { theme: "classic" } })}>login-classic</button>
+            <button type="button" onClick={() => setUser({ id: "u3", settings: { theme: "bogus" } })}>login-bogus</button>
+          </div>
+        );
+      }
+      const theme = () => screen.getByTestId("theme-name").textContent;
+      const click = (name) => act(async () => { screen.getByRole("button", { name }).click(); });
+      render(
+        <AppProvider patchMe={patchMe} initialUser={{ id: "u1", settings: { theme: "arcade" } }}>
+          <ThemeProbe />
+          <Switcher />
+        </AppProvider>,
+      );
+      expect(theme()).toBe("arcade");
+
+      await click("to-playful");
+      expect(theme()).toBe("playful"); // the manual override wins over settings.theme
+
+      await click("login-classic");
+      expect(theme()).toBe("classic"); // a user change resets the override
+
+      await click("to-arcade");
+      expect(theme()).toBe("arcade");
+
+      await click("login-bogus");
+      expect(theme()).toBe("playful"); // unknown theme in settings is ignored (default)
     });
 
     it("applies data-theme-name on documentElement when themeName is set", async () => {

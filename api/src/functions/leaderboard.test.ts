@@ -4,7 +4,8 @@ import { makeLeaderboardHandler, type LeaderboardDeps } from "./leaderboard.js";
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf, headersOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { SessionRow } from "./sessions-shared.js";
@@ -70,6 +71,9 @@ function seedSession(tables: FakeTableStorage, userId: string, overrides: Partia
     user_id: userId,
     course_id: "course-1",
     mode: "self_grade",
+    game_type: "classic",
+    card_limit: null,
+    card_order: "random",
     started_at: started,
     ended_at: started,
     cards_studied: 10,
@@ -106,11 +110,11 @@ describe("GET /api/leaderboard", () => {
     const handler = makeLeaderboardHandler(deps);
     const res = await handler(makeReq(validCookie(deps)), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as { rankings: Array<{ userId: string; xp: number }> };
-    expect(body.rankings[0].userId).toBe(USER_A);
-    expect(body.rankings[0].xp).toBe(1000);
-    expect(body.rankings[1].userId).toBe(USER_B);
-    expect(body.rankings[1].xp).toBe(400);
+    const body = bodyOf(res) as { rankings: Array<{ userId: string; xp: number }> };
+    expect(body.rankings[0]!.userId).toBe(USER_A);
+    expect(body.rankings[0]!.xp).toBe(1000);
+    expect(body.rankings[1]!.userId).toBe(USER_B);
+    expect(body.rankings[1]!.xp).toBe(400);
   });
 
   it("LB-4: each entry has required fields", async () => {
@@ -119,7 +123,7 @@ describe("GET /api/leaderboard", () => {
     seedSession(deps.tables, USER_A);
     const handler = makeLeaderboardHandler(deps);
     const res = await handler(makeReq(validCookie(deps)), ctx);
-    const body = res.jsonBody as { rankings: Array<Record<string, unknown>> };
+    const body = bodyOf(res) as { rankings: Array<Record<string, unknown>> };
     const entry = body.rankings[0];
     expect(entry).toMatchObject({
       userId: USER_A,
@@ -143,7 +147,7 @@ describe("GET /api/leaderboard", () => {
     seedSession(deps.tables, USER_B, { started_at: "2026-04-21T09:00:00.000Z" }); // USER_B has 2 sessions
     const handler = makeLeaderboardHandler(deps);
     const res = await handler(makeReq(validCookie(deps)), ctx);
-    const body = res.jsonBody as {
+    const body = bodyOf(res) as {
       rankings: unknown[];
       mostAccurate: { userId: string };
       longestStreak: { userId: string };
@@ -164,7 +168,7 @@ describe("GET /api/leaderboard", () => {
     seedSession(deps.tables, USER_B, { started_at: "2026-01-01T09:00:00.000Z", xp_earned: 500, cards_studied: 20 });
     const handler = makeLeaderboardHandler(deps);
     const res = await handler(makeReq(validCookie(deps), { period: "7d" }), ctx);
-    const body = res.jsonBody as { rankings: Array<{ userId: string; sessions: number }> };
+    const body = bodyOf(res) as { rankings: Array<{ userId: string; sessions: number }> };
     const lexEntry = body.rankings.find((r) => r.userId === USER_A);
     const matsEntry = body.rankings.find((r) => r.userId === USER_B);
     expect(lexEntry?.sessions).toBe(1);
@@ -177,7 +181,7 @@ describe("GET /api/leaderboard", () => {
     seedSession(deps.tables, USER_A, { started_at: "2024-01-01T09:00:00.000Z" });
     const handler = makeLeaderboardHandler(deps);
     const res = await handler(makeReq(validCookie(deps), { period: "all" }), ctx);
-    const body = res.jsonBody as { rankings: Array<{ userId: string; sessions: number }> };
+    const body = bodyOf(res) as { rankings: Array<{ userId: string; sessions: number }> };
     const entry = body.rankings.find((r) => r.userId === USER_A);
     expect(entry?.sessions).toBe(1);
   });
@@ -187,7 +191,7 @@ describe("GET /api/leaderboard", () => {
     seedUser(deps.tables, USER_A);
     const handler = makeLeaderboardHandler(deps);
     const res = await handler(makeReq(validCookie(deps)), ctx);
-    expect(res.headers?.["Cache-Control"]).toBe("private, max-age=60");
+    expect(headersOf(res)["Cache-Control"]).toBe("private, max-age=60");
   });
 
   it("LB-9: user with no settings falls back to zero xp and zero streak", async () => {
@@ -199,9 +203,9 @@ describe("GET /api/leaderboard", () => {
     const handler = makeLeaderboardHandler(deps);
     const res = await handler(makeReq(validCookie(deps)), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as { rankings: Array<{ xp: number; streak: number }> };
-    expect(body.rankings[0].xp).toBe(0);
-    expect(body.rankings[0].streak).toBe(0);
+    const body = bodyOf(res) as { rankings: Array<{ xp: number; streak: number }> };
+    expect(body.rankings[0]!.xp).toBe(0);
+    expect(body.rankings[0]!.streak).toBe(0);
   });
 
   it("LB-10: second user with better accuracy and streak triggers update-best branches", async () => {
@@ -214,7 +218,7 @@ describe("GET /api/leaderboard", () => {
     seedSession(deps.tables, USER_B, { started_at: "2026-04-20T10:00:00.000Z", cards_studied: 10, cards_correct: 10 }); // 100% accuracy
     const handler = makeLeaderboardHandler(deps);
     const res = await handler(makeReq(validCookie(deps)), ctx);
-    const body = res.jsonBody as {
+    const body = bodyOf(res) as {
       mostAccurate: { userId: string };
       longestStreak: { userId: string };
     };

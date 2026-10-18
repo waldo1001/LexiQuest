@@ -11,7 +11,7 @@ import type { UserRow } from "../shared/seed.js";
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 
 function makeReq(
@@ -60,7 +60,7 @@ function makeUser(userId: string, isAdmin = false): UserRow {
     avatar_emoji: "🦊",
     ui_language: "en",
     is_admin: isAdmin,
-    settings: "{}",
+    settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 10 },
     created_at: "2026-04-22T09:00:00.000Z",
   };
 }
