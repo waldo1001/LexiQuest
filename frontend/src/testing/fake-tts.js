@@ -12,7 +12,7 @@
 export function createFakeTts({ available = true } = {}) {
   const spokenItems = [];
   return {
-    isAvailable: (_lang) => available,
+    isAvailable: () => available,
     speak(text, lang, rate = 0.9) {
       spokenItems.push({ text, lang, rate });
     },

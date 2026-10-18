@@ -3,6 +3,7 @@
  * the League's gate) with ESLint's own output quoted. Warnings do not fail (exit 0).
  * Spec: docs/specs/3-typecheck-and-lint-green.md (AC2, AC12).
  */
+import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

@@ -25,7 +25,6 @@ export default function SessionResults() {
   const durationSec   = state.duration_seconds ?? 0;
   const xpEarned      = state.xp_earned      ?? 0;
   const courseName    = state.courseName     ?? "";
-  const mode          = state.mode           ?? "self_grade";
   const gameType      = state.gameType       ?? "classic";
 
   const MULTIPLIERS = { classic: 1.0, boss_round: 1.5, speed_round: 1.25, review_blitz: 1.0 };

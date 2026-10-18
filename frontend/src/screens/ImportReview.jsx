@@ -13,7 +13,7 @@ export default function ImportReview({ batchCreateCards = batchCreateCardsApi })
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { candidates = [], courseName = "", courseLang = null, uploadId = null, uploadName: existingUploadName = null, skippedSlides = null } = location.state ?? {};
+  const { candidates = [], courseLang = null, uploadId = null, uploadName: existingUploadName = null, skippedSlides = null } = location.state ?? {};
 
   const [cards, setCards] = useState(candidates);
   const [checked, setChecked] = useState(() =>

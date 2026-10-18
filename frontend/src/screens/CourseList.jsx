@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAppContext } from "../context/AppContext.jsx";
+import { Link } from "react-router-dom";
 import {
   fetchYears as fetchYearsApi,
   fetchCourses as fetchCoursesApi,
@@ -71,8 +70,6 @@ export default function CourseList({
   enrichCards = null,
 }) {
   const t = useT();
-  const { user } = useAppContext();
-  const navigate = useNavigate();
   const [years, setYears] = useState(null);
   const [courses, setCourses] = useState(null);
   const [status, setStatus] = useState(null);
