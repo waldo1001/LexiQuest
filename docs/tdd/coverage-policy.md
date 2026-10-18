@@ -56,6 +56,12 @@ Type-only and test-support:
 
 Any new exclusion requires a comment in `vitest.config.ts` explaining why.
 
+Inline `v8 ignore` hints MUST be written as `/* v8 ignore <form> -- @preserve */`
+(e.g. `/* v8 ignore next -- @preserve */`, `/* v8 ignore start -- @preserve */`).
+Since vitest 4 the v8 provider remaps coverage from the esbuild-transformed
+code, and esbuild strips comments unless they carry `@preserve` — a bare
+`/* v8 ignore next */` is silently dropped and no longer ignores anything.
+
 ## What coverage actually enforces
 
 Mechanical coverage is necessary but not sufficient. See

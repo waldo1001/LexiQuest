@@ -27,7 +27,6 @@ Specs in [docs/specs/](docs/specs/README.md) with `status: draft` or
 waldo.Jarvis's League once the owner applies `spec-approved` on the issue).
 One line each: `- ⬜ [title](docs/specs/<issue>-<slug>.md) — issue #<n>, proposed <date>`.
 
-- ⬜ [`npm audit` clean: vitest 4, transitive patches, unused `uuid` removed, sharp 0.35, Anthropic SDK current](docs/specs/2-dependency-upgrades-npm-audit.md) — issue #2, proposed 2026-10-18 (human build only: touches protected `package.json` files)
 None open.
 
 ---
@@ -596,4 +595,20 @@ Spec: [docs/specs/3-typecheck-and-lint-green.md](docs/specs/3-typecheck-and-lint
 - ✅ Slice 4 — hook-rule refactors: keyed fetch state in 5 screens, `AppContext` theme derivation, `app-hooks.js`, `StudySession` post-render ref effect
 - ⬜ Operator: add `npm run typecheck` / `npm run lint` to `.github/workflows/ci.yml` and `.league.json` `commands`; Re-probe in the HUD
 - Tests: api 965 passed (1 skipped), frontend 657 passed
+
+---
+
+## Post-v1 — Dependency upgrades (npm audit clean)
+
+Plan: [docs/plans/2-dependency-upgrades-npm-audit.md](docs/plans/2-dependency-upgrades-npm-audit.md)
+Spec: [docs/specs/2-dependency-upgrades-npm-audit.md](docs/specs/2-dependency-upgrades-npm-audit.md) (#2)
+
+- ✅ Slice 2 — api `vitest` 2 → 4.1.12 (+ `@vitest/coverage-v8`); 74 `v8 ignore` hints re-marked `-- @preserve`; per-file coverage gaps from vitest 4's AST branch/function recount closed (real tests + defensive `v8 ignore` hints)
+- ✅ Slice 3 — frontend `vitest` 2 → 4.1.12; explicit `test.exclude`; 11 hints `@preserve`d; 5 `vi.restoreAllMocks` → `vi.clearAllMocks`; AppContext theme-validation tests
+- ✅ Slice 4 — transitive `npm audit fix` (no `--force`) in both; `react-router-dom` 7.14 → 7.18; api `--audit-level=high` exits 0
+- ✅ Slice 5 — removed unused `uuid` / `@types/uuid` (ids come from `node:crypto` `randomUUID`)
+- ✅ Slice 6 — `sharp` 0.34 → 0.35.5; frontend `--audit-level=high` exits 0; icons regenerate pixel-identical (not re-committed)
+- ✅ Slice 7 — `@anthropic-ai/sdk` 0.90 → 0.135.0 (tsc-verified against `claude.ts`, no wrapper change)
+- ⬜ Operator: live `/api/cards/import` probe (photo + PDF via `/dev-start`); `npm audit --audit-level=high` steps in `ci.yml`
+- Tests: api 986 passed (1 skipped), frontend 659 passed
 
