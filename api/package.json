@@ -22,7 +22,7 @@
     "import-local": "tsx scripts/import-local.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.90.0",
+    "@anthropic-ai/sdk": "^0.135.0",
     "@azure/data-tables": "^13.3.2",
     "@azure/functions": "^4.5.0",
     "bcryptjs": "^2.4.3",
