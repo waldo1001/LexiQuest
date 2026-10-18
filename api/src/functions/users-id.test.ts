@@ -9,7 +9,7 @@ import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
 import { FakePasswordHasher } from "../../testing/fake-password-hasher.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
 import type { UserRow } from "../shared/seed.js";
 
 function makeReq(

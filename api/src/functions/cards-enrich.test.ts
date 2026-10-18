@@ -5,7 +5,8 @@ import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
 import { FakeClaudeClient } from "../../testing/fake-claude-client.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { CourseRow } from "./courses-shared.js";
@@ -75,14 +76,13 @@ async function seedUser(deps: ReturnType<typeof makeDeps>, userId = USER_ID): Pr
   const row: UserRow = {
     partitionKey: PARTITIONS.users,
     rowKey: userId,
-    id: userId,
     name: "Lex",
     password_hash: "x",
     is_admin: false,
     color: "#111",
     avatar_emoji: "🦊",
     ui_language: "en",
-    settings: JSON.stringify({}),
+    settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 10 },
     created_at: NOW,
   };
   await deps.tables.upsert<UserRow>("users", row);
@@ -172,7 +172,7 @@ describe("POST /api/cards/enrich", () => {
       ctx,
     );
     expect(res.status).toBe(200);
-    expect((res.jsonBody as Record<string, unknown>).enriched).toBe(0);
+    expect((bodyOf(res) as Record<string, unknown>).enriched).toBe(0);
     // Claude should NOT be called if no cards need enrichment
     expect(deps.claude.enrichInputs).toHaveLength(0);
   });
@@ -188,7 +188,7 @@ describe("POST /api/cards/enrich", () => {
       ctx,
     );
     expect(res.status).toBe(200);
-    expect((res.jsonBody as Record<string, unknown>).enriched).toBe(2);
+    expect((bodyOf(res) as Record<string, unknown>).enriched).toBe(2);
 
     const card1 = await deps.tables.getById<CardRow>("cards", COURSE_ID, "card-1");
     expect(card1?.distractors).toEqual(["wrong1", "wrong2"]);
@@ -207,11 +207,11 @@ describe("POST /api/cards/enrich", () => {
       ctx,
     );
     expect(res.status).toBe(200);
-    expect((res.jsonBody as Record<string, unknown>).enriched).toBe(1);
+    expect((bodyOf(res) as Record<string, unknown>).enriched).toBe(1);
 
-    const input = deps.claude.enrichInputs[0];
+    const input = deps.claude.enrichInputs[0]!;
     expect(input.cards).toHaveLength(1);
-    expect(input.cards[0].id).toBe("card-1");
+    expect(input.cards[0]!.id).toBe("card-1");
   });
 
   it("AC10: admin can enrich cards in any course", async () => {

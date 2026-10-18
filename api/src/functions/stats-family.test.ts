@@ -4,7 +4,8 @@ import { makeStatsFamilyHandler, makeStatsCompareHandler, type StatsFamilyDeps }
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { SessionRow } from "./sessions-shared.js";
@@ -70,6 +71,9 @@ function seedSession(tables: FakeTableStorage, userId: string, overrides: Partia
     user_id: userId,
     course_id: "course-1",
     mode: "self_grade",
+    game_type: "classic",
+    card_limit: null,
+    card_order: "random",
     started_at: started,
     ended_at: started,
     cards_studied: 10,
@@ -108,7 +112,7 @@ describe("GET /api/stats/family", () => {
     const handler = makeStatsFamilyHandler(deps);
     const res = await handler(makeReq(validCookie(deps), "/family"), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as { users: unknown[] };
+    const body = bodyOf(res) as { users: unknown[] };
     expect(body.users).toHaveLength(2);
     const lex = (body.users as Array<Record<string, unknown>>).find((u) => u.userId === USER_A);
     expect(lex?.xp).toBe(1000);
@@ -122,7 +126,7 @@ describe("GET /api/stats/family", () => {
     seedSession(deps.tables, USER_A, { started_at: "2026-04-20T09:00:00.000Z", cards_studied: 10, cards_correct: 8 });
     const handler = makeStatsFamilyHandler(deps);
     const res = await handler(makeReq(validCookie(deps, USER_A), "/family", { range: "30d" }), ctx);
-    const body = res.jsonBody as { users: Array<Record<string, unknown>> };
+    const body = bodyOf(res) as { users: Array<Record<string, unknown>> };
     const lex = body.users.find((u) => u.userId === USER_A);
     expect(lex?.accuracy).toBe(80); // 8/10 * 100
   });
@@ -142,7 +146,7 @@ describe("GET /api/stats/family", () => {
     });
     const handler = makeStatsFamilyHandler(deps);
     const res = await handler(makeReq(validCookie(deps), "/family"), ctx);
-    const body = res.jsonBody as { users: Array<Record<string, unknown>> };
+    const body = bodyOf(res) as { users: Array<Record<string, unknown>> };
     const lex = body.users.find((u) => u.userId === USER_A);
     expect(lex?.xp).toBe(0);
     expect(lex?.streak).toBe(0);
@@ -187,7 +191,7 @@ describe("GET /api/stats/compare", () => {
       ctx,
     );
     expect(res.status).toBe(200);
-    const body = res.jsonBody as { series: Array<Record<string, unknown>> };
+    const body = bodyOf(res) as { series: Array<Record<string, unknown>> };
     const apr20 = body.series.find((s) => s.date === "2026-04-20");
     expect(apr20).toBeDefined();
     expect(apr20?.[USER_A]).toBe(100);
@@ -224,7 +228,7 @@ describe("GET /api/stats/compare", () => {
       makeReq(validCookie(deps), "/compare", { userIds: USER_A, metric: "sessions", range: "30d" }),
       ctx,
     );
-    const body = res.jsonBody as { series: Array<Record<string, unknown>> };
+    const body = bodyOf(res) as { series: Array<Record<string, unknown>> };
     const apr20 = body.series.find((s) => s.date === "2026-04-20");
     expect(apr20?.[USER_A]).toBe(2);
   });
@@ -238,7 +242,7 @@ describe("GET /api/stats/compare", () => {
       makeReq(validCookie(deps), "/compare", { userIds: USER_A, metric: "cards", range: "30d" }),
       ctx,
     );
-    const body = res.jsonBody as { series: Array<Record<string, unknown>> };
+    const body = bodyOf(res) as { series: Array<Record<string, unknown>> };
     const apr20 = body.series.find((s) => s.date === "2026-04-20");
     expect(apr20?.[USER_A]).toBe(15);
   });
@@ -252,7 +256,7 @@ describe("GET /api/stats/compare", () => {
       makeReq(validCookie(deps), "/compare", { userIds: USER_A, metric: "minutes", range: "30d" }),
       ctx,
     );
-    const body = res.jsonBody as { series: Array<Record<string, unknown>> };
+    const body = bodyOf(res) as { series: Array<Record<string, unknown>> };
     const apr20 = body.series.find((s) => s.date === "2026-04-20");
     expect(apr20?.[USER_A]).toBe(10); // 600s / 60 = 10min
   });
@@ -266,7 +270,7 @@ describe("GET /api/stats/compare", () => {
       makeReq(validCookie(deps), "/compare", { userIds: USER_A, metric: "accuracy", range: "30d" }),
       ctx,
     );
-    const body = res.jsonBody as { series: Array<Record<string, unknown>> };
+    const body = bodyOf(res) as { series: Array<Record<string, unknown>> };
     const apr20 = body.series.find((s) => s.date === "2026-04-20");
     expect(apr20?.[USER_A]).toBe(70); // 7/10 * 100
   });

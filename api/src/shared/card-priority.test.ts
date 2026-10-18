@@ -190,7 +190,7 @@ describe("buildQueue — boss_round", () => {
       shuffle: noopShuffle,
     });
     expect(result).toHaveLength(1);
-    expect(result[0].rowKey).toBe("hard");
+    expect(result[0]!.rowKey).toBe("hard");
   });
 
   it("excludes new cards (reps=0) from boss primary selection", () => {
@@ -250,7 +250,7 @@ describe("buildQueue — boss_round", () => {
     });
     // No hard-due cards, but the course has a card — never strand the user.
     expect(result).toHaveLength(1);
-    expect(result[0].rowKey).toBe("easy");
+    expect(result[0]!.rowKey).toBe("easy");
   });
 });
 
@@ -325,8 +325,8 @@ describe("buildQueue — review_blitz", () => {
       shuffle: noopShuffle,
     });
     expect(result).toHaveLength(2);
-    expect(result[0].rowKey).toBe("very-overdue");
-    expect(result[1].rowKey).toBe("slightly-overdue");
+    expect(result[0]!.rowKey).toBe("very-overdue");
+    expect(result[1]!.rowKey).toBe("slightly-overdue");
   });
 
   it("with null cardLimit returns all overdue", () => {
@@ -580,9 +580,9 @@ describe("backfill — always fill to cardLimit", () => {
     });
     expect(result).toHaveLength(3);
     // Hard card first (primary), then backfill by weakness
-    expect(result[0].rowKey).toBe("hard");
-    expect(result[1].rowKey).toBe("medium");
-    expect(result[2].rowKey).toBe("easy");
+    expect(result[0]!.rowKey).toBe("hard");
+    expect(result[1]!.rowKey).toBe("medium");
+    expect(result[2]!.rowKey).toBe("easy");
   });
 
   it("review_blitz backfills to cardLimit when not enough overdue", () => {
@@ -602,7 +602,7 @@ describe("backfill — always fill to cardLimit", () => {
       shuffle: noopShuffle,
     });
     expect(result).toHaveLength(3);
-    expect(result[0].rowKey).toBe("overdue");
+    expect(result[0]!.rowKey).toBe("overdue");
   });
 
   it("returns all cards when total cards < cardLimit", () => {

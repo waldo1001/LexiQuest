@@ -4,7 +4,8 @@ import { makeStatsHeatmapHandler, type StatsHeatmapDeps } from "./stats-heatmap.
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { AttemptRow } from "./attempts-shared.js";
@@ -102,7 +103,7 @@ describe("GET /api/stats/heatmap/:userId", () => {
     const handler = makeStatsHeatmapHandler(deps);
     const res = await handler(makeReq(validCookie(deps), USER_ID), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as { heatmap: unknown[] };
+    const body = bodyOf(res) as { heatmap: unknown[] };
     expect(body.heatmap).toEqual([]);
   });
 
@@ -117,7 +118,7 @@ describe("GET /api/stats/heatmap/:userId", () => {
     seedAttempt(deps.tables, { timestamp: ts3, rowKey: `${ts3}_a3` });
     const handler = makeStatsHeatmapHandler(deps);
     const res = await handler(makeReq(validCookie(deps), USER_ID), ctx);
-    const body = res.jsonBody as { heatmap: Array<{ date: string; count: number }> };
+    const body = bodyOf(res) as { heatmap: Array<{ date: string; count: number }> };
     expect(body.heatmap).toHaveLength(2);
     const apr20 = body.heatmap.find((h) => h.date === "2026-04-20");
     expect(apr20?.count).toBe(2);
@@ -151,7 +152,7 @@ describe("GET /api/stats/heatmap/:userId", () => {
     seedAttempt(deps.tables, { timestamp: outOfRange, rowKey: `${outOfRange}_a2` });
     const handler = makeStatsHeatmapHandler(deps);
     const res = await handler(makeReq(validCookie(deps), USER_ID, "7d"), ctx);
-    const body = res.jsonBody as { heatmap: Array<{ date: string; count: number }> };
+    const body = bodyOf(res) as { heatmap: Array<{ date: string; count: number }> };
     expect(body.heatmap.find((h) => h.date === "2026-04-20")).toBeDefined();
     expect(body.heatmap.find((h) => h.date === "2026-01-01")).toBeUndefined();
   });

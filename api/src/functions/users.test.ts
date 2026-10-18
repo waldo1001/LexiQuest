@@ -10,7 +10,7 @@ import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
 import { FakePasswordHasher } from "../../testing/fake-password-hasher.js";
 import { FakeRandom } from "../../testing/fake-random.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
 import type { UserRow } from "../shared/seed.js";
 
 function makeReq(
@@ -152,7 +152,7 @@ describe("GET /api/users", () => {
       ctx,
     )) as HttpResponseInit;
 
-    const [item] = res.jsonBody as Array<Record<string, unknown>>;
+    const item = (res.jsonBody as Array<Record<string, unknown>>)[0]!;
     expect(item.id).toBe("u1");
     expect(item.name).toBe("Alice");
     expect(item.isAdmin).toBe(true);

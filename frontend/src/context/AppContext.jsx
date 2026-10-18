@@ -1,7 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { patchMe as patchMeApi } from "../lib/api.js";
-
-const AppContext = createContext(null);
+import { AppContext } from "./app-hooks.js";
 
 const noopTts = { isAvailable: () => false, speak: () => {} };
 
@@ -37,9 +36,17 @@ export function AppProvider({
   const [user, setUser] = useState(initialUser);
   const [lang, setLangState] = useState(initialLang);
   const [darkMode, setDarkModeState] = useState("system");
-  const [themeName, setThemeNameState] = useState(
-    THEMES.includes(initialTheme) ? initialTheme : DEFAULT_THEME,
-  );
+  // A theme picked by hand, tagged with the user it was picked for. It wins over
+  // user.settings.theme only while that same user (by id) is signed in, so a login,
+  // logout or user switch drops it without an effect.
+  const [themeOverride, setThemeOverride] = useState({ userId: null, name: null });
+
+  const userId = user?.id ?? null;
+  const settingsTheme = user?.settings?.theme;
+  const baseTheme = THEMES.includes(initialTheme) ? initialTheme : DEFAULT_THEME;
+  const themeName =
+    (themeOverride.userId === userId ? themeOverride.name : null) ??
+    (THEMES.includes(settingsTheme) ? settingsTheme : baseTheme);
 
   const setLang = useCallback(
     async (next) => {
@@ -70,9 +77,9 @@ export function AppProvider({
     async (next) => {
       const safe = THEMES.includes(next) ? next : DEFAULT_THEME;
       await patchMe({ settings: { theme: safe } });
-      setThemeNameState(safe);
+      setThemeOverride({ userId, name: safe });
     },
-    [patchMe],
+    [patchMe, userId],
   );
 
   useEffect(() => {
@@ -82,13 +89,6 @@ export function AppProvider({
   useEffect(() => {
     document.documentElement.setAttribute("data-theme-name", themeName);
   }, [themeName]);
-
-  useEffect(() => {
-    const t = user?.settings?.theme;
-    if (t && THEMES.includes(t) && t !== themeName) {
-      setThemeNameState(t);
-    }
-  }, [user, themeName]);
 
   useEffect(() => {
     if (themeName === "arcade") {
@@ -110,20 +110,8 @@ export function AppProvider({
       themeName,
       setThemeName,
     }),
-    [user, lang, setLang, tts, darkMode, setDarkMode, themeName, setThemeName],
+    [user, setUser, lang, setLang, tts, darkMode, setDarkMode, themeName, setThemeName],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-}
-
-export function useAppContext() {
-  const ctx = useContext(AppContext);
-  if (ctx === null) {
-    throw new Error("useAppContext must be used within an AppProvider");
-  }
-  return ctx;
-}
-
-export function useTts() {
-  return useAppContext().tts;
 }

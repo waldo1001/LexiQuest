@@ -12,19 +12,21 @@ export default function CourseStats({ fetchStats = fetchStatsApi }) {
   const t = useT();
   const { courseId } = useParams();
   const [range, setRange] = useState("30d");
-  const [stats, setStats] = useState(null);
-  const [notFound, setNotFound] = useState(false);
+  // Keyed by the request parameters: a result for another key reads as "loading".
+  const [result, setResult] = useState({ key: null, stats: null, notFound: false });
+  const key = `${courseId}|${range}`;
+  const current = result.key === key ? result : null;
+  const stats = current?.stats ?? null;
+  const notFound = current?.notFound ?? false;
 
   useEffect(() => {
     let cancelled = false;
-    setStats(null);
-    setNotFound(false);
+    const k = `${courseId}|${range}`;
     fetchStats({ courseId, range }, {}).then((s) => {
-      if (!cancelled) setStats(s);
+      if (!cancelled) setResult({ key: k, stats: s, notFound: false });
     }).catch((err) => {
       if (cancelled) return;
-      if (err.message === "not_found") setNotFound(true);
-      else setStats(null);
+      if (err.message === "not_found") setResult({ key: k, stats: null, notFound: true });
     });
     return () => { cancelled = true; };
   }, [courseId, range, fetchStats]);

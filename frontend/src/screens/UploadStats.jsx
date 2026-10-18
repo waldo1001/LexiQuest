@@ -19,18 +19,21 @@ export default function UploadStats({ fetchStats = fetchStatsApi }) {
   const location = useLocation();
   const { courseName = "" } = location.state ?? {};
   const [range, setRange] = useState("30d");
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(false);
+  // Keyed by the request parameters: a result for another key reads as "loading".
+  const [result, setResult] = useState({ key: null, data: null, error: false });
   const [expandedId, setExpandedId] = useState(null);
+  const key = `${courseId}|${range}`;
+  const current = result.key === key ? result : null;
+  const data = current?.data ?? null;
+  const error = current?.error ?? false;
 
   useEffect(() => {
     let cancelled = false;
-    setData(null);
-    setError(false);
+    const k = `${courseId}|${range}`;
     fetchStats({ courseId, range }, {}).then((d) => {
-      if (!cancelled) setData(d);
+      if (!cancelled) setResult({ key: k, data: d, error: false });
     }).catch(() => {
-      if (!cancelled) setError(true);
+      if (!cancelled) setResult({ key: k, data: null, error: true });
     });
     return () => { cancelled = true; };
   }, [courseId, range, fetchStats]);

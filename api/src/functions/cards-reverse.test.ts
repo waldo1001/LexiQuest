@@ -5,7 +5,8 @@ import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
 import { FakeRandom } from "../../testing/fake-random.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { CourseRow } from "./courses-shared.js";
@@ -63,14 +64,13 @@ async function seedUser(deps: ReturnType<typeof makeDeps>, userId = USER_ID): Pr
   const row: UserRow = {
     partitionKey: PARTITIONS.users,
     rowKey: userId,
-    id: userId,
     name: "Lex",
     password_hash: "x",
     is_admin: false,
     color: "#111",
     avatar_emoji: "🦊",
     ui_language: "en",
-    settings: JSON.stringify({ auto_speak: false }),
+    settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 10 },
     created_at: NOW,
   };
   await deps.tables.upsert<UserRow>("users", row);
@@ -157,7 +157,7 @@ describe("POST /api/cards/reverse", () => {
       ctx,
     );
     expect(res.status).toBe(200);
-    const body = res.jsonBody as { created: number; skipped: number };
+    const body = bodyOf(res) as { created: number; skipped: number };
     expect(body.created).toBe(2);
     expect(body.skipped).toBe(0);
 
@@ -175,7 +175,7 @@ describe("POST /api/cards/reverse", () => {
       makeReq(validCookie(deps), { courseId: COURSE_ID }),
       ctx,
     );
-    const body = res.jsonBody as { created: number; skipped: number };
+    const body = bodyOf(res) as { created: number; skipped: number };
     expect(body.created).toBe(0);
     expect(body.skipped).toBe(1);
   });
@@ -207,7 +207,7 @@ describe("POST /api/cards/reverse", () => {
       makeReq(validCookie(deps), { courseId: COURSE_ID }),
       ctx,
     );
-    const body = res.jsonBody as { created: number; skipped: number };
+    const body = bodyOf(res) as { created: number; skipped: number };
     expect(body.created).toBe(0);
     expect(body.skipped).toBe(1);
   });
@@ -243,7 +243,7 @@ describe("POST /api/cards/reverse", () => {
       ctx,
     );
     expect(res.status).toBe(200);
-    expect((res.jsonBody as { created: number }).created).toBe(1);
+    expect((bodyOf(res) as { created: number }).created).toBe(1);
   });
 
   it("returns 400 when courseId is missing", async () => {

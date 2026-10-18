@@ -123,6 +123,18 @@ describe("UploadStats", () => {
     expect(fetchStats).toHaveBeenLastCalledWith({ courseId: COURSE_ID, range: "7d" }, {});
   });
 
+  it("shows loading again when the range changes", async () => {
+    const user = userEvent.setup();
+    const fetchStats = vi.fn()
+      .mockResolvedValueOnce({ uploads: [UPLOAD_A] })
+      .mockImplementation(() => new Promise(() => {}));
+    setup({ fetchStats });
+    await waitFor(() => expect(screen.getByText("Chapter 3")).toBeInTheDocument());
+    await user.click(screen.getByTestId("range-7d"));
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    expect(screen.queryByText("Chapter 3")).not.toBeInTheDocument();
+  });
+
   it("renders in Dutch under lang=nl", async () => {
     const fetchStats = vi.fn().mockResolvedValue({ uploads: [UPLOAD_B] });
     setup({ fetchStats, lang: "nl" });

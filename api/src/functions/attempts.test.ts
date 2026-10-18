@@ -9,7 +9,7 @@ import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
 import { FakeRandom } from "../../testing/fake-random.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
 
 const ctx = {} as InvocationContext;
 const NOW = "2026-04-22T10:00:00.000Z";
@@ -80,6 +80,9 @@ function makeSession(userId = USER_ID): SessionRow {
     user_id: userId,
     course_id: COURSE_ID,
     mode: "self_grade",
+    game_type: "classic",
+    card_limit: null,
+    card_order: "random",
     started_at: NOW,
     ended_at: null,
     cards_studied: 0,

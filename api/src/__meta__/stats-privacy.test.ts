@@ -27,7 +27,8 @@ import { makeStatsUploadHandler } from "../functions/stats-upload.js";
 import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { AttemptRow } from "../functions/attempts-shared.js";
@@ -143,6 +144,9 @@ function seedWorld(tables: FakeTableStorage) {
     user_id: TARGET_USER,
     course_id: COURSE_ID,
     mode: "self_grade",
+    game_type: "classic",
+    card_limit: null,
+    card_order: "random",
     started_at: ts,
     ended_at: ts,
     cards_studied: 5,
@@ -178,7 +182,7 @@ describe("stats-privacy (LexiQuest invariant 2) — behavioural", () => {
     const handler = makeStatsUserHandler(deps);
     const res = await handler(makeGet(validCookie(deps), `/user/${TARGET_USER}`, { userId: TARGET_USER }), ctx);
     expect(res.status).toBe(200);
-    expect(hasRawRowField(res.jsonBody, RAW_ROW_FIELDS)).toBe(false);
+    expect(hasRawRowField(bodyOf(res), RAW_ROW_FIELDS)).toBe(false);
   });
 
   it("stats/course does not leak raw row fields", async () => {
@@ -187,7 +191,7 @@ describe("stats-privacy (LexiQuest invariant 2) — behavioural", () => {
     const handler = makeStatsCourseHandler(deps);
     const res = await handler(makeGet(validCookie(deps), `/course/${COURSE_ID}`, { courseId: COURSE_ID }), ctx);
     expect(res.status).toBe(200);
-    expect(hasRawRowField(res.jsonBody, RAW_ROW_FIELDS)).toBe(false);
+    expect(hasRawRowField(bodyOf(res), RAW_ROW_FIELDS)).toBe(false);
   });
 
   it("stats/family does not leak raw row fields", async () => {
@@ -196,7 +200,7 @@ describe("stats-privacy (LexiQuest invariant 2) — behavioural", () => {
     const handler = makeStatsFamilyHandler(deps);
     const res = await handler(makeGet(validCookie(deps), "/family"), ctx);
     expect(res.status).toBe(200);
-    expect(hasRawRowField(res.jsonBody, RAW_ROW_FIELDS)).toBe(false);
+    expect(hasRawRowField(bodyOf(res), RAW_ROW_FIELDS)).toBe(false);
   });
 
   it("stats/compare does not leak raw row fields", async () => {
@@ -209,7 +213,7 @@ describe("stats-privacy (LexiQuest invariant 2) — behavioural", () => {
     } as unknown as HttpRequest;
     const res = await handler(req, ctx);
     expect(res.status).toBe(200);
-    expect(hasRawRowField(res.jsonBody, RAW_ROW_FIELDS)).toBe(false);
+    expect(hasRawRowField(bodyOf(res), RAW_ROW_FIELDS)).toBe(false);
   });
 
   it("stats/heatmap does not leak raw row fields", async () => {
@@ -218,7 +222,7 @@ describe("stats-privacy (LexiQuest invariant 2) — behavioural", () => {
     const handler = makeStatsHeatmapHandler(deps);
     const res = await handler(makeGet(validCookie(deps), `/heatmap/${TARGET_USER}`, { userId: TARGET_USER }), ctx);
     expect(res.status).toBe(200);
-    expect(hasRawRowField(res.jsonBody, RAW_ROW_FIELDS)).toBe(false);
+    expect(hasRawRowField(bodyOf(res), RAW_ROW_FIELDS)).toBe(false);
   });
 
   it("stats/course/uploads does not leak raw row fields", async () => {
@@ -245,6 +249,6 @@ describe("stats-privacy (LexiQuest invariant 2) — behavioural", () => {
     const handler = makeStatsUploadHandler(deps);
     const res = await handler(makeGet(validCookie(deps), `/course/${COURSE_ID}/uploads`, { courseId: COURSE_ID }), ctx);
     expect(res.status).toBe(200);
-    expect(hasRawRowField(res.jsonBody, RAW_ROW_FIELDS)).toBe(false);
+    expect(hasRawRowField(bodyOf(res), RAW_ROW_FIELDS)).toBe(false);
   });
 });

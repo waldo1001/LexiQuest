@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { fetchCourses as fetchCoursesApi } from "../lib/api.js";
-import { useAppContext } from "../context/AppContext.jsx";
+import { useAppContext } from "../context/app-hooks.js";
 import { useT } from "../i18n/useT.js";
 
 function calcLevel(totalXp) {

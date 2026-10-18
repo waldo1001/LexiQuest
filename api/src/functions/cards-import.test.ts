@@ -7,7 +7,8 @@ import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
 import { FakeClaudeClient } from "../../testing/fake-claude-client.js";
 import { FakeLogger } from "../../testing/fake-logger.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { CourseRow } from "./courses-shared.js";
@@ -43,8 +44,8 @@ const USER_ID = "u-lex";
 const COURSE_ID = "course-fr";
 
 const CANDIDATES: CardCandidate[] = [
-  { question: "le chien", answer: "the dog", distractors: ["the cat", "the bird"] },
-  { question: "la maison", answer: "the house", distractors: ["the car", "the tree"] },
+  { question: "le chien", answer: "the dog", distractors: ["the cat", "the bird"], question_lang: null, answer_lang: null },
+  { question: "la maison", answer: "the house", distractors: ["the car", "the tree"], question_lang: null, answer_lang: null },
 ];
 
 function makeReq(
@@ -112,14 +113,13 @@ async function seedUser(deps: ReturnType<typeof makeDeps>, userId = USER_ID): Pr
   const row: UserRow = {
     partitionKey: PARTITIONS.users,
     rowKey: userId,
-    id: userId,
     name: "Lex",
     password_hash: "x",
     is_admin: false,
     color: "#111",
     avatar_emoji: "🦊",
     ui_language: "en",
-    settings: JSON.stringify({ auto_speak: false }),
+    settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 10 },
     created_at: NOW,
   };
   await deps.tables.upsert<UserRow>("users", row);
@@ -201,7 +201,7 @@ describe("POST /api/cards/import", () => {
 
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     expect(Array.isArray(body.candidates)).toBe(true);
     expect((body.candidates as unknown[]).length).toBe(2);
 
@@ -225,7 +225,7 @@ describe("POST /api/cards/import", () => {
 
     await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
 
-    const input = deps.claude.extractCardsInputs[0];
+    const input = deps.claude.extractCardsInputs[0]!;
     expect(input.imageBase64).toBe("base64data");
     expect(input.mimeType).toBe("image/jpeg");
     expect(input.courseName).toBe("French 🇫🇷");
@@ -239,7 +239,7 @@ describe("POST /api/cards/import", () => {
 
     await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
 
-    const input = deps.claude.extractCardsInputs[0];
+    const input = deps.claude.extractCardsInputs[0]!;
     expect(input.uiLanguage).toBe("en");
   });
 
@@ -296,10 +296,10 @@ describe("POST /api/cards/import", () => {
 
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
     expect(res.status).toBe(200);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     const candidates = body.candidates as Array<Record<string, unknown>>;
-    expect(candidates[0].question_lang).toBe("en");
-    expect(candidates[0].answer_lang).toBe("fr-FR");
+    expect(candidates[0]!.question_lang).toBe("en");
+    expect(candidates[0]!.answer_lang).toBe("fr-FR");
   });
 
   it("AC17: skips caller's own row during cross-user scan (continue branch)", async () => {
@@ -325,7 +325,7 @@ describe("POST /api/cards/import", () => {
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
     expect(res.status).toBe(200);
 
-    const input = deps.claude.extractCardsInputs[0];
+    const input = deps.claude.extractCardsInputs[0]!;
     expect(input.questionLang).toBe("fr");
     expect(input.answerLang).toBe("nl");
   });
@@ -336,7 +336,7 @@ describe("POST /api/cards/import", () => {
 
     await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
 
-    const input = deps.claude.extractCardsInputs[0];
+    const input = deps.claude.extractCardsInputs[0]!;
     expect(input.questionLang).toBeNull();
     expect(input.answerLang).toBeNull();
   });
@@ -363,7 +363,7 @@ describe("POST /api/cards/import", () => {
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
     expect(res.status).toBe(200);
 
-    const input = deps.claude.extractCardsInputs[0];
+    const input = deps.claude.extractCardsInputs[0]!;
     expect(input.questionLang).toBeNull();
     expect(input.answerLang).toBeNull();
   });
@@ -384,7 +384,7 @@ describe("POST /api/cards/import", () => {
       (r) => r.event === "cards_import_claude_failed",
     );
     expect(failures.length).toBe(1);
-    const rec = failures[0];
+    const rec = failures[0]!;
     expect(rec.level).toBe("error");
     expect(rec.attrs).toBeDefined();
     expect(rec.attrs?.userId).toBe(USER_ID);
@@ -433,7 +433,7 @@ describe("POST /api/cards/import", () => {
 
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), overCap), ctx);
     expect(res.status).toBe(413);
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     expect(body.error).toBe("Image too large");
     expect(body.maxBytes).toBe(5 * 1024 * 1024);
     expect(typeof body.actualBytes).toBe("number");
@@ -500,7 +500,7 @@ describe("POST /api/cards/import", () => {
 
     await makeCardsImportHandler(deps)(makeReq(validCookie(deps), pdfBody), ctx);
 
-    expect(deps.claude.extractCardsInputs[0].model).toBe(HAIKU_MODEL);
+    expect(deps.claude.extractCardsInputs[0]!.model).toBe(HAIKU_MODEL);
   });
 
   it("AC91: image import uses the default (Sonnet) extraction model", async () => {
@@ -509,7 +509,7 @@ describe("POST /api/cards/import", () => {
 
     await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx); // image/jpeg
 
-    expect(deps.claude.extractCardsInputs[0].model).toBe(SONNET_MODEL);
+    expect(deps.claude.extractCardsInputs[0]!.model).toBe(SONNET_MODEL);
   });
 
   it("AC32: verifyCardLanguages is called when both questionLang and answerLang differ", async () => {
@@ -521,7 +521,7 @@ describe("POST /api/cards/import", () => {
     expect(res.status).toBe(200);
 
     expect(deps.claude.verifyInputs.length).toBe(1);
-    const vi = deps.claude.verifyInputs[0];
+    const vi = deps.claude.verifyInputs[0]!;
     expect(vi.questionLang).toBe("nl");
     expect(vi.answerLang).toBe("fr");
     expect(vi.cards).toEqual(CANDIDATES);
@@ -550,10 +550,10 @@ describe("POST /api/cards/import", () => {
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
     expect(res.status).toBe(200);
 
-    const responseBody = res.jsonBody as Record<string, unknown>;
+    const responseBody = bodyOf(res) as Record<string, unknown>;
     const candidates = responseBody.candidates as Array<Record<string, unknown>>;
-    expect(candidates[0].question).toBe("de hond");
-    expect(candidates[0].answer).toBe("le chien");
+    expect(candidates[0]!.question).toBe("de hond");
+    expect(candidates[0]!.answer).toBe("le chien");
   });
 
   it("AC36: verifyCardLanguages is NOT called when questionLang and answerLang are the same", async () => {
@@ -584,7 +584,7 @@ describe("POST /api/cards/import", () => {
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
     expect(res.status).toBe(200);
 
-    const input = deps.claude.extractCardsInputs[0];
+    const input = deps.claude.extractCardsInputs[0]!;
     expect(input.extraInstructions).toBe("only nouns, full sentences");
   });
 
@@ -610,7 +610,7 @@ describe("POST /api/cards/import", () => {
 
     await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
 
-    const input = deps.claude.extractCardsInputs[0];
+    const input = deps.claude.extractCardsInputs[0]!;
     expect(input.extraInstructions).toBeNull();
   });
 
@@ -622,7 +622,7 @@ describe("POST /api/cards/import", () => {
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
     expect(res.status).toBe(200);
 
-    const input = deps.claude.extractCardsInputs[0];
+    const input = deps.claude.extractCardsInputs[0]!;
     expect(input.extraInstructions).toBeNull();
   });
 
@@ -634,7 +634,7 @@ describe("POST /api/cards/import", () => {
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
     expect(res.status).toBe(200);
 
-    const input = deps.claude.extractCardsInputs[0];
+    const input = deps.claude.extractCardsInputs[0]!;
     expect((input.extraInstructions as string).length).toBe(1000);
   });
 
@@ -651,7 +651,7 @@ describe("POST /api/cards/import", () => {
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
 
     expect(res.status).toBe(200);
-    expect(res.jsonBody).toMatchObject({ candidates: CANDIDATES });
+    expect(bodyOf(res)).toMatchObject({ candidates: CANDIDATES });
     expect(deps.claude.extractCardsFromSlidesInputs).toHaveLength(1);
     expect(deps.claude.extractCardsInputs).toHaveLength(0);
   });
@@ -666,7 +666,7 @@ describe("POST /api/cards/import", () => {
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
 
     expect(res.status).toBe(400);
-    expect((res.jsonBody as { error: string }).error).toMatch(/pptx/i);
+    expect((bodyOf(res) as { error: string }).error).toMatch(/pptx/i);
   });
 
   it("AC84: returns 413 for an oversize pptx payload", async () => {
@@ -698,7 +698,7 @@ describe("POST /api/cards/import", () => {
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
 
     expect(res.status).toBe(200);
-    expect(deps.claude.extractCardsFromSlidesInputs[0].extraInstructions).toBe("Only nouns");
+    expect(deps.claude.extractCardsFromSlidesInputs[0]!.extraInstructions).toBe("Only nouns");
   });
 
   it("AC86: reports image-only slides in skippedSlides response field", async () => {
@@ -717,7 +717,7 @@ describe("POST /api/cards/import", () => {
     const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
 
     expect(res.status).toBe(200);
-    expect((res.jsonBody as { skippedSlides: number[] }).skippedSlides).toEqual([2, 4]);
+    expect((bodyOf(res) as { skippedSlides: number[] }).skippedSlides).toEqual([2, 4]);
   });
 
   it("AC88: pptx path also runs language verification when Q≠A langs differ", async () => {
@@ -766,7 +766,7 @@ describe("POST /api/cards/import", () => {
 
     await makeCardsImportHandler(deps)(makeReq(validCookie(deps), body), ctx);
 
-    const input = deps.claude.extractCardsFromSlidesInputs[0];
+    const input = deps.claude.extractCardsFromSlidesInputs[0]!;
     expect(input.slides).toHaveLength(2);
     expect(input.slides[0]).toEqual({ index: 1, text: "Bonjour", notes: "hello" });
     expect(input.slides[1]).toEqual({ index: 2, text: "Au revoir", notes: "goodbye" });

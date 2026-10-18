@@ -5,7 +5,8 @@ import { FakeTableStorage } from "../../testing/fake-table-storage.js";
 import { FakeSessionSigner } from "../../testing/fake-session-signer.js";
 import { FakeClock } from "../../testing/fake-clock.js";
 import { FakeRandom } from "../../testing/fake-random.js";
-import { buildSessionCookie } from "../shared/session-cookie.js";
+import { buildSessionCookie } from "../../testing/session-cookie.js";
+import { bodyOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { CourseRow } from "./courses-shared.js";
@@ -89,14 +90,13 @@ async function seedUser(deps: ReturnType<typeof makeDeps>, userId = USER_ID): Pr
   const row: UserRow = {
     partitionKey: PARTITIONS.users,
     rowKey: userId,
-    id: userId,
     name: "Lex",
     password_hash: "x",
     is_admin: false,
     color: "#111",
     avatar_emoji: "🦊",
     ui_language: "en",
-    settings: JSON.stringify({ auto_speak: false }),
+    settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 10 },
     created_at: NOW,
   };
   await deps.tables.upsert<UserRow>("users", row);
@@ -190,7 +190,7 @@ describe("POST /api/cards/batch", () => {
     const res = await makeCardsBatchHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
     expect(res.status).toBe(201);
 
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     expect(Array.isArray(body.cards)).toBe(true);
     expect((body.cards as unknown[]).length).toBe(2);
 
@@ -269,7 +269,7 @@ describe("POST /api/cards/batch", () => {
     const res = await makeCardsBatchHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
     expect(res.status).toBe(201);
 
-    const body = res.jsonBody as Record<string, unknown>;
+    const body = bodyOf(res) as Record<string, unknown>;
     expect(typeof body.upload_id).toBe("string");
     expect((body.upload_id as string).length).toBeGreaterThan(0);
 
@@ -286,8 +286,8 @@ describe("POST /api/cards/batch", () => {
     const res1 = await makeCardsBatchHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
     const res2 = await makeCardsBatchHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
 
-    const id1 = (res1.jsonBody as { upload_id: string }).upload_id;
-    const id2 = (res2.jsonBody as { upload_id: string }).upload_id;
+    const id1 = (bodyOf(res1) as { upload_id: string }).upload_id;
+    const id2 = (bodyOf(res2) as { upload_id: string }).upload_id;
     expect(id1).not.toBe(id2);
   });
 
@@ -304,12 +304,12 @@ describe("POST /api/cards/batch", () => {
     expect(res.status).toBe(201);
 
     const stored = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
-    expect(stored[0].question_lang).toBe("en");
-    expect(stored[0].answer_lang).toBe("fr-FR");
+    expect(stored[0]!.question_lang).toBe("en");
+    expect(stored[0]!.answer_lang).toBe("fr-FR");
 
-    const resBody = res.jsonBody as { cards: Array<{ question_lang: string | null; answer_lang: string | null }> };
-    expect(resBody.cards[0].question_lang).toBe("en");
-    expect(resBody.cards[0].answer_lang).toBe("fr-FR");
+    const resBody = bodyOf(res) as { cards: Array<{ question_lang: string | null; answer_lang: string | null }> };
+    expect(resBody.cards[0]!.question_lang).toBe("en");
+    expect(resBody.cards[0]!.answer_lang).toBe("fr-FR");
   });
 
   it("AC22: batch input without per-side lang defaults to null", async () => {
@@ -346,7 +346,7 @@ describe("POST /api/cards/batch", () => {
       ctx,
     );
     expect(res.status).toBe(201);
-    const body = res.jsonBody as { cards: unknown[] };
+    const body = bodyOf(res) as { cards: unknown[] };
     expect(body.cards).toHaveLength(2); // only forward cards
     const allRows = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
     expect(allRows).toHaveLength(2);
@@ -360,7 +360,7 @@ describe("POST /api/cards/batch", () => {
       ctx,
     );
     expect(res.status).toBe(201);
-    const body = res.jsonBody as { cards: { reverse_of: string | null }[] };
+    const body = bodyOf(res) as { cards: { reverse_of: string | null }[] };
     expect(body.cards).toHaveLength(4); // 2 forward + 2 reverse
     const allRows = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
     expect(allRows).toHaveLength(4);
@@ -373,7 +373,7 @@ describe("POST /api/cards/batch", () => {
       makeReq(validCookie(deps), { ...validBody, bidirectional: true }),
       ctx,
     );
-    const body = res.jsonBody as { cards: { reverse_of: string | null; source: string }[] };
+    const body = bodyOf(res) as { cards: { reverse_of: string | null; source: string }[] };
     const forwards = body.cards.filter((c) => c.reverse_of === null);
     const reverses = body.cards.filter((c) => c.reverse_of !== null);
     expect(forwards).toHaveLength(2);
@@ -393,7 +393,7 @@ describe("POST /api/cards/batch", () => {
       makeReq(validCookie(deps), { courseId: COURSE_ID, cards: pipeInput, bidirectional: true }),
       ctx,
     );
-    const body = res.jsonBody as { cards: { question: string; answer: string; reverse_of: string | null }[] };
+    const body = bodyOf(res) as { cards: { question: string; answer: string; reverse_of: string | null }[] };
     const rev = body.cards.find((c) => c.reverse_of !== null);
     expect(rev).toBeDefined();
     expect(rev!.question).toBe("le chien");
@@ -407,7 +407,7 @@ describe("POST /api/cards/batch", () => {
       makeReq(validCookie(deps), { ...validBody, uploadName: "Chapter 3" }),
       ctx,
     );
-    const body = res.jsonBody as { cards: { upload_name: string | null }[] };
+    const body = bodyOf(res) as { cards: { upload_name: string | null }[] };
     expect(body.cards[0]?.upload_name).toBe("Chapter 3");
     expect(body.cards[1]?.upload_name).toBe("Chapter 3");
   });
@@ -419,7 +419,7 @@ describe("POST /api/cards/batch", () => {
       makeReq(validCookie(deps), validBody),
       ctx,
     );
-    const body = res.jsonBody as { cards: { upload_name: string | null }[] };
+    const body = bodyOf(res) as { cards: { upload_name: string | null }[] };
     expect(body.cards[0]?.upload_name).toBeNull();
   });
 });
@@ -461,7 +461,7 @@ describe("PATCH /api/cards/upload-name", () => {
       {} as InvocationContext,
     );
     expect(res.status).toBe(200);
-    expect((res.jsonBody as { updated: number }).updated).toBe(2);
+    expect((bodyOf(res) as { updated: number }).updated).toBe(2);
 
     const cards = await deps.tables.listByPartition<CardRow>("cards", COURSE_ID);
     expect(cards[0]?.upload_name).toBe("Chapter 5");
@@ -494,7 +494,7 @@ describe("PATCH /api/cards/upload-name", () => {
       {} as InvocationContext,
     );
     expect(res.status).toBe(200);
-    expect((res.jsonBody as { updated: number }).updated).toBe(0);
+    expect((bodyOf(res) as { updated: number }).updated).toBe(0);
   });
 });
 
@@ -537,7 +537,7 @@ describe("POST /api/cards/batch — append to existing upload", () => {
       ctx,
     );
     expect(res.status).toBe(201);
-    const body = res.jsonBody as { upload_id: string; cards: { upload_id: string | null; upload_name: string | null }[] };
+    const body = bodyOf(res) as { upload_id: string; cards: { upload_id: string | null; upload_name: string | null }[] };
     expect(body.upload_id).toBe("upload-X");
     for (const c of body.cards) {
       expect(c.upload_id).toBe("upload-X");
@@ -567,7 +567,7 @@ describe("POST /api/cards/batch — append to existing upload", () => {
       ctx,
     );
     expect(res.status).toBe(201);
-    const body = res.jsonBody as { upload_id: string; cards: { upload_name: string | null }[] };
+    const body = bodyOf(res) as { upload_id: string; cards: { upload_name: string | null }[] };
     // Newly minted UUID, not the existing one
     expect(body.upload_id).not.toBe("upload-X");
     expect(body.cards[0]?.upload_name).toBeNull();
