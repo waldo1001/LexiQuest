@@ -29,7 +29,12 @@ If the task is a refactor, also read methodology.md §8.
 
 Write a markdown plan file at
 `docs/plans/phase-<N>-slice-<M>-<short-name>.md` (e.g.
-`docs/plans/phase-2-slice-1-table-client.md`) with the following sections:
+`docs/plans/phase-2-slice-1-table-client.md`) with the following sections.
+A slice built from a spec in [docs/specs/](../../../docs/specs/README.md) is
+named `docs/plans/<issue>-<slug>.md` and adds a `## Blast radius` section
+(see [`/sdd-build`](../sdd-build/SKILL.md)); in League operator mode the
+`spec-approved` label on the issue is the approval for `safe` and `low-risk`
+plans.
 
 1. **Task** — one sentence.
 2. **Scope boundary** — what is IN this slice and what is explicitly OUT
@@ -95,8 +100,10 @@ Pick the simplest RED from the list. Write *only that one test*.
 
 Run only that test file.
 
-- In `api/`: `cd api && npx vitest run <path>`
-- In `frontend/`: `cd frontend && npx vitest run <path>`
+- In `api/`: `cd api && npx vitest run <path>` — or from the root,
+  `npm run test:file:api -- <path>` (the only form available in League operator mode)
+- In `frontend/`: `cd frontend && npx vitest run <path>` — or
+  `npm run test:file:frontend -- <path>`
 
 Observe the failure.
 
@@ -148,9 +155,10 @@ After each meaningful change, run the full suite. If it goes red, revert.
 ## Step 9 — COVER
 
 Run coverage for the touched project:
-- `cd api && npm test` → prints coverage, enforces Tier A (90%) thresholds.
-- `cd frontend && npm test` → enforces Tier A for `src/lib/**` and Tier B
-  (70% lines/functions/statements) elsewhere.
+- `cd api && npm test` (or `npm run test:api` from the root) → prints
+  coverage, enforces Tier A (90%) thresholds.
+- `cd frontend && npm test` (or `npm run test:frontend`) → enforces Tier A
+  for `src/lib/**` and Tier B (70% lines/functions/statements) elsewhere.
 
 Checks:
 

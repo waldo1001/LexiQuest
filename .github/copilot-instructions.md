@@ -32,6 +32,13 @@ anything non-trivial:**
   — gates the cycle before review; updates changelog + user-visible docs + PROGRESS.
 - [../testing/README.md](../testing/README.md) — drop-in Vitest configs,
   dev deps, and example fakes for every seam.
+- [../docs/specs/README.md](../docs/specs/README.md) — Spec Driven
+  Development: post-v1 work starts from `docs/specs/<issue>-<slug>.md`
+  (`/lexiquest-spec`), is approved by the `spec-approved` label on the
+  issue, and is built by `/sdd-build` (human, or waldo.Jarvis's League on a
+  `league/<issue>-<slug>` branch) and verified by `/sdd-review`. Root
+  scripts (`npm run test:api`, `npm run test:frontend`, `npm run build`)
+  are the CI gate.
 
 If any of the above conflicts with a Copilot default suggestion, the
 toolchain wins.

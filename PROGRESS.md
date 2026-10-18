@@ -15,7 +15,19 @@ a plan file under [docs/plans/](docs/plans/) and is archived to
 
 - **Current phase**: Post-v1 features (gaming mode + per-upload stats complete).
 - **Last tag**: `phase-17-done`
-- **Next up**: See [Design.md §7](Design.md) for deferred v2 items.
+- **Next up**: See [Design.md §7](Design.md) for deferred v2 items — each
+  one becomes a spec (below) before it is built.
+
+---
+
+## Open specs
+
+Specs in [docs/specs/](docs/specs/README.md) with `status: draft` or
+`approved`, waiting to be built (by hand with `/sdd-build`, or by
+waldo.Jarvis's League once the owner applies `spec-approved` on the issue).
+One line each: `- ⬜ [title](docs/specs/<issue>-<slug>.md) — issue #<n>, proposed <date>`.
+
+None open.
 
 ---
 
@@ -553,3 +565,20 @@ Plan: [docs/plans/done/post-v1-pdf-chunked-import.md](docs/plans/done/post-v1-pd
 ### Post-v1 — Sound off by default
 - ✅ The TTS speaker toggle (`speechOn`) now defaults **off** in both StudySession and CardManager (was on), so 🔊 audio doesn't start on. In StudySession it initializes from the user's `auto_speak` setting — so anyone who explicitly opted into auto-speak keeps sound on (no silent regression), everyone else starts at 🔇. CardManager (no auto-speak) defaults plainly off. Two-line source change (`useState(true)` → `useState(() => Boolean(user?.settings?.auto_speak))` / `useState(false)`); the manual-speak-button tests now enable sound via the speaker toggle first
   - Tests: 4 new (default-off + auto-speak-on no-regression in `StudySession.test.jsx`; default-off in `CardManager.test.jsx`) + 11 flipped to toggle sound on first. 650 frontend pass. Coverage `StudySession.jsx` 93.8 / `CardManager.jsx` 95.4 lines (Tier B). No API change, no new deps. Security scan N/A (pure UI default, no auth/Claude/secret seam)
+
+---
+
+## Post-v1 — Spec Driven Development + GitHub League wiring
+
+Plan: [docs/plans/done/post-v1-sdd-league.md](docs/plans/done/post-v1-sdd-league.md)
+Convention: [docs/specs/README.md](docs/specs/README.md)
+
+- ✅ Root `package.json` (scripts only, no workspaces) + trivial lockfile; `npm test` / `npm run build` from the root
+- ✅ `CI` workflow (PR gate: install, both suites, both builds); SWA deploy workflow push-to-main only
+- ✅ `scripts/validate-specs.js` + `api/src/__meta__/specs-frontmatter.test.ts` (13 tests, RED → GREEN)
+- ✅ Skills `/lexiquest-spec`, `/sdd-draft`, `/sdd-build`, `/sdd-review`; `/tdd-cycle`, `/security-scan`, `/docs-update` taught operator mode
+- ✅ `.league.json` (commands, pre_build, `ci_required: ["CI"]`, protected paths) validated with Jarvis's parser and permission guard; GitHub labels created
+- ✅ Docs: specs README, plans README, methodology §11, CLAUDE.md, Copilot instructions, setup, getting-started, README
+- ⬜ Operator: merge the PR, then Jarvis HUD → Repos → LexiQuest → Re-probe → Activate
+- ⬜ First specs: [#2 dependency upgrades](https://github.com/waldo1001/LexiQuest/issues/2), [#3 typecheck + lint green](https://github.com/waldo1001/LexiQuest/issues/3)
+

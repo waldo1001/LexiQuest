@@ -19,7 +19,11 @@ removing a file requires updating this index in the same commit.
 
 ## Planning
 
-- [plans/](plans/) — in-flight TDD-cycle plan files (`phase-N-slice-M-*.md`).
+- [specs/](specs/README.md) — Spec Driven Development: one spec per unit of
+  work (`<issue>-<slug>.md`), the lifecycle, the twelve sections, the League
+  contract.
+- [plans/](plans/) — in-flight TDD-cycle plan files (`phase-N-slice-M-*.md`,
+  `<issue>-<slug>.md` for spec-driven slices).
 - [plans/done/](plans/done/) — archived plans for completed slices.
 
 ## TDD toolchain

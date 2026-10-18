@@ -34,7 +34,18 @@
       "Bash(curl -sS http://127.0.0.1:*)",
       "Bash(ls:*)",
       "Bash(echo \"exit=$?\")",
-      "Bash(mkdir -p:*)"
+      "Bash(mkdir -p:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue create:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh label list:*)",
+      "Bash(git fetch:*)",
+      "Bash(git worktree:*)",
+      "Bash(git switch:*)",
+      "Bash(node scripts/validate-specs.js:*)"
     ]
   }
 }
