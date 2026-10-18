@@ -1,11 +1,11 @@
 ---
 issue: 3
-status: draft
+status: implemented
 ---
 
 # `npm run typecheck` and `npm run lint` go green and join CI and the League's gate
 
-Status: proposed, 2026-10-18. Owner: waldo.
+Status: implemented, 2026-10-18 (section 12 records what was built and where it differs). Owner: waldo.
 Scope: api test typings, the frontend ESLint config, eight frontend files flagged by the React
 Compiler rules, two new meta-tests, then `ci.yml` and `.league.json` (operator steps). Every claim
 below was verified against the tree at `60f14c0` (`main`) on 2026-10-18. Not in scope: dependency
@@ -219,14 +219,59 @@ the 33 api test files listed by `npm run typecheck`. Operator: `.github/workflow
 
 ## 11. Definition of Done
 
-- [ ] `npm run typecheck` exits 0; `npm run lint` exits 0
-- [ ] AC1–AC12 each have the named test, green
-- [ ] Tier A on `api/testing/*.ts` helpers, Tier B on every touched screen; no new `v8 ignore`
-- [ ] The four invariants' meta-tests still pass; `/security-scan` pass
-- [ ] `docs/changelog.md` bullet; `PROGRESS.md` section; this spec `status: implemented` with "12. Built, deviations"
+- [x] `npm run typecheck` exits 0; `npm run lint` exits 0 (proved by the two meta-tests; the root `typecheck`/`lint` scripts are not on the League allowlist, so they were not run directly)
+- [x] AC1–AC12 each have the named test, green (AC5–AC9 under per-screen ids, see section 12)
+- [x] Tier A on `api/testing/*.ts` helpers (tested directly, 100% by their own tests; `api/` coverage only measures `src/`), Tier B on every touched screen (full-suite thresholds pass); no new `v8 ignore`
+- [x] The four invariants' meta-tests still pass; security scan (Grep over the diff) pass
+- [x] `docs/changelog.md` bullet; `PROGRESS.md` section; this spec `status: implemented` with "12. Built, deviations"
 - [ ] Operator steps applied after merge: `ci.yml` steps, `.league.json` commands, HUD Re-probe green
 
-## 12. Proposed edits to other files (not applied)
+## 12. Built, deviations (2026-10-18)
+
+**Built.** Both gates are green and enforced from inside `npm test`.
+
+- Lint: `eslint.config.js` ignores `coverage/` and gives `vitest.config.js` + `src/testing/**` node+browser globals; 9 unused identifiers removed (`fake-tts.js` `_lang` parameter dropped); `AppContext` theme derived in render; `useAppContext`/`useTts` (and the context object) moved to `context/app-hooks.js`, 11 import sites updated; keyed fetch state in `Leaderboard`, `CourseStats`, `FamilyDashboard`, `UploadStats`, `UserStats`; `StudySession` ref mirror moved into a no-deps `useEffect`.
+- Typecheck: new `api/testing/http.ts` (`bodyOf`, `headersOf`), `api/testing/rows.ts` (`makeSessionRow`, `makeUserRow`), `api/testing/session-cookie.ts`; 33 api test files fixed.
+- Meta-tests: `api/src/__meta__/typecheck.test.ts`, `frontend/src/__meta__/lint.test.js`.
+
+**Verified** (final tree): `npm run test:api` → 965 passed, 1 skipped (the Azurite integration test), coverage thresholds hold; `npm run test:frontend` → 657 passed, thresholds hold, `vite build` runs inside it; `node scripts/validate-specs.js` → ok.
+
+**RED evidence.** `lint: eslint . reports no errors` failed quoting the 23 ESLint errors (`set-state-in-effect`, `refs`, `no-unused-vars`, `only-export-components`, `no-undef`); `typecheck: tsc -p tsconfig.test.json reports no errors` failed quoting `TS2554 Expected 2 arguments`, `TS2739 … missing game_type, card_limit, card_order`, `TS2339 'jsonBody' does not exist on type 'HttpResponseInit | HttpResponse'`; the AC10 test failed with `expected 'arcade' to be 'playful'`.
+
+| AC | Test |
+|---|---|
+| AC1 | `api/src/__meta__/typecheck.test.ts` — "typecheck: tsc -p tsconfig.test.json reports no errors" |
+| AC2 | `frontend/src/__meta__/lint.test.js` — "lint: eslint . reports no errors" |
+| AC3 | `api/testing/http.test.ts` — "bodyOf returns jsonBody of an HttpResponseInit; throws on HttpResponse" (+ `headersOf` tests) |
+| AC4 | `api/testing/rows.test.ts` — "makeSessionRow defaults satisfy SessionRow; overrides win", "makeUserRow defaults satisfy UserRow; settings override merges shallowly" |
+| AC5 | `Leaderboard.test.jsx` LB-UI-8 "shows loading again when the period changes" (+ LB-UI-4) |
+| AC6 | `CourseStats.test.jsx` CS-9 |
+| AC7 | `FamilyDashboard.test.jsx` FD-9 |
+| AC8 | `UploadStats.test.jsx` "shows loading again when the range changes" |
+| AC9 | `UserStats.test.jsx` US-9 |
+| AC10 | `AppContext.test.jsx` — "theme follows user.settings.theme on login and the manual override until the user changes" |
+| AC11 | `StudySession.test.jsx` — the existing flush-on-unmount tests, unchanged and green |
+| AC12 | `lint.test.js` (the `react-refresh/only-export-components` rule) |
+
+**Deviations.**
+
+- `bodyOf` defaults `T` to `unknown`, not `Record<string, unknown>`: the test sites cast (`bodyOf(res) as { … }`), and a `Record` default made casts to arrays a type error.
+- Spec task 3 (a): instead of passing `false` at 59 call sites, `api/testing/session-cookie.ts` exports a one-argument `buildSessionCookie(token)` (non-Secure) and the 28 test files import it; the production `buildSessionCookie(token, secure)` is untouched.
+- Session fixtures got the three missing fields added in place (11 sites) rather than moving to `makeSessionRow`, and user fixtures got a typed settings object (and lost the non-existent `id` field) rather than moving to `makeUserRow`; the factories exist and are tested but are not yet used by the old fixtures.
+- Index access (≈100 sites) uses a non-null assertion (`stored[0]!.x`), not a length check; the test would throw a `TypeError` anyway if the element were missing.
+- `makeUserRow` settings defaults (`auto_speak: false, preferred_mode: "self_grade", daily_goal: 10`) come from the values the existing fixtures share — no shared default-settings constant exists in `api/src`.
+- `AppContext`: the override is stored with the user id it was picked for (`{ userId, name }`) and applies only while that id is signed in, instead of being reset in a `setUser` handler. Resetting in `setUser` broke `Settings` (it calls `setUser((u) => …)` after `setThemeName`). Consequence: logout or login as another id drops the override and falls back to `user.settings.theme`, then the `initialTheme` prop; a theme from a previous user no longer lingers after logout.
+- The context object itself (`AppContext`) is exported from `context/app-hooks.js`, so `AppContext.jsx` exports only the provider.
+- The "stale response for a changed key is ignored" edge case has no per-screen test: every screen renders only the loading view while a request is pending, so no control exists to change the key mid-flight; the `cancelled` guard and the key check are exercised by the loading-again tests. AC5–AC9 were behaviour-preserving refactors, so their new tests passed on first run (no RED for them).
+- `api/testing/*.ts` helpers have no coverage threshold (`api/` coverage includes `src/**` only); they are covered by their own tests.
+- The first full `npm run test:frontend` run failed once on `StudySession — auto_speak … AC4` (`expected false to be true`); that test passed alone and in two further full runs — a timing flake, not reproduced.
+
+**Operator steps still open.**
+
+- Add `npm run typecheck` and `npm run lint` steps to `.github/workflows/ci.yml` (replace the comment at lines 41-44) and `"npm run typecheck"`, `"npm run lint"` to `.league.json` `commands` (protected paths, spec task 5); re-probe in the Jarvis HUD.
+- `/local-smoke` and the manual pass from section 7 (stats range change, leaderboard period, a study session closed mid-way, theme switch after login); `npm audit` is unchanged by this spec.
+
+## 13. Proposed edits to other files (applied 2026-10-18, see section 12)
 
 - `docs/changelog.md`: "- Made **typecheck and lint green** and part of every test run: 295 test-typing errors fixed through `bodyOf`/`headersOf` helpers and row factories; 23 lint errors fixed, including the React Compiler rules in six screens and `AppContext` (keyed fetch state derived in render, ref updates moved to a post-render effect) and the hooks moved to `context/app-hooks.js`; `coverage/` ignored by ESLint. Two meta-tests now fail `npm test` on a type or lint error. CI runs both steps again. Spec: [specs/3-typecheck-and-lint-green.md](specs/3-typecheck-and-lint-green.md)."
 - `PROGRESS.md`: remove the Open-specs line; add `## Post-v1 — Typecheck and lint green` with the slices above.

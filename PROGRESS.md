@@ -28,7 +28,7 @@ waldo.Jarvis's League once the owner applies `spec-approved` on the issue).
 One line each: `- ⬜ [title](docs/specs/<issue>-<slug>.md) — issue #<n>, proposed <date>`.
 
 - ⬜ [`npm audit` clean: vitest 4, transitive patches, unused `uuid` removed, sharp 0.35, Anthropic SDK current](docs/specs/2-dependency-upgrades-npm-audit.md) — issue #2, proposed 2026-10-18 (human build only: touches protected `package.json` files)
-- ⬜ [`npm run typecheck` and `npm run lint` go green and join CI and the League's gate](docs/specs/3-typecheck-and-lint-green.md) — issue #3, proposed 2026-10-18
+None open.
 
 ---
 
@@ -582,4 +582,18 @@ Convention: [docs/specs/README.md](docs/specs/README.md)
 - ✅ Docs: specs README, plans README, methodology §11, CLAUDE.md, Copilot instructions, setup, getting-started, README
 - ⬜ Operator: merge the PR, then Jarvis HUD → Repos → LexiQuest → Re-probe → Activate
 - ⬜ First specs: [#2 dependency upgrades](https://github.com/waldo1001/LexiQuest/issues/2), [#3 typecheck + lint green](https://github.com/waldo1001/LexiQuest/issues/3)
+
+---
+
+## Post-v1 — Typecheck and lint green
+
+Plan: [docs/plans/3-typecheck-and-lint-green.md](docs/plans/3-typecheck-and-lint-green.md)
+Spec: [docs/specs/3-typecheck-and-lint-green.md](docs/specs/3-typecheck-and-lint-green.md) (#3)
+
+- ✅ Slice 1 — ESLint config (`coverage/` ignored, node globals for tooling) + 10 unused-identifier fixes + `frontend/src/__meta__/lint.test.js`
+- ✅ Slice 2 — api test helpers `bodyOf`/`headersOf` (`api/testing/http.ts`), test-side `buildSessionCookie`, `makeSessionRow`/`makeUserRow` (`api/testing/rows.ts`) + `api/src/__meta__/typecheck.test.ts`
+- ✅ Slice 3 — 295 test-typing errors fixed across 33 api test files
+- ✅ Slice 4 — hook-rule refactors: keyed fetch state in 5 screens, `AppContext` theme derivation, `app-hooks.js`, `StudySession` post-render ref effect
+- ⬜ Operator: add `npm run typecheck` / `npm run lint` to `.github/workflows/ci.yml` and `.league.json` `commands`; Re-probe in the HUD
+- Tests: api 965 passed (1 skipped), frontend 657 passed
 
