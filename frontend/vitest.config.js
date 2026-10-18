@@ -31,6 +31,7 @@ export default defineConfig({
         "src/testing/**",
         "src/**/__fixtures__/**",
         "src/**/*.test.{js,jsx}",
+        "src/__meta__/**",
       ],
       thresholds: {
         perFile: true,
