@@ -3,8 +3,9 @@ name: CI
 # The pull-request gate. waldo.Jarvis's League requires this workflow to be green on the
 # PR head before it reviews or merges a build (.league.json `ci_required`). It builds both
 # projects too, because the deploy workflow no longer runs on pull requests.
-# Never add a step that applies labels here: the League owns `spec-approved`,
-# `league-building`, `league-handed-over` and `league-halted`.
+# Never add a step that applies issue or PR labels here: the League owns its
+# approval and build-state labels, and its onboarding probe scans this file's
+# text for their names (so do not even mention them in a comment).
 
 on:
   pull_request:
