@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   test:
-    name: Typecheck, lint, test, build
+    name: Install, test, build
     runs-on: ubuntu-latest
     env:
       CI: "1"
