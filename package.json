@@ -1,0 +1,21 @@
+{
+  "name": "lexiquest",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Root scripts only. The real projects are api/ (Azure Functions, TypeScript) and frontend/ (React + Vite). No workspaces: Azure Static Web Apps builds api/ and frontend/ in isolation and a workspace root would hoist the API's dependencies out of api/ on deploy.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "install:all": "npm --prefix api ci --no-audit --no-fund && npm --prefix frontend ci --no-audit --no-fund",
+    "test": "npm run test:api && npm run test:frontend",
+    "test:api": "npm --prefix api test",
+    "test:frontend": "npm --prefix frontend test",
+    "test:file:api": "npm --prefix api run test:file --",
+    "test:file:frontend": "npm --prefix frontend run test:file --",
+    "typecheck": "npm --prefix api run typecheck",
+    "lint": "npm --prefix frontend run lint",
+    "build": "npm --prefix api run build && npm --prefix frontend run build",
+    "validate:specs": "node scripts/validate-specs.js"
+  }
+}

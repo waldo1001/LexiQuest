@@ -20,8 +20,8 @@ git clone <repo-url>
 cd LexiQuest
 
 # Install dependencies for both halves of the app:
-cd api && npm install && cd ..
-cd frontend && npm install && cd ..
+npm run install:all
+# (same as: cd api && npm ci && cd ../frontend && npm ci && cd ..)
 ```
 
 ## Step 2 — Run the tests
@@ -30,11 +30,11 @@ This is the thing you'll do most often. No database, no server, no
 setup — just run them.
 
 ```sh
-# API tests (TypeScript, ~200 tests):
-cd api && npm test
+npm test                 # both suites from the root
 
-# Frontend tests (JavaScript, ~150 tests):
-cd frontend && npm test
+# or one at a time:
+cd api && npm test       # API tests (TypeScript, ~940 tests)
+cd frontend && npm test  # Frontend tests (JavaScript, ~650 tests)
 ```
 
 Both commands run **all** unit tests and print a coverage report. If

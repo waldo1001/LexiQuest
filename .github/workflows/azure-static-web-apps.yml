@@ -1,19 +1,17 @@
 name: Azure Static Web Apps CI/CD
 
+# Push-to-main deploy only. Pull requests are gated by ci.yml instead: SWA preview
+# environments copy the production app settings (live Table Storage + Anthropic key)
+# and the Free plan allows three of them, which waldo.Jarvis's League PRs would exhaust.
 on:
   push:
-    branches: [main]
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
     branches: [main]
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy
     steps:
@@ -39,13 +37,3 @@ jobs:
           app_build_command: "npm run build"
           api_build_command: "npm run build"
 
-  close_pull_request_job:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    name: Close Pull Request
-    steps:
-      - name: Close Pull Request
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          action: close
