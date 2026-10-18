@@ -3,7 +3,9 @@
 One markdown file per unit of work, written **before** the code, precise enough that a coding
 session (a human with Claude, or waldo.Jarvis's GitHub League) builds it without asking. The spec
 is the contract; `/tdd-cycle` turns its test plan into RED tests. This file has no frontmatter on
-purpose: the League reads every `docs/specs/*.md` and treats a file with `issue:` as a spec.
+purpose: the League reads every `docs/specs/*.md` and treats a file with `issue: <number>` as a
+spec — and its parser accepts a `---` block on **any** line, so every example in this file keeps
+`issue: <N>` as a placeholder, never a real number.
 
 ## Lifecycle
 
@@ -38,7 +40,7 @@ before the spec: `/lexiquest-spec` creates it first.
 
 ```
 ---
-issue: 42
+issue: <N>
 status: draft
 ---
 
