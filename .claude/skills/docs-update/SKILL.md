@@ -129,6 +129,9 @@ plan to `docs/plans/done/<name>.md`**.
 
 - Use `git mv docs/plans/<name>.md docs/plans/done/<name>.md` so history
   is preserved.
+- League operator mode (`JARVIS_OPERATOR=1`) has no `git`: leave the plan
+  in `docs/plans/` and say so in the report; `/sdd-review` archives it at
+  merge time.
 - Update every reference to the old path in this repo (PROGRESS.md,
   changelog.md, other docs, skill files).
 - `docs/plans/` stays for in-flight plans only. `docs/plans/done/` is the

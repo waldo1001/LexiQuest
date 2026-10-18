@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
+    "test:file": "vitest run",
     "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {

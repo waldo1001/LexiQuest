@@ -37,3 +37,6 @@ azurite-debug.log
 
 # Snapshot exports — contain real password hashes; never commit, even on a public repo
 backups/
+
+# waldo.Jarvis League — issue snapshot written into a draft worktree; never committed
+.league/

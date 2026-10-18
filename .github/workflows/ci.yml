@@ -1,0 +1,53 @@
+name: CI
+
+# The pull-request gate. waldo.Jarvis's League requires this workflow to be green on the
+# PR head before it reviews or merges a build (.league.json `ci_required`). It builds both
+# projects too, because the deploy workflow no longer runs on pull requests.
+# Never add a step that applies labels here: the League owns `spec-approved`,
+# `league-building`, `league-handed-over` and `league-halted`.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Install, test, build
+    runs-on: ubuntu-latest
+    env:
+      CI: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install (api + frontend)
+        run: npm run install:all
+
+      # `npm run typecheck` (295 errors in api test files) and `npm run lint` (23 frontend
+      # errors) are red on main as of 2026-10-18. They join this workflow and the League's
+      # `.league.json` commands once a spec makes them green (first SDD candidate).
+
+      - name: Test (api)
+        run: npm run test:api
+
+      - name: Test (frontend)
+        run: npm run test:frontend
+
+      - name: Build (api + frontend)
+        run: npm run build

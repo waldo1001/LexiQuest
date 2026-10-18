@@ -132,6 +132,16 @@ operation, or an architectural ambiguity that Design.md does not resolve.
   shipping to production. Pushes `main`, watches the GitHub Actions run
   that triggers the SWA deploy, probes the live URL, reports. Never
   force-pushes, never rotates secrets.
+- [`/lexiquest-spec`](.claude/skills/lexiquest-spec/SKILL.md) — write a
+  spec in `docs/specs/` from a request: creates the issue, one scoping
+  round, verified claims, `status: draft`, never approves.
+- [`/sdd-draft`](.claude/skills/sdd-draft/SKILL.md) — the League's entry
+  point: issue → draft spec, operator mode (no questions, no `gh`, no commit).
+- [`/sdd-build`](.claude/skills/sdd-build/SKILL.md) — build one spec
+  through the TDD cycle, blast-radius rating, ship-time edits. Human or
+  League.
+- [`/sdd-review`](.claude/skills/sdd-review/SKILL.md) — verify a spec
+  build PR the way the owner does; fixes on the PR branch when asked.
 
 A task is not done until all three coding skills (tdd-cycle,
 security-scan, docs-update) have been run. `/local-smoke` and
@@ -183,9 +193,40 @@ for the full rationale and the meta-test locations.
 - **AI**: Anthropic Claude via `@anthropic-ai/sdk` (behind the
   `ClaudeClient` seam).
 - **Deploy**: push to `main` → GitHub Actions → Azure Static Web Apps.
+  Pull requests run the `CI` workflow (tests + build), not a preview deploy.
 - **Time-sensitive logic** (SM-2 scheduling, streaks, daily goal)
   routes through the `Clock` seam — all timezone math uses
   `Europe/Brussels`.
+
+## Spec Driven Development (issue → spec → build)
+
+Post-v1 work starts from a **spec**, not from a chat request. The full convention
+(lifecycle, file name, frontmatter, the twelve sections, what the League may touch) is
+[docs/specs/README.md](docs/specs/README.md); this is the short form.
+
+1. **Issue** — every unit of work has a GitHub issue. `/lexiquest-spec` creates it.
+2. **Spec** — `docs/specs/<issue>-<slug>.md`, frontmatter `issue:` + `status: draft`,
+   written by [`/lexiquest-spec`](.claude/skills/lexiquest-spec/SKILL.md) (human session, one
+   scoping round) or by the League's [`/sdd-draft`](.claude/skills/sdd-draft/SKILL.md) from the
+   issue. Section 5 of a spec is the RED list; section 6 cuts it into `/tdd-cycle` slices.
+   `node scripts/validate-specs.js` and the meta-test
+   `api/src/__meta__/specs-frontmatter.test.ts` enforce the contract.
+3. **Approval** — the owner applies the `spec-approved` label on the issue. Nothing else
+   approves a spec: not `status: approved`, not "go ahead" in chat, never the spec writer.
+4. **Build** — [`/sdd-build docs/specs/<issue>-<slug>.md`](.claude/skills/sdd-build/SKILL.md)
+   runs this repository's TDD cycle against the spec, rates the blast radius in the plan
+   (`risky`/`breaking` park at `plan-waiting`), then does the ship-time edits (spec
+   `status: implemented` + "12. Built, deviations", changelog, PROGRESS). By hand on a
+   `build/<slug>` worktree, or by waldo.Jarvis's League on `league/<issue>-<slug>` with a draft PR
+   labelled `league-building` (operator mode below).
+5. **Review** — [`/sdd-review`](.claude/skills/sdd-review/SKILL.md) verifies the PR in its own
+   worktree (tests, coverage tiers, the four invariants, ship-time edits), then squash-merge;
+   push-to-main deploys.
+
+Root scripts (the only commands the League may run, and the CI gate): `npm run install:all`,
+`npm run test:api`, `npm run test:frontend`, `npm run test:file:api -- <file>`,
+`npm run test:file:frontend -- <file>`, `npm run build`, `node scripts/validate-specs.js`.
+There are no npm workspaces on purpose: Azure SWA builds `api/` and `frontend/` in isolation.
 
 <!-- waldo.Jarvis operator mode -->
 ## Operator mode (waldo.Jarvis)

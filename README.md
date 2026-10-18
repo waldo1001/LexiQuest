@@ -8,7 +8,7 @@ role for managing users); he also appears on the picker alongside the
 five students. The app name is dynamic: LexiQuest / MatsQuest /
 BenQuest / KaatQuest / AmaryllisQuest, based on who is logged in.
 
-**Status**: All 17 phases complete + Phase 18 (Bidirectional cards) + Gaming mode + Per-upload stats. PWA installable on iOS/Android, bottom nav, swipe gestures in study, dark mode, data export (`GET /api/export` → JSON download), offline banner. Bidirectional cards: courses can auto-create reverse cards (Q↔A swapped, independent SM-2 schedules), with pairing UI and linked delete in Card Manager. Gaming mode: pre-session setup screen with game type picker (Classic/Boss Round/Speed Round/Review Blitz), card count limiter, smart priority scoring, XP multipliers, speed round timer. Per-upload stats: mastery, accuracy, and study history per import — accessible from Card Manager. Also live: Leaderboard + Compare (Phase 16), Stats UI (Phase 15), full stats API (Phase 14), AI card import (Phase 12), MCQ mode (Phase 13), TTS (Phase 11), XP/streaks/badges (Phase 10), SM-2 (Phase 8). Tagged `phase-17-done`. See [Design.md §7](Design.md) for deferred v2 items.
+**Status**: All 17 phases complete + Phase 18 (Bidirectional cards) + Gaming mode + Per-upload stats. PWA installable on iOS/Android, bottom nav, swipe gestures in study, dark mode, data export (`GET /api/export` → JSON download), offline banner. Bidirectional cards: courses can auto-create reverse cards (Q↔A swapped, independent SM-2 schedules), with pairing UI and linked delete in Card Manager. Gaming mode: pre-session setup screen with game type picker (Classic/Boss Round/Speed Round/Review Blitz), card count limiter, smart priority scoring, XP multipliers, speed round timer. Per-upload stats: mastery, accuracy, and study history per import — accessible from Card Manager. Also live: Leaderboard + Compare (Phase 16), Stats UI (Phase 15), full stats API (Phase 14), AI card import (Phase 12), MCQ mode (Phase 13), TTS (Phase 11), XP/streaks/badges (Phase 10), SM-2 (Phase 8). Tagged `phase-17-done`. See [Design.md §7](Design.md) for deferred v2 items. Since 2026-10-18 every further change starts as a spec in [docs/specs/](docs/specs/README.md), approved by a label on its GitHub issue and built by `/sdd-build` — by hand or by waldo.Jarvis's GitHub League.
 
 ## What it is
 
@@ -53,6 +53,9 @@ Target cost: ~€2 / month.
   toolchain entry point).
 - [docs/tdd/](docs/tdd/) — methodology, testability patterns,
   AI-maintainability rules, coverage policy.
+- [docs/specs/](docs/specs/README.md) — Spec Driven Development: one spec
+  per unit of work, approved by a label on its issue, built by `/sdd-build`
+  (by hand or by waldo.Jarvis's GitHub League).
 - [docs/changelog.md](docs/changelog.md) — dated log of changes.
 - [docs/setup.md](docs/setup.md) — local setup and Azure provisioning.
   Grows per phase.
@@ -72,6 +75,11 @@ stack — the Azure Static Web Apps CLI
 (`npm install -g @azure/static-web-apps-cli`).
 
 ```sh
+# Everything from the root (scripts only — no workspaces):
+npm run install:all   # npm ci in api/ and frontend/
+npm test              # both test suites with coverage
+npm run build         # both builds (what the deploy does)
+
 # Frontend only (Vite dev server at http://localhost:5173)
 cd frontend
 npm install

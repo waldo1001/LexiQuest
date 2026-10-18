@@ -375,6 +375,30 @@ When the user initiates a batch run ("go", "do it", "implement all slices",
 
 Silence is not approval — but "go" is.
 
+## 11. Spec-driven slices
+
+Post-v1 work starts from a spec in [../specs/](../specs/README.md), one
+file per unit of work with a GitHub issue behind it. The spec does not
+replace this cycle; it feeds it:
+
+- **Spec §5 (Test plan) is the RED list** of §2.1 — written before the
+  code, per acceptance criterion, with the test file and test name.
+- **Spec §6 (Tasks) are the slices** — each one is a `/tdd-cycle`, with
+  its plan at `docs/plans/<issue>-<slug>.md` plus a `## Blast radius`
+  section (`Rating: safe | low-risk | risky | breaking`).
+- **Approval moves to the issue.** The owner applies the `spec-approved`
+  label; that label is the §2.-1 plan approval for `safe` and `low-risk`
+  plans when waldo.Jarvis's League builds in operator mode. `risky` and
+  `breaking` plans still stop and wait (`plan-waiting`). A human session
+  keeps the explicit "go".
+- **Ship-time edits are part of GREEN**, not a follow-up: spec
+  `status: implemented` with "12. Built, deviations", the changelog bullet,
+  the PROGRESS line (`/sdd-build` §5). A deviation from the spec is
+  recorded there, never hidden in the diff.
+
+Skills: `/lexiquest-spec` (write), `/sdd-draft` (issue → draft, League),
+`/sdd-build` (build, both modes), `/sdd-review` (verify a build PR).
+
 ---
 
 *This methodology is enforced by the repo-local `/tdd-cycle` skill. Run it at

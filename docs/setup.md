@@ -17,20 +17,33 @@ doc covers everything in more detail.
 ## Install
 
 ```sh
+npm run install:all          # from the repo root: npm ci in api/ and frontend/
+# or, per project:
 cd frontend && npm install
 cd ../api && npm install
 ```
+
+The root `package.json` holds scripts only (no dependencies, no npm
+workspaces — Azure SWA builds `api/` and `frontend/` in isolation). It is
+also the only entry point waldo.Jarvis's League may use (see
+[specs/README.md](specs/README.md)).
 
 ## Running tests
 
 Tests are the main dev loop. No database, no server needed.
 
 ```sh
-# API (TypeScript, ~200 tests, 90% coverage floor):
-cd api && npm test
+npm test                     # from the root: both suites, with coverage
 
-# Frontend (JavaScript, ~150 tests, 70% coverage floor):
-cd frontend && npm test
+# API (TypeScript, ~940 tests, 90% coverage floor):
+cd api && npm test           # or: npm run test:api
+
+# Frontend (JavaScript, ~650 tests, 70% coverage floor):
+cd frontend && npm test      # or: npm run test:frontend
+
+# One file, no coverage (the RED/GREEN loop):
+npm run test:file:api -- src/shared/sm2.test.ts
+npm run test:file:frontend -- src/lib/tts.test.js
 ```
 
 ### Other test commands

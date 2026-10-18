@@ -23,6 +23,13 @@ Reference:
 - **Always** when the user explicitly asks for a security check.
 - **Always** after adding new fixtures, logs, or error messages.
 
+**League operator mode** (`JARVIS_OPERATOR=1`, see
+[`/sdd-build`](../sdd-build/SKILL.md) §4): Bash is limited to the root test
+scripts, so the shell steps below are done with the Grep tool over the
+changed files (same patterns), the invariant meta-tests run as
+`npm run test:file:api -- src/__meta__`, and `npm audit` becomes an operator
+step named in the report. A finding still blocks.
+
 ## The rules (what MUST NOT exist in the repo)
 
 1. **No secrets in tracked files.** Anthropic API keys, Azure connection
