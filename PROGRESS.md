@@ -27,7 +27,7 @@ Specs in [docs/specs/](docs/specs/README.md) with `status: draft` or
 waldo.Jarvis's League once the owner applies `spec-approved` on the issue).
 One line each: `- ⬜ [title](docs/specs/<issue>-<slug>.md) — issue #<n>, proposed <date>`.
 
-None open.
+- ⬜ [Card import always runs on the newest Claude Sonnet and Haiku](docs/specs/7-latest-claude-models.md) — issue #7, proposed 2026-10-19 (human build: touches `.github/`, `api/scripts/`, `claude.ts`)
 
 ---
 
