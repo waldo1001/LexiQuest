@@ -1,6 +1,6 @@
 # Plan — card import on the newest Claude Sonnet and Haiku (#7)
 
-Spec: [docs/specs/7-latest-claude-models.md](../specs/7-latest-claude-models.md)
+Spec: [docs/specs/7-latest-claude-models.md](../../specs/7-latest-claude-models.md)
 Status: approved by the owner ("just build it here", 2026-10-19) — manual build on `build/latest-claude-models`.
 
 ## Task

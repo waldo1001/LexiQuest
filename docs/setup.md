@@ -192,6 +192,31 @@ Add to `api/local.settings.json`:
 For Azure production: set it in the SWA app settings (Azure portal →
 Static Web App → Configuration → Application settings).
 
+Card import runs on the newest Claude Sonnet (photos, slides, language check,
+distractors) and the newest Haiku (PDF batches), pinned as `SONNET_MODEL` /
+`HAIKU_MODEL` in `api/src/shared/claude.ts`.
+
+### Model watch (newer-model alert)
+
+The **Model watch** workflow (`.github/workflows/model-watch.yml`) runs every
+Monday and opens an issue "Newer Claude model available" when Anthropic ships a
+newer Sonnet or Haiku than the pins. It needs one repo secret:
+
+1. In the Anthropic Console, create a **separate** API key — ideally in its own
+   workspace with a low spend limit. Listing models is free; never reuse the
+   production `ANTHROPIC_API_KEY`.
+2. GitHub → the repo → Settings → Secrets and variables → Actions → New
+   repository secret: name `ANTHROPIC_MODELS_API_KEY`, value the key.
+3. Actions → Model watch → **Run workflow** once; it should report the pins as
+   current and open no issue.
+
+Run the same check locally from `api/` (prints a JSON report; exit 2 when the
+key is missing or the call fails):
+
+```bash
+ANTHROPIC_API_KEY=... npx tsx scripts/check-latest-models.ts
+```
+
 ## Azure production deployment
 
 Full operator runbook — including one-time Azure setup, day-to-day

@@ -1,11 +1,11 @@
 ---
 issue: 7
-status: draft
+status: implemented
 ---
 
 # Card import always runs on the newest Claude Sonnet and Haiku
 
-Status: proposed, 2026-10-19. Owner: waldo.
+Status: implemented, 2026-10-19 (section 12 records what was built and where it differs). Owner: waldo.
 Scope: the model pins and the four Claude calls in `api/src/shared/claude.ts`, the Claude error
 mapping in `api/src/functions/cards-import.ts`, a new pure module `api/src/shared/model-catalog.ts`,
 a new CLI `api/scripts/check-latest-models.ts`, a new workflow `.github/workflows/model-watch.yml`,
@@ -330,16 +330,81 @@ change.
 
 ## 11. Definition of Done
 
-- [ ] Tests named per AC1–AC5 exist and pass; AC6 and AC7 recorded in "Built, deviations"
-- [ ] Tier A 90% per file on `claude.ts`, `model-catalog.ts`, `cards-import.ts`
-- [ ] The four invariants hold: `__meta__` tests pass; import never persists on the new 422 paths;
+- [x] Tests named per AC1–AC5 exist and pass; AC6 and AC7 recorded in "Built, deviations"
+- [x] Tier A 90% per file on `claude.ts`, `model-catalog.ts`, `cards-import.ts`
+- [x] The four invariants hold: `__meta__` tests pass; import never persists on the new 422 paths;
       logs carry `userId`, never tokens, file content or prompts
-- [ ] `/security-scan` full pass (touches `ClaudeClient`)
-- [ ] Repo secret `ANTHROPIC_MODELS_API_KEY` created and one `workflow_dispatch` run green
-- [ ] `docs/changelog.md` bullet, `docs/setup.md` secret step, `Design.md` amendment,
+- [x] `/security-scan` full pass (touches `ClaudeClient`)
+- [ ] Repo secret `ANTHROPIC_MODELS_API_KEY` created and one `workflow_dispatch` run green — open operator step (§12)
+- [x] `docs/changelog.md` bullet, `docs/setup.md` secret step, `Design.md` amendment,
       `PROGRESS.md` section; spec `status: implemented` + "12. Built, deviations"
 
-## 12. Proposed edits to other files (not applied)
+## 12. Built, deviations (2026-10-19)
+
+Built by hand on `build/latest-claude-models` (owner: "just build it here"), one commit per slice:
+`e3a5271` (slice 1), `e1d733c` (slice 2), `bde02fd` (slice 3), `c0621e9` (slice 4), plus the docs
+commit. §9 Q1–Q3 were taken at their defaults: pin + weekly alert, a separate repo secret, server-side
+fallback on Sonnet.
+
+**Verified (final tree):**
+
+- `npm run test:api` → 1018 passed, 1 skipped (70 files + 1 skipped; +32 tests). Tier A per file:
+  `claude.ts` 100% lines / 100% branches; `model-catalog.ts` 100% lines / 96.2% branches;
+  `cards-import.ts` 99% lines / 96.3% branches.
+- `npm run test:frontend` → 659 passed (unchanged).
+- `npm run build` → exit 0; `tsc -p tsconfig.json` and `tsc -p tsconfig.test.json` → exit 0 (the beta
+  `create` call, the content-block literals and `textFromMessage(BetaMessage)` type-check against SDK
+  0.135.0). The CLI is outside `tsconfig.test.json`, so it was type-checked on its own
+  (`tsc --strict --module NodeNext`) → exit 0.
+- `node scripts/validate-specs.js` → ok.
+- **Live:** `npx tsx scripts/check-latest-models.ts` against the Models API → exit 0,
+  `newest: { sonnet: "claude-sonnet-5-5", haiku: "claude-haiku-5-5" }`, `stale: []` — the pins are
+  the newest models on 2026-10-19. Missing key → exit 2, a stderr message, nothing on stdout.
+- `model-watch.yml` parses (1 job, 5 steps, `schedule` + `workflow_dispatch`) and names no League
+  label.
+- `/security-scan` → PASS; the invariant meta-tests (`src/__meta__`, 29) pass;
+  `npm audit --audit-level=high` → exit 0 in both projects.
+
+**AC → test traceability:**
+
+| AC | Test file | Tests |
+|---|---|---|
+| AC1 pins | `api/src/shared/claude.test.ts` | "pins the newest models: SONNET_MODEL is claude-sonnet-5-5 and HAIKU_MODEL is claude-haiku-5-5" |
+| AC2 request params | `api/src/shared/claude.test.ts` | "extraction params use effort low and max_tokens 16000 with the file block before the prompt", "PDF extraction sends a document block", "distractor params use max_tokens 4000", "slides and language-check params take a plain string prompt", "Sonnet params carry fallbacks 'default' and the server-side-fallback-2026-07-01 beta", "Haiku params carry neither fallbacks nor betas", "params never set thinking, temperature, top_p, top_k or an assistant prefill" |
+| AC3 reply reading | `api/src/shared/claude.test.ts` | "textFromMessage returns the text block when thinking blocks come first", "returns the text after a fallback block …", "throws ClaudeRefusalError with stop_details.category on stop_reason refusal", "… with category null when stop_details is missing", "throws ClaudeTruncatedError on stop_reason max_tokens", "returns an empty string for end_turn with no text block, so parseCards still throws ClaudeJsonParseError" |
+| AC4 import handler | `api/src/functions/cards-import.test.ts` | "a Claude refusal returns 422 with reason refusal and its category and persists nothing", "a refusal without a category reports category null", "a cut-off Claude reply returns 422 with reason truncated and persists nothing", "logs cards_import_claude_refused with userId, courseId, mimeType, model and category but never the file or prompt", "logs cards_import_claude_truncated with userId, courseId, mimeType and model"; AC90/AC91 routing and AC13 unparseable-JSON stay green |
+| AC5 drift logic | `api/src/shared/model-catalog.test.ts` | the seven named in §5, plus "pickNewest breaks a created_at tie by id", "reports pin-missing with newest null when the whole family is gone", "treats a dated and an undated id of one release as the same release", "returns an empty string when nothing is stale", two `buildReport` tests |
+| AC6 live imports | operator | open — see below |
+| AC7 workflow run | operator | open — see below (the CLI itself was verified live) |
+
+**Deviations:**
+
+- **D1 Two extra pure exports.** `buildExtractContent` (claude.ts) moves the file-block assembly out of
+  the `v8 ignore`d wrapper so AC2's "file block before the prompt" and "PDF sends a document block"
+  are testable; `buildReport` (model-catalog.ts) builds the CLI's JSON so the report is tested and the
+  CLI stays a thin shell. §4 listed neither.
+- **D2** `buildMessageParams` returns the SDK's own `Anthropic.Beta.Messages.MessageCreateParamsNonStreaming`
+  (§4's `MessageParamsShape` was a placeholder).
+- **D3 More tests than §5,** listed in the table; the "never set" test also asserts no `system` key.
+- **D4 The live CLI check used the local production key** from `api/local.settings.json` — one free,
+  read-only Models API list call, key never printed. The workflow itself uses the separate
+  `ANTHROPIC_MODELS_API_KEY` (§9 Q2).
+- **D5 `/local-smoke` not run:** the boot path is unchanged (`createClaudeClient(apiKey)` keeps its
+  signature; the composition root is untouched) and the smoke does not exercise Claude. The live
+  import probe (AC6) is the check that matters here.
+
+**Operator steps still open:**
+
+- **AC7** — create a separate Anthropic key (own workspace, low spend limit), store it as the repo
+  secret `ANTHROPIC_MODELS_API_KEY`, then Actions → Model watch → Run workflow; expect "Pins are
+  current" and no issue (`docs/setup.md` § Model watch).
+- **AC6** — `/dev-start`, then import one photo, one multi-batch PDF and one PPTX through Import Review;
+  candidates arrive for all three, and each PDF batch and the photo finish in under 30 s (Functions
+  log). If not, apply §9 R1.
+- Merge (push to `main` deploys), then `/deploy-swa`.
+- After a week: review `cards_import_claude_refused` / `_truncated` logs and re-baseline cost.
+
+## 13. Proposed edits to other files (applied 2026-10-19, see section 12)
 
 - `docs/changelog.md`: "- Card import now runs on the **newest Claude models** — `claude-sonnet-5-5`
   (photos, slides, language check, distractors) and `claude-haiku-5-5` (PDF batches), up from Sonnet

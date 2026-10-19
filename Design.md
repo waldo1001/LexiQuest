@@ -192,7 +192,7 @@ Complex fields (`distractors`, `settings`) stored as JSON strings.
 | **API** | Azure Functions (Node.js 20) | Serverless, free tier, scales to zero |
 | **Database** | Azure Table Storage | Effectively free, flexible enough |
 | **Auth** | HMAC-signed HTTP-only session cookies | Simpler & safer than localStorage JWT |
-| **AI** | Anthropic Claude API (claude-sonnet-4) | Photo OCR + cards + distractors in one call |
+| **AI** | Anthropic Claude API — newest Sonnet (default) + newest Haiku (PDF batches), pinned in `api/src/shared/claude.ts`; weekly Model watch alert | Photo OCR + cards + distractors in one call |
 | **Images** | Base64 in-flight only (no blob storage) | One less moving part |
 
 ### 4.2 Architecture diagram
@@ -961,7 +961,7 @@ Commit + tag `phase-11-done`.
 2. `cd api && npm install @anthropic-ai/sdk`
 3. Create `api/shared/claude.js`:
    - Wrapper that takes base64 image + prompt + JSON schema expectation
-   - Uses `claude-sonnet-4` (or latest stable model name at time of implementation — verify in docs)
+   - Uses the newest Sonnet, pinned in `api/src/shared/claude.ts` (the weekly Model watch workflow reports newer releases — see spec #7)
    - Returns parsed JSON or throws
 4. Implement `POST /api/cards/import`:
    - Auth: course owner or admin
