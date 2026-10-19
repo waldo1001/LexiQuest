@@ -224,6 +224,19 @@ describe("POST /api/attempts", () => {
   });
 
   it("rejects attempt against another user's session (403)", async () => {
+    // Seed the caller too, so the cross-partition scan skips their own
+    // partition (the skip-self branch) before reaching u-mats.
+    await deps.tables.upsert("users", {
+      partitionKey: "users",
+      rowKey: USER_ID,
+      name: "Lex",
+      is_admin: false,
+      color: "#112233",
+      avatar_emoji: "🦊",
+      ui_language: "en",
+      settings: "{}",
+      created_at: NOW,
+    });
     // Seed u-mats in users table so the cross-partition scan can find their session
     await deps.tables.upsert("users", {
       partitionKey: "users",

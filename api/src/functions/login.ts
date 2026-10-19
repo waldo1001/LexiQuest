@@ -79,7 +79,7 @@ export function makeLoginHandler(deps: LoginDeps): HttpHandler {
   };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 // Registration — wired from the real composition root (future slice).
 // Not executed in tests.
 export function registerLogin(deps: LoginDeps): void {
@@ -90,4 +90,4 @@ export function registerLogin(deps: LoginDeps): void {
     handler: makeLoginHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

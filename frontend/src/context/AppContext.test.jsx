@@ -113,6 +113,40 @@ describe("AppContext", () => {
     expect(screen.getByTestId("user-name").textContent).toBe("Lex");
   });
 
+  it("falls back to the default theme when initialTheme is unknown", () => {
+    function ThemeProbe() {
+      const { themeName } = useAppContext();
+      return <div data-testid="theme">{themeName}</div>;
+    }
+    render(
+      <AppProvider initialTheme="not-a-real-theme">
+        <ThemeProbe />
+      </AppProvider>,
+    );
+    expect(screen.getByTestId("theme").textContent).toBe("playful");
+  });
+
+  it("setThemeName coerces an unknown theme to the default before persisting", async () => {
+    const patchMe = vi.fn().mockResolvedValue({});
+    function ThemeCaller() {
+      const { setThemeName } = useAppContext();
+      return (
+        <button type="button" onClick={() => setThemeName("bogus")}>
+          bad-theme
+        </button>
+      );
+    }
+    render(
+      <AppProvider patchMe={patchMe}>
+        <ThemeCaller />
+      </AppProvider>,
+    );
+    await act(async () => {
+      screen.getByRole("button", { name: "bad-theme" }).click();
+    });
+    expect(patchMe).toHaveBeenCalledWith({ settings: { theme: "playful" } });
+  });
+
   describe("<html lang> sync", () => {
     afterEach(() => {
       document.documentElement.lang = "";

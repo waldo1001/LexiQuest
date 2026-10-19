@@ -255,4 +255,9 @@ describe("POST /api/cards/reverse", () => {
     const res = await makeCardsReverseHandler(deps)(makeReq(validCookie(deps), {}, "GET"), ctx);
     expect(res.status).toBe(405);
   });
+
+  it("returns 400 when the body is missing or unparseable", async () => {
+    const res = await makeCardsReverseHandler(deps)(makeReq(validCookie(deps), undefined), ctx);
+    expect(res.status).toBe(400);
+  });
 });

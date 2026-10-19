@@ -94,7 +94,7 @@ async function findCourseById(
   return null;
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerCardsReverse(deps: CardsReverseDeps): void {
   app.http("cards-reverse", {
     route: "cards/reverse",
@@ -103,4 +103,4 @@ export function registerCardsReverse(deps: CardsReverseDeps): void {
     handler: makeCardsReverseHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

@@ -1,4 +1,4 @@
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 import bcrypt from "bcryptjs";
 import type { PasswordHasher } from "./password-hasher.js";
 
@@ -22,4 +22,4 @@ export class BcryptPasswordHasher implements PasswordHasher {
     return bcrypt.compare(plaintext, hashed);
   }
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

@@ -179,4 +179,31 @@ describe("GET /api/stats/session/:id", () => {
     const res = await makeStatsSessionHandler({ ...deps, signer: matsSigner })(matsReq, ctx);
     expect(res.status).toBe(200);
   });
+
+  it("AC8b: skips the caller's own partition first, then finds another user's session", async () => {
+    const deps = makeDeps();
+    // The session lives in u-mats's partition.
+    seedSession(deps.tables, { partitionKey: "u-mats", user_id: "u-mats" });
+    const mkUser = (id: string): UserRow => ({
+      partitionKey: PARTITIONS.users,
+      rowKey: id,
+      name: id,
+      password_hash: "x",
+      is_admin: false,
+      color: "#111",
+      avatar_emoji: "🦊",
+      ui_language: "en",
+      settings: { auto_speak: false, preferred_mode: "self_grade", daily_goal: 10 },
+      created_at: NOW,
+    });
+    // Caller u-lex is listed first → the scan skips its own partition
+    // (the `continue`) before reaching u-mats's session.
+    await deps.tables.upsert("users", mkUser(USER_ID));
+    await deps.tables.upsert("users", mkUser("u-mats"));
+    const res = await makeStatsSessionHandler(deps)(
+      makeReq(validCookie(deps, USER_ID), SESSION_ID),
+      ctx,
+    );
+    expect(res.status).toBe(200);
+  });
 });

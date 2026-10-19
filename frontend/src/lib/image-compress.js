@@ -62,7 +62,7 @@ export async function compressImageIfNeeded(file, opts = {}) {
   const createImageBitmapImpl =
     opts.createImageBitmapImpl ?? globalThis.createImageBitmap;
   const canvasFactory =
-    /* v8 ignore next */
+    /* v8 ignore next -- @preserve */
     opts.canvasFactory ?? (() => document.createElement("canvas"));
 
   const originalSize = file.size;
@@ -122,7 +122,7 @@ function canvasToBlob(canvas, type, quality) {
 }
 
 function stripExtension(name) {
-  /* v8 ignore next */
+  /* v8 ignore next -- @preserve */
   if (!name) return "";
   const dot = name.lastIndexOf(".");
   return dot > 0 ? name.slice(0, dot) : name;

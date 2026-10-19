@@ -27,7 +27,7 @@ function renderLB(fetchLeaderboard = vi.fn().mockResolvedValue(LEADERBOARD)) {
 }
 
 describe("Leaderboard", () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it("LB-UI-1: shows loading while data pending", () => {
     renderLB(vi.fn(() => new Promise(() => {})));

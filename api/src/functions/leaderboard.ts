@@ -32,7 +32,7 @@ interface LeaderboardEntry {
 
 export function makeLeaderboardHandler(deps: LeaderboardDeps): HttpHandler {
   return async (req: HttpRequest): Promise<HttpResponseInit> => {
-    /* v8 ignore next */
+    /* v8 ignore next -- @preserve */
     if ((req.method ?? "GET").toUpperCase() !== "GET") {
       return { status: 405, jsonBody: { error: "method not allowed" } };
     }
@@ -82,7 +82,7 @@ export function makeLeaderboardHandler(deps: LeaderboardDeps): HttpHandler {
   };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerLeaderboard(deps: LeaderboardDeps): void {
   app.http("leaderboard", {
     route: "leaderboard",
@@ -91,4 +91,4 @@ export function registerLeaderboard(deps: LeaderboardDeps): void {
     handler: makeLeaderboardHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

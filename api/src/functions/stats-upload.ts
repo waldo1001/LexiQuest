@@ -161,7 +161,7 @@ async function findCourseAnywhere(
   return null;
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerStatsUpload(deps: StatsUploadDeps): void {
   app.http("stats-upload", {
     route: "stats/course/{courseId}/uploads",
@@ -170,4 +170,4 @@ export function registerStatsUpload(deps: StatsUploadDeps): void {
     handler: makeStatsUploadHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

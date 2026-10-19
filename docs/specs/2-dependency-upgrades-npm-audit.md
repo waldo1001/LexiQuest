@@ -1,11 +1,11 @@
 ---
 issue: 2
-status: draft
+status: implemented
 ---
 
 # `npm audit` clean: vitest 4 in both projects, transitive patches, unused `uuid` removed, sharp 0.35, Anthropic SDK current
 
-Status: proposed, 2026-10-18. Owner: waldo.
+Status: implemented, 2026-10-18 (section 12 records what was built and where it differs). Owner: waldo.
 Scope: `api/package.json`, `frontend/package.json`, both lockfiles, both vitest configs, the 73
 `v8 ignore` coverage hints, five frontend tests that call `vi.restoreAllMocks`, and the Anthropic
 SDK wrapper's compile. Every claim below was verified against the tree at `60f14c0` (`main`) on
@@ -202,17 +202,118 @@ Operator: `.github/workflows/ci.yml` (audit steps).
 
 ## 11. Definition of Done
 
-- [ ] `npm audit --audit-level=high` exits 0 in both projects
-- [ ] Both suites green on vitest 4, thresholds unchanged and enforced
-- [ ] Per-file coverage ≥ baseline for every hinted file (table recorded)
-- [ ] `uuid` gone; `npm run icons` green on sharp 0.35; SDK bumped and probed live (task 7) or explicitly deferred in "Built, deviations"
-- [ ] The four invariants' meta-tests pass; `/security-scan` full pass
-- [ ] `docs/changelog.md` bullet, `docs/setup.md` prerequisites (Node 20 stays), `PROGRESS.md` section, this spec `status: implemented` + "12. Built, deviations"
+- [x] `npm audit --audit-level=high` exits 0 in both projects
+- [x] Both suites green on vitest 4, thresholds unchanged and enforced
+- [ ] Per-file coverage ≥ baseline for every hinted file — superseded, see §12 (deviation D1): vitest 4's AST recount makes the literal vitest-2 baseline inapplicable; every hinted file instead meets its Tier A/B threshold and every `@preserve` hint is honoured
+- [x] `uuid` gone; `npm run icons` green on sharp 0.35; SDK bumped — live probe explicitly deferred (operator step, see §12)
+- [x] The four invariants' meta-tests pass; `/security-scan` full pass
+- [x] `docs/changelog.md` bullet, `docs/setup.md` prerequisites (Node 20 stays, no change), `PROGRESS.md` section, this spec `status: implemented` + "12. Built, deviations"
 
-## 12. Proposed edits to other files (not applied)
+## 12. Built, deviations (2026-10-18)
 
-- `docs/changelog.md`: "- Cleared **`npm audit`** in both projects: vitest 2 → 4 (+ coverage-v8) with every `v8 ignore` hint re-marked `@preserve`, transitive patches, the unused `uuid` dependency removed, sharp 0.35 for icon generation, Anthropic SDK 0.90 → <version> (compile-verified, live import probe on photo + PDF). Coverage thresholds unchanged. Spec: [specs/2-dependency-upgrades-npm-audit.md](specs/2-dependency-upgrades-npm-audit.md)."
-- `PROGRESS.md`: remove the Open-specs line; add `## Post-v1 — Dependency upgrades (npm audit clean)`.
-- `.github/workflows/ci.yml`: add `npm --prefix api audit --audit-level=high` and `npm --prefix frontend audit --audit-level=high` steps after install (operator edit).
-- `docs/tdd/coverage-policy.md`: one line — hints are `/* v8 ignore … -- @preserve */` (esbuild strips the comment otherwise).
-- `.claude/skills/security-scan/SKILL.md` step 8: note that moderate findings do not block.
+Built by hand with `/sdd-build` (manual takeover from the League — see below),
+one commit per task, tasks 2–7. The core goal is met: **`npm audit
+--audit-level=high` exits 0 in both `api/` and `frontend/`**, and `/security-scan`
+passes with no owner override.
+
+**What was built (per slice):**
+
+- Slice 2 — `api` `vitest` + `@vitest/coverage-v8` → `^4.1.12`; all 74 `v8 ignore`
+  comment lines re-marked `-- @preserve`; per-file coverage gaps from vitest 4's
+  new counting closed (see D1).
+- Slice 3 — `frontend` `vitest` + `@vitest/coverage-v8` → `^4.1.12`;
+  `test.exclude: ["node_modules/**","dist/**","coverage/**"]` added to
+  `vitest.config.js`; 11 frontend `v8 ignore` lines `@preserve`d (incl. the
+  `tts.js` custom-reason hint); the five `vi.restoreAllMocks()` sites →
+  `vi.clearAllMocks()` (none uses `vi.spyOn`); `AppContext` theme-validation
+  branches covered.
+- Slice 4 — `npm audit fix` (no `--force`) in both; `react-router-dom` 7.14.2 →
+  7.18.4 among the patches; the four `vi.mock("react-router-dom")` suites and
+  navigation tests stay green.
+- Slice 5 — `uuid` + `@types/uuid` removed from `api` (unused; ids come from
+  `node:crypto` `randomUUID` behind the `Random` seam).
+- Slice 6 — `sharp` → `^0.35.5`; `npm run icons` green (see D5).
+- Slice 7 — `@anthropic-ai/sdk` 0.90.0 → **0.135.0** (latest 0.x; no 1.x exists).
+
+**Verified (commands + totals, final tree):**
+
+- `npm run test:api` → 986 passed, 1 skipped (integration); Tier A 90% per file holds.
+- `npm run test:frontend` → 659 passed; Tier A 90% / Tier B 70% per file hold.
+- `npm run build` → exit 0 (`tsc` compiles `claude.ts` against SDK 0.135.0 with no change; `vite build` green).
+- `cd api && npm audit --audit-level=high` → exit 0 (1 low advisory remains: `esbuild`, below the gate — §8).
+- `cd frontend && npm audit --audit-level=high` → exit 0 (0 vulnerabilities).
+- `/security-scan` → PASS; the four invariants' meta-tests (`__meta__`, 29 tests) pass.
+- `node scripts/validate-specs.js docs/specs/2-dependency-upgrades-npm-audit.md` → pass.
+
+**AC → test traceability:**
+
+| AC | How verified |
+|---|---|
+| AC1 audit exits 0 | `npm audit --audit-level=high` in each project (exit 0); verification command, no meta-test (§9) |
+| AC2 both suites green on vitest 4, thresholds enforced | `npm run test:api` (986) + `npm run test:frontend` (659), per-file thresholds enforced |
+| AC3 hinted-file coverage | superseded — see D1; all hinted files meet their threshold, `@preserve` honoured |
+| AC4 no `uuid` | package + types removed; `grep` finds only `randomUUID` and the `Random` seam |
+| AC5 `npm run icons` on sharp 0.35 | `npm run icons` exit 0; regenerated PNGs pixel-identical (D5) |
+| AC6 build compiles claude.ts; FakeClaudeClient contract tests | `npm run build` exit 0; `claude.test.ts`, `cards-import.test.ts`, `cards-enrich.test.ts` green |
+
+**Deviations:**
+
+- **D1 — AC3 baseline comparison superseded.** The spec assumed vitest 4 would
+  keep "the same coverage picture." It does not: `@vitest/coverage-v8` 4.x uses
+  `ast-v8-to-istanbul` (no opt-out) and counts branches/functions far more
+  granularly (api function total 208 → 343), so per-file percentages are not
+  comparable to the 2026-06-20 vitest-2 figures and a literal "≥ baseline" is not
+  satisfiable. With the owner's decision (2026-10-18) to **keep the floor rather
+  than relax thresholds**, the gaps were closed instead: real tests for reachable
+  logic (cards-batch rename validation, the `session-signer` valid-HMAC/non-JSON
+  tamper path, cross-user family scans, multi-day stats trends, upload recency
+  sort, `AppContext` theme fallbacks) and `/* v8 ignore … -- @preserve */` on
+  genuinely defensive type-guards (`req.method ?? …`, `params?.x ?? ""`,
+  `match[1] ?? ""`, a `cardById.get()?… ?? ""`, two unreachable `session-signer`
+  catch blocks are left uncovered but the file clears 90%). `@preserve` itself is
+  honoured — near-fully-ignored files (`azure-table-storage.ts`, `claude.ts`,
+  `bcrypt-password-hasher.ts`) still pass. All Tier A 90% / Tier B 70% per-file
+  thresholds hold; none were changed.
+- **D2 — hint counts.** The real tree has **85** `v8 ignore` comment lines across
+  **37** files (74 api / 11 frontend), not the spec's "73 hints / 42 files"; the
+  three `next N` forms are exactly where §3 said (`streak.ts:43`,
+  `PhotoImport.jsx:33`, `PhotoImport.jsx:176`) and all were preserved. `next N`
+  turned out to work under v4 (no conversion to `start`/`stop` needed).
+- **D3 — react-router already on v7.** The spec described a "patched 6.x line";
+  the tree is on `react-router-dom` ^7, so `npm audit fix` patched within v7
+  (7.14.2 → 7.18.4).
+- **D4 — live import probe deferred (operator).** Task 7's `/local-smoke` + real
+  `/api/cards/import` on a photo + a PDF needs `/dev-start`, `ANTHROPIC_API_KEY`
+  and real (billed) API calls, so it is left as an operator step. The SDK bump is
+  compile- and contract-test-verified (`claude.ts` unchanged); the DoD's "or
+  explicitly deferred" clause applies.
+- **D5 — regenerated icons not re-committed.** `npm run icons` succeeds on sharp
+  0.35; the two non-maskable PNGs differ only in encoder metadata (verified
+  pixel-identical to the committed ones via raw-RGBA compare), so the committed
+  icons are kept to avoid binary churn (AC5: no unintended visual change).
+- **D6 — `restoreAllMocks` → `clearAllMocks`.** The spec allowed "clearAllMocks or
+  removed, per file"; all five sites use fresh `vi.fn()` and no `vi.spyOn`, so they
+  became `vi.clearAllMocks()`. The suite was already green before the change.
+
+**Build provenance (deviation from the normal path):** issue #2 had the
+`spec-approved` label applied and the League had started a build (draft PR on
+`league/2-npm-audit-clean-vitest-4-in-both-project`, phase `clone`). Per §3 this
+spec is human-build-only (every slice edits protected `package.json`/lockfiles).
+On the owner's instruction the League build was stopped, the stray `spec-approved`
+label removed from #2, and the build continued by hand on that same branch.
+
+**Operator steps still open:**
+
+- The live import probe (D4): `/local-smoke`, then `/dev-start` and one photo
+  import + one PDF import through the running app.
+- `ci.yml` audit steps (§13 item 3): add `npm --prefix api audit
+  --audit-level=high` and `npm --prefix frontend audit --audit-level=high`.
+- `/deploy-swa` when ready (push to `main` deploys).
+
+## 13. Proposed edits to other files (applied 2026-10-18, see section 12)
+
+- **[applied]** `docs/changelog.md`: the 2026-10-18 bullet (SDK version 0.135.0; live probe deferred as an operator step rather than run).
+- **[applied]** `PROGRESS.md`: removed the Open-specs line (now `None open.`); added `## Post-v1 — Dependency upgrades (npm audit clean)`.
+- **[operator — open]** `.github/workflows/ci.yml`: add `npm --prefix api audit --audit-level=high` and `npm --prefix frontend audit --audit-level=high` steps after install (operator edit, not applied by the build).
+- **[applied]** `docs/tdd/coverage-policy.md`: `v8 ignore` hints must carry `-- @preserve` (esbuild strips the comment otherwise under vitest 4).
+- **[applied]** `.claude/skills/security-scan/SKILL.md` step 8: the gate is `--audit-level=high`, so moderate and low findings do not block.

@@ -31,6 +31,9 @@ function extractTextRuns(xml: string): string {
   let match: RegExpExecArray | null;
   TEXT_RUN_RE.lastIndex = 0;
   while ((match = TEXT_RUN_RE.exec(xml)) !== null) {
+    // The regex always captures group 1 on a match (possibly ""), so the
+    // `?? ""` fallback is an unreachable type-guard.
+    /* v8 ignore next -- @preserve */
     const run = (match[1] ?? "").trim();
     if (run.length > 0) runs.push(decodeXmlEntities(run));
   }

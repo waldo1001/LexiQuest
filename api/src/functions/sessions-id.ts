@@ -168,7 +168,7 @@ async function findSessionAnywhere(
   return { session: null, ownerUserId: "" };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerSessionsId(deps: SessionsIdDeps): void {
   app.http("sessions-id", {
     route: "sessions/{id}",
@@ -177,4 +177,4 @@ export function registerSessionsId(deps: SessionsIdDeps): void {
     handler: makeSessionsIdHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

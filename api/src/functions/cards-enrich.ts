@@ -108,7 +108,7 @@ export function makeCardsEnrichHandler(deps: CardsEnrichDeps): HttpHandler {
   };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerCardsEnrich(deps: CardsEnrichDeps): void {
   app.http("cards-enrich", {
     route: "cards/enrich",
@@ -117,4 +117,4 @@ export function registerCardsEnrich(deps: CardsEnrichDeps): void {
     handler: makeCardsEnrichHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

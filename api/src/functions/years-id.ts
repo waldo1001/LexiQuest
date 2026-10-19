@@ -81,7 +81,7 @@ function getIdParam(req: HttpRequest): string | null {
   return id;
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerYearsId(deps: YearsIdDeps): void {
   app.http("years-id", {
     route: "years/{id}",
@@ -90,4 +90,4 @@ export function registerYearsId(deps: YearsIdDeps): void {
     handler: makeYearsIdHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

@@ -20,7 +20,7 @@ export interface StatsHeatmapDeps {
 
 export function makeStatsHeatmapHandler(deps: StatsHeatmapDeps): HttpHandler {
   return async (req: HttpRequest): Promise<HttpResponseInit> => {
-    /* v8 ignore next */
+    /* v8 ignore next -- @preserve */
     if ((req.method ?? "GET").toUpperCase() !== "GET") {
       return { status: 405, jsonBody: { error: "method not allowed" } };
     }
@@ -29,7 +29,7 @@ export function makeStatsHeatmapHandler(deps: StatsHeatmapDeps): HttpHandler {
     if (!auth.ok) return auth.response;
 
     const params = (req as unknown as { params?: Record<string, string> }).params;
-    /* v8 ignore next */
+    /* v8 ignore next -- @preserve */
     const userId = params?.userId ?? "";
 
     const user = await deps.tables.getById<UserRow>("users", PARTITIONS.users, userId);
@@ -54,7 +54,7 @@ export function makeStatsHeatmapHandler(deps: StatsHeatmapDeps): HttpHandler {
   };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerStatsHeatmap(deps: StatsHeatmapDeps): void {
   app.http("stats-heatmap", {
     route: "stats/heatmap/{userId}",
@@ -63,4 +63,4 @@ export function registerStatsHeatmap(deps: StatsHeatmapDeps): void {
     handler: makeStatsHeatmapHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

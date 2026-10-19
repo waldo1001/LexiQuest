@@ -8,6 +8,8 @@ import { buildSessionCookie } from "../../testing/session-cookie.js";
 import { bodyOf, headersOf } from "../../testing/http.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
+import type { CourseRow } from "./courses-shared.js";
+import type { CardRow } from "./cards-shared.js";
 
 const ctx = {} as InvocationContext;
 const NOW = "2026-04-23T12:00:00.000Z";
@@ -94,6 +96,45 @@ describe("GET /api/export", () => {
     const serialized = JSON.stringify(bodyOf(res));
     expect(serialized).not.toContain("password_hash");
     expect(serialized).not.toContain("secret-hash");
+  });
+
+  it("EX-4b: includes cards from each of the user's courses", async () => {
+    const deps = makeDeps();
+    seedUser(deps.tables, USER_A);
+    const course: CourseRow = {
+      partitionKey: USER_A,
+      rowKey: "course-1",
+      user_id: USER_A,
+      year_id: "y1",
+      name: "French",
+      emoji: "🇫🇷",
+      color: "#16a34a",
+      language: "fr-FR",
+      default_mode: "self_grade",
+      created_at: NOW,
+    };
+    deps.tables.upsert<CourseRow>("courses", course);
+    const card: CardRow = {
+      partitionKey: "course-1",
+      rowKey: "card-1",
+      course_id: "course-1",
+      question: "le chien",
+      answer: "the dog",
+      distractors: [],
+      hint: null,
+      source: "manual",
+      sm2_ease: 2.5,
+      sm2_interval: 0,
+      sm2_reps: 0,
+      next_review_at: NOW,
+      created_at: NOW,
+    };
+    deps.tables.upsert<CardRow>("cards", card);
+    const handler = makeExportHandler(deps);
+    const res = await handler(makeReq(validCookie(deps)), ctx);
+    expect(res.status).toBe(200);
+    const body = bodyOf(res) as { cards: unknown[] };
+    expect(body.cards).toHaveLength(1);
   });
 
   it("EX-5: non-admin cannot export another user's data (403)", async () => {

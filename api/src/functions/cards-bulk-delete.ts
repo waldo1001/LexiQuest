@@ -152,7 +152,7 @@ export function makeCardsBulkDeleteHandler(deps: CardsBulkDeleteDeps): HttpHandl
   };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerCardsBulkDelete(deps: CardsBulkDeleteDeps): void {
   app.http("cards-bulk-delete", {
     route: "cards/bulk-delete",
@@ -161,4 +161,4 @@ export function registerCardsBulkDelete(deps: CardsBulkDeleteDeps): void {
     handler: makeCardsBulkDeleteHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

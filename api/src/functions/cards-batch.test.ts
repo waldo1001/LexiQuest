@@ -496,6 +496,87 @@ describe("PATCH /api/cards/upload-name", () => {
     expect(res.status).toBe(200);
     expect((bodyOf(res) as { updated: number }).updated).toBe(0);
   });
+
+  it("returns 405 for a non-PATCH method", async () => {
+    const req = {
+      method: "GET",
+      url: "http://local/api/cards/upload-name",
+      params: {},
+      headers: { get: (n: string) => (n.toLowerCase() === "cookie" ? validCookie(deps) : null) },
+      query: { get: () => null },
+      json: async () => ({ courseId: COURSE_ID, uploadId: "up-1", uploadName: "X" }),
+    } as unknown as HttpRequest;
+    const res = await makeUploadRenameHandler(deps)(req, {} as InvocationContext);
+    expect(res.status).toBe(405);
+  });
+
+  it("returns 400 when the body cannot be parsed", async () => {
+    const req = {
+      method: "PATCH",
+      url: "http://local/api/cards/upload-name",
+      params: {},
+      headers: { get: (n: string) => (n.toLowerCase() === "cookie" ? validCookie(deps) : null) },
+      query: { get: () => null },
+      json: async () => {
+        throw new Error("no body");
+      },
+    } as unknown as HttpRequest;
+    const res = await makeUploadRenameHandler(deps)(req, {} as InvocationContext);
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when the body is not an object", async () => {
+    const res = await makeUploadRenameHandler(deps)(
+      makeRenameReq(validCookie(deps), "not an object"),
+      {} as InvocationContext,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when courseId is missing", async () => {
+    const res = await makeUploadRenameHandler(deps)(
+      makeRenameReq(validCookie(deps), { uploadId: "up-1", uploadName: "X" }),
+      {} as InvocationContext,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when uploadId is missing", async () => {
+    const res = await makeUploadRenameHandler(deps)(
+      makeRenameReq(validCookie(deps), { courseId: COURSE_ID, uploadName: "X" }),
+      {} as InvocationContext,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 404 when the course does not exist", async () => {
+    await seedUser(deps);
+    const res = await makeUploadRenameHandler(deps)(
+      makeRenameReq(validCookie(deps), { courseId: "no-such-course", uploadId: "up-1", uploadName: "X" }),
+      {} as InvocationContext,
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 403 when a non-owner, non-admin renames another user's upload", async () => {
+    await seedUser(deps);
+    await seedCourse(deps); // owned by USER_ID
+    const res = await makeUploadRenameHandler(deps)(
+      makeRenameReq(validCookie(deps, "intruder"), { courseId: COURSE_ID, uploadId: "up-1", uploadName: "X" }),
+      {} as InvocationContext,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("lets an admin rename another user's upload", async () => {
+    await seedUser(deps);
+    await seedCourse(deps); // owned by USER_ID
+    const res = await makeUploadRenameHandler(deps)(
+      makeRenameReq(adminCookie(deps), { courseId: COURSE_ID, uploadId: "up-1", uploadName: "X" }),
+      {} as InvocationContext,
+    );
+    expect(res.status).toBe(200);
+  });
 });
 
 // =====================================================================

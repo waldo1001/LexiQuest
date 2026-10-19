@@ -28,7 +28,7 @@ export function makeUsersPublicHandler(
   };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerUsersPublic(deps: UsersPublicDeps): void {
   app.http("users-public", {
     route: "users/public",
@@ -37,4 +37,4 @@ export function registerUsersPublic(deps: UsersPublicDeps): void {
     handler: makeUsersPublicHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

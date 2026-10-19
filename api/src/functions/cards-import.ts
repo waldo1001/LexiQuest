@@ -274,7 +274,7 @@ function handleClaudeError(
   return { status: 502, jsonBody: { error: "Claude request failed" } };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerCardsImport(deps: CardsImportDeps): void {
   app.http("cards-import", {
     route: "cards/import",
@@ -283,4 +283,4 @@ export function registerCardsImport(deps: CardsImportDeps): void {
     handler: makeCardsImportHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

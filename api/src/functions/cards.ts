@@ -137,7 +137,7 @@ function readQuery(req: HttpRequest, name: string): string | null {
   return typeof v === "string" && v.length > 0 ? v : null;
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerCards(deps: CardsDeps): void {
   app.http("cards", {
     route: "cards",
@@ -146,4 +146,4 @@ export function registerCards(deps: CardsDeps): void {
     handler: makeCardsHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

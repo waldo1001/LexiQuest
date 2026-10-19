@@ -82,6 +82,19 @@ describe("deserializeJsonFields", () => {
     expect(out.settings).toBe("{not json");
   });
 
+  it("leaves an already-parsed (non-string) declared field untouched", () => {
+    const out = deserializeJsonFields<{
+      partitionKey: string;
+      rowKey: string;
+      distractors: string[];
+    }>("cards", {
+      partitionKey: "c1",
+      rowKey: "card-1",
+      distractors: ["a", "b"], // already an array, not a JSON string
+    });
+    expect(out.distractors).toEqual(["a", "b"]);
+  });
+
   it("does nothing for a table with no declared JSON fields", () => {
     const out = deserializeJsonFields<{
       partitionKey: string;

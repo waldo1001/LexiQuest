@@ -7,7 +7,7 @@
 export const createTts = (speechSynthesis, UtteranceCtor) => {
   const _Ctor =
     UtteranceCtor ??
-    /* v8 ignore next -- SpeechSynthesisUtterance is defined in browsers but not in jsdom */
+    /* v8 ignore next -- @preserve SpeechSynthesisUtterance is defined in browsers but not in jsdom */
     (typeof SpeechSynthesisUtterance !== "undefined" ? SpeechSynthesisUtterance : null);
 
   const isAvailable = (lang) => {

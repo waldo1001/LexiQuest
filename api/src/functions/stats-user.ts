@@ -27,7 +27,7 @@ export interface StatsUserDeps {
 
 export function makeStatsUserHandler(deps: StatsUserDeps): HttpHandler {
   return async (req: HttpRequest): Promise<HttpResponseInit> => {
-    /* v8 ignore next */
+    /* v8 ignore next -- @preserve */
     if ((req.method ?? "GET").toUpperCase() !== "GET") {
       return { status: 405, jsonBody: { error: "method not allowed" } };
     }
@@ -36,7 +36,7 @@ export function makeStatsUserHandler(deps: StatsUserDeps): HttpHandler {
     if (!auth.ok) return auth.response;
 
     const params = (req as unknown as { params?: Record<string, string> }).params;
-    /* v8 ignore next */
+    /* v8 ignore next -- @preserve */
     const userId = params?.userId ?? "";
 
     const user = await deps.tables.getById<UserRow>("users", PARTITIONS.users, userId);
@@ -53,7 +53,7 @@ export function makeStatsUserHandler(deps: StatsUserDeps): HttpHandler {
       fetchCards(deps.tables, userId),
     ]);
 
-    /* v8 ignore next */
+    /* v8 ignore next -- @preserve */
     const settings = user.settings ?? {};
     const totalXp = settings.total_xp ?? 0;
     const level = Math.floor(totalXp / 200);
@@ -150,7 +150,7 @@ export function makeStatsUserHandler(deps: StatsUserDeps): HttpHandler {
   };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerStatsUser(deps: StatsUserDeps): void {
   app.http("stats-user", {
     route: "stats/user/{userId}",
@@ -159,4 +159,4 @@ export function registerStatsUser(deps: StatsUserDeps): void {
     handler: makeStatsUserHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

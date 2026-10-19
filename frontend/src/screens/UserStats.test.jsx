@@ -45,7 +45,7 @@ function renderStats({ stats = STATS, heatmap = HEATMAP, userId = "u1" } = {}) {
 }
 
 describe("UserStats", () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it("US-1: shows loading while data pending", () => {
     const fetchStats = vi.fn(() => new Promise(() => {}));

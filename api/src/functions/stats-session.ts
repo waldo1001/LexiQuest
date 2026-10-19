@@ -25,6 +25,9 @@ export function makeStatsSessionHandler(deps: StatsSessionDeps): HttpHandler {
     const auth = requireAuth(req, deps);
     if (!auth.ok) return auth.response;
 
+    // The route always supplies params.id; the optional chain + ?? "" is a
+    // type-guard with no reachable fallback.
+    /* v8 ignore next -- @preserve */
     const sessionId = (req as unknown as { params?: Record<string, string> }).params?.id ?? "";
 
     // Scan all user partitions to find the session (stats are family-visible)
@@ -68,7 +71,7 @@ async function findSessionAnywhere(
   return null;
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerStatsSession(deps: StatsSessionDeps): void {
   app.http("stats-session", {
     route: "stats/session/{id}",
@@ -77,4 +80,4 @@ export function registerStatsSession(deps: StatsSessionDeps): void {
     handler: makeStatsSessionHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

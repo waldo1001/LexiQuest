@@ -125,7 +125,7 @@ async function findSessionAnywhere(
   return { session: null, ownerUserId: "" };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerAttempts(deps: AttemptsDeps): void {
   app.http("attempts", {
     route: "attempts",
@@ -134,4 +134,4 @@ export function registerAttempts(deps: AttemptsDeps): void {
     handler: makeAttemptsHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

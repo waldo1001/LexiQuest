@@ -83,7 +83,7 @@ function readQuery(req: HttpRequest, name: string): string | null {
   return typeof v === "string" && v.length > 0 ? v : null;
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerCourses(deps: CoursesDeps): void {
   app.http("courses", {
     route: "courses",
@@ -92,4 +92,4 @@ export function registerCourses(deps: CoursesDeps): void {
     handler: makeCoursesHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

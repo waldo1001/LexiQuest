@@ -218,9 +218,10 @@ cd api && npm audit --audit-level=high
 cd ../frontend && npm audit --audit-level=high
 ```
 
-High or critical vulnerabilities block the cycle. `npm audit fix` only if
-it doesn't introduce major version bumps — otherwise surface to the user
-for a decision.
+High or critical vulnerabilities block the cycle; the gate is
+`npm audit --audit-level=high`, so **moderate and low findings do not block**
+(track them as follow-ups instead). `npm audit fix` only if it doesn't
+introduce major version bumps — otherwise surface to the user for a decision.
 
 ## Step 9 — Report
 

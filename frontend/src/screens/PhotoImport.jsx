@@ -30,7 +30,7 @@ function newPresetId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
-  /* v8 ignore next 2 */
+  /* v8 ignore next 2 -- @preserve */
   return `p-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
@@ -62,11 +62,11 @@ export default function PhotoImport({
   splitPdf = splitPdfBase64,
   promptFn = typeof window !== "undefined"
     ? window.prompt.bind(window)
-    /* v8 ignore next */
+    /* v8 ignore next -- @preserve */
     : () => null,
   confirmFn = typeof window !== "undefined"
     ? window.confirm.bind(window)
-    /* v8 ignore next */
+    /* v8 ignore next -- @preserve */
     : () => false,
 }) {
   const t = useT();
@@ -173,7 +173,7 @@ export default function PhotoImport({
         const list = [...seen.entries()].map(([id, name]) => ({ uploadId: id, uploadName: name }));
         setExistingUploads(list);
       })
-      /* v8 ignore next 3 */
+      /* v8 ignore next 3 -- @preserve */
       .catch(() => {
         if (!cancelled) setExistingUploads([]);
       });
@@ -224,7 +224,7 @@ export default function PhotoImport({
 
     try {
       const base64 = await readAsBase64(workingFile);
-      /* v8 ignore next */
+      /* v8 ignore next -- @preserve */
       const mimeType = isPptxByExt
         ? PPTX_MIME
         : workingFile.type || (workingFile.name?.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
@@ -297,7 +297,7 @@ export default function PhotoImport({
         },
       });
     } catch (err) {
-      /* v8 ignore next */
+      /* v8 ignore next -- @preserve */
       const msg = err?.message ?? "";
       if (msg === "parse_error") {
         setError(t("import.error.parse"));
@@ -444,7 +444,7 @@ function readAsBase64(file) {
     reader.onload = () => {
       const result = reader.result;
       // Strip the data URL prefix: "data:image/jpeg;base64,<data>"
-      /* v8 ignore next */
+      /* v8 ignore next -- @preserve */
       const base64 = result.split(",")[1] ?? result;
       resolve(base64);
     };

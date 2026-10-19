@@ -220,7 +220,7 @@ export function makeUploadRenameHandler(deps: CardsBatchDeps): HttpHandler {
   };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerCardsBatch(deps: CardsBatchDeps): void {
   app.http("cards-batch", {
     route: "cards/batch",
@@ -235,4 +235,4 @@ export function registerCardsBatch(deps: CardsBatchDeps): void {
     handler: makeUploadRenameHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

@@ -82,7 +82,7 @@ export function makeUsersHandler(deps: UsersDeps): HttpHandler {
   };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerUsers(deps: UsersDeps): void {
   app.http("users", {
     route: "users",
@@ -91,4 +91,4 @@ export function registerUsers(deps: UsersDeps): void {
     handler: makeUsersHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

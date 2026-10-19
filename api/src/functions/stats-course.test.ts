@@ -279,4 +279,31 @@ describe("GET /api/stats/course/:courseId", () => {
     const spd = body.sessionsPerDay as { date: string; count: number }[];
     expect(spd.find((s) => s.date === "2026-04-20")).toBeDefined();
   });
+
+  it("builds per-day trends across multiple days (sort + studied=0 branch)", async () => {
+    const deps = makeDeps();
+    seedUser(deps.tables);
+    seedCourse(deps.tables);
+    // Two distinct days → the per-day `.sort()` comparators run. Day two has
+    // cards_studied=0 so the accuracy ternary takes its `: 0` branch.
+    seedSession(deps.tables, {
+      started_at: "2026-04-22T09:00:00.000Z",
+      cards_studied: 10,
+      cards_correct: 8,
+    });
+    seedSession(deps.tables, {
+      started_at: "2026-04-23T09:00:00.000Z",
+      cards_studied: 0,
+      cards_correct: 0,
+    });
+    const res = await makeStatsCourseHandler(deps)(makeReq(validCookie(deps), COURSE_ID), ctx);
+    expect(res.status).toBe(200);
+    const body = bodyOf(res) as {
+      accuracyTrend: { date: string; pctFirstTry: number }[];
+      sessionsPerDay: { date: string; count: number }[];
+    };
+    expect(body.sessionsPerDay.length).toBeGreaterThanOrEqual(2);
+    expect(body.accuracyTrend.some((d) => d.pctFirstTry === 0)).toBe(true);
+    expect(body.accuracyTrend.some((d) => d.pctFirstTry > 0)).toBe(true);
+  });
 });

@@ -99,7 +99,7 @@ function getIdParam(req: HttpRequest): string | null {
   return id;
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerUsersId(deps: UsersIdDeps): void {
   app.http("users-id", {
     route: "users/{id}",
@@ -108,4 +108,4 @@ export function registerUsersId(deps: UsersIdDeps): void {
     handler: makeUsersIdHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

@@ -71,4 +71,17 @@ describe("HmacSessionSigner", () => {
     const mangled = `${token.split(".")[0]}.%%%`;
     expect(signer.verify(mangled)).toBeNull();
   });
+
+  it("verify returns null when the body is valid base64 + HMAC but not JSON", () => {
+    const clock = new FakeClock();
+    const signer = new HmacSessionSigner({ secret: SECRET, clock });
+    const { createHmac } = require("node:crypto") as typeof import("node:crypto");
+    const b64url = (b: Buffer): string =>
+      b.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    // A body that decodes to a non-JSON string, with a matching signature:
+    // passes the HMAC check, then JSON.parse throws and verify must return null.
+    const body = b64url(Buffer.from("this is not json at all"));
+    const sig = b64url(createHmac("sha256", SECRET).update(body).digest());
+    expect(signer.verify(`${body}.${sig}`)).toBeNull();
+  });
 });

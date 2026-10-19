@@ -160,7 +160,7 @@ export function makeCardsCopyHandler(deps: CardsCopyDeps): HttpHandler {
   };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerCardsCopy(deps: CardsCopyDeps): void {
   app.http("cards-copy", {
     route: "cards/copy",
@@ -169,4 +169,4 @@ export function registerCardsCopy(deps: CardsCopyDeps): void {
     handler: makeCardsCopyHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

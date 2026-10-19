@@ -132,12 +132,12 @@ function computeMetric(sessions: SessionRow[], metric: string): number {
       const correct = sessions.reduce((s, x) => s + x.cards_correct, 0);
       return studied > 0 ? Math.round((correct / studied) * 100) : 0;
     }
-    /* v8 ignore next */
+    /* v8 ignore next -- @preserve */
     default: return 0;
   }
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerStatsFamily(deps: StatsFamilyDeps): void {
   app.http("stats-family", {
     route: "stats/family",
@@ -152,4 +152,4 @@ export function registerStatsFamily(deps: StatsFamilyDeps): void {
     handler: makeStatsCompareHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

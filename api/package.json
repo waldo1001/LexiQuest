@@ -22,20 +22,18 @@
     "import-local": "tsx scripts/import-local.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.90.0",
+    "@anthropic-ai/sdk": "^0.135.0",
     "@azure/data-tables": "^13.3.2",
     "@azure/functions": "^4.5.0",
     "bcryptjs": "^2.4.3",
-    "jszip": "^3.10.1",
-    "uuid": "^10.0.0"
+    "jszip": "^3.10.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.0.0",
-    "@types/uuid": "^10.0.0",
-    "@vitest/coverage-v8": "^2.1.0",
+    "@vitest/coverage-v8": "^4.1.12",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
-    "vitest": "^2.1.0"
+    "vitest": "^4.1.12"
   }
 }

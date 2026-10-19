@@ -213,7 +213,7 @@ Return JSON only — no prose, no markdown fences:
 [{"question":"...","answer":"...","distractors":["...","..."]${langExample}}]`;
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function createClaudeClient(apiKey: string): ClaudeClient {
   const client = new Anthropic({ apiKey });
 
@@ -325,4 +325,4 @@ Cards:
     },
   };
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */

@@ -23,7 +23,7 @@ export interface ExportDeps {
 
 export function makeExportHandler(deps: ExportDeps): HttpHandler {
   return async (req: HttpRequest): Promise<HttpResponseInit> => {
-    /* v8 ignore next */
+    /* v8 ignore next -- @preserve */
     if ((req.method ?? "GET").toUpperCase() !== "GET") {
       return { status: 405, jsonBody: { error: "method not allowed" } };
     }
@@ -58,7 +58,7 @@ export function makeExportHandler(deps: ExportDeps): HttpHandler {
     const sessions = await deps.tables.listByPartition<SessionRow>("sessions", targetUserId);
     const attempts = await deps.tables.listByPartition<AttemptRow>("attempts", targetUserId);
 
-    /* v8 ignore next */
+    /* v8 ignore next -- @preserve */
     const safeName = (userRow.name ?? "user").replace(/[^a-zA-Z0-9_-]/g, "_");
     const dateStr = deps.clock.now().toISOString().slice(0, 10);
     const filename = `lexiquest-${safeName}-${dateStr}.json`;
@@ -74,7 +74,7 @@ export function makeExportHandler(deps: ExportDeps): HttpHandler {
   };
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- @preserve */
 export function registerExport(deps: ExportDeps): void {
   app.http("export", {
     route: "export",
@@ -83,4 +83,4 @@ export function registerExport(deps: ExportDeps): void {
     handler: makeExportHandler(deps),
   });
 }
-/* v8 ignore stop */
+/* v8 ignore stop -- @preserve */
