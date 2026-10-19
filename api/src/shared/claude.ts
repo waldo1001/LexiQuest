@@ -61,16 +61,112 @@ export class ClaudeJsonParseError extends Error {
   }
 }
 
-/** Default high-quality extraction model. */
-export const SONNET_MODEL = "claude-sonnet-4-6";
 /**
- * Faster model used for PDF card extraction. PDF imports are split into small
- * page batches client-side, each its own request; the faster model keeps every
- * request under the Azure Static Web Apps 45s per-request cap (a single Sonnet
- * batch was measured at 46–62s, over the cap).
+ * Default high-quality extraction model — the newest Sonnet. A weekly
+ * "Model watch" workflow (spec #7) opens an issue when a newer one ships;
+ * bump it there, never by guessing an ID.
  */
-export const HAIKU_MODEL = "claude-haiku-4-5-20251001";
+export const SONNET_MODEL = "claude-sonnet-5-5";
+/**
+ * Faster model used for PDF card extraction — the newest Haiku. PDF imports
+ * are split into small page batches client-side, each its own request; the
+ * faster model keeps every request under the Azure Static Web Apps 45s
+ * per-request cap (a single Sonnet batch was measured at 46–62s, over the cap).
+ */
+export const HAIKU_MODEL = "claude-haiku-5-5";
 const MODEL = SONNET_MODEL;
+
+type BetaCreateParams = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming;
+type BetaContentBlockParam = Anthropic.Beta.Messages.BetaContentBlockParam;
+
+/** Beta header for server-side refusal fallback in its `fallbacks: "default"` form. */
+export const SERVER_SIDE_FALLBACK_BETA = "server-side-fallback-2026-07-01";
+
+export type ClaudeRoute = "extract" | "slides" | "verify-langs" | "distractors";
+
+/** Claude declined the request (`stop_reason: "refusal"`). */
+export class ClaudeRefusalError extends Error {
+  constructor(
+    public readonly category: string | null,
+    public readonly model: string,
+  ) {
+    super(`Claude declined the request${category ? ` (${category})` : ""}`);
+    this.name = "ClaudeRefusalError";
+  }
+}
+
+/** Claude's reply hit `max_tokens` before it finished (`stop_reason: "max_tokens"`). */
+export class ClaudeTruncatedError extends Error {
+  constructor(public readonly model: string) {
+    super("Claude reply was cut off at max_tokens");
+    this.name = "ClaudeTruncatedError";
+  }
+}
+
+/** The user content for an extraction call: the file block, then the prompt. */
+export function buildExtractContent(input: ExtractCardsInput): BetaContentBlockParam[] {
+  const fileBlock: BetaContentBlockParam =
+    input.mimeType === "application/pdf"
+      ? {
+          type: "document",
+          source: { type: "base64", media_type: "application/pdf", data: input.imageBase64 },
+        }
+      : {
+          type: "image",
+          source: { type: "base64", media_type: input.mimeType, data: input.imageBase64 },
+        };
+  return [fileBlock, { type: "text", text: buildExtractPrompt(input) }];
+}
+
+/**
+ * The request body for one Claude call. Pure — no SDK round-trip.
+ *
+ * Every route runs adaptive thinking (the 5.5 default) at effort `low`, the
+ * recommended starting point for extraction; `max_tokens` leaves room for the
+ * thinking, which counts toward it. Never sets `thinking`, sampling parameters
+ * or an assistant prefill — the 5.5 models reject those settings. Sonnet calls
+ * opt into server-side refusal fallback; Haiku has none, so it gets neither
+ * field.
+ */
+export function buildMessageParams(input: {
+  model: string;
+  route: ClaudeRoute;
+  content: string | BetaContentBlockParam[];
+}): BetaCreateParams {
+  const params: BetaCreateParams = {
+    model: input.model,
+    max_tokens: input.route === "distractors" ? 4000 : 16000,
+    output_config: { effort: "low" },
+    messages: [{ role: "user", content: input.content }],
+  };
+  if (input.model === SONNET_MODEL) {
+    params.betas = [SERVER_SIDE_FALLBACK_BETA];
+    params.fallbacks = "default";
+  }
+  return params;
+}
+
+interface ClaudeReply {
+  stop_reason: string | null;
+  stop_details?: { category?: string | null } | null;
+  content: ReadonlyArray<{ type: string; text?: string }>;
+}
+
+/**
+ * The reply's text, read by block type (a 5.5 reply can start with thinking
+ * or fallback blocks). A refusal or a cut-off reply throws a typed error
+ * instead of surfacing later as unparseable JSON.
+ */
+export function textFromMessage(msg: ClaudeReply, model: string): string {
+  if (msg.stop_reason === "refusal") {
+    throw new ClaudeRefusalError(msg.stop_details?.category ?? null, model);
+  }
+  if (msg.stop_reason === "max_tokens") {
+    throw new ClaudeTruncatedError(model);
+  }
+  const block = msg.content.find((b) => b.type === "text");
+  return block?.text ?? "";
+}
 
 /** Strip optional markdown code fences Claude sometimes wraps around JSON. */
 export function stripFences(text: string): string {
@@ -217,61 +313,25 @@ Return JSON only — no prose, no markdown fences:
 export function createClaudeClient(apiKey: string): ClaudeClient {
   const client = new Anthropic({ apiKey });
 
+  /** One Claude call: params from buildMessageParams, reply via textFromMessage. */
+  async function send(
+    model: string,
+    route: ClaudeRoute,
+    content: string | BetaContentBlockParam[],
+  ): Promise<string> {
+    const msg = await client.beta.messages.create(buildMessageParams({ model, route, content }));
+    return textFromMessage(msg, model);
+  }
+
   return {
     async extractCards(input) {
-      const prompt = buildExtractPrompt(input);
-
-      const isPdf = input.mimeType === "application/pdf";
-      const fileBlock = isPdf
-        ? {
-            type: "document" as const,
-            source: {
-              type: "base64" as const,
-              media_type: "application/pdf" as const,
-              data: input.imageBase64,
-            },
-          }
-        : {
-            type: "image" as const,
-            source: {
-              type: "base64" as const,
-              media_type: input.mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
-              data: input.imageBase64,
-            },
-          };
-
-      const msg = await client.messages.create({
-        model: input.model ?? SONNET_MODEL,
-        max_tokens: 4096,
-        messages: [
-          {
-            role: "user",
-            content: [fileBlock, { type: "text", text: prompt }],
-          },
-        ],
-      });
-
-      const block = msg.content.find((b) => b.type === "text");
-      const raw = block && block.type === "text" ? block.text : "";
+      const raw = await send(input.model ?? SONNET_MODEL, "extract", buildExtractContent(input));
       return parseCards(raw);
     },
 
     async extractCardsFromSlides(input) {
       const prompt = buildSlidesExtractPrompt(input);
-
-      const msg = await client.messages.create({
-        model: MODEL,
-        max_tokens: 4096,
-        messages: [
-          {
-            role: "user",
-            content: [{ type: "text", text: prompt }],
-          },
-        ],
-      });
-
-      const block = msg.content.find((b) => b.type === "text");
-      const raw = block && block.type === "text" ? block.text : "";
+      const raw = await send(MODEL, "slides", [{ type: "text", text: prompt }]);
       return parseCards(raw);
     },
 
@@ -289,14 +349,7 @@ Return JSON only — no prose, no markdown fences — same length as input:
 Cards:
 ${cardList}`;
 
-      const msg = await client.messages.create({
-        model: MODEL,
-        max_tokens: 4096,
-        messages: [{ role: "user", content: prompt }],
-      });
-
-      const block = msg.content.find((b) => b.type === "text");
-      const raw = block && block.type === "text" ? block.text : "";
+      const raw = await send(MODEL, "verify-langs", prompt);
       return parseCards(raw);
     },
 
@@ -312,14 +365,7 @@ Return JSON only:
 Cards:
 [${cardList}]`;
 
-      const msg = await client.messages.create({
-        model: MODEL,
-        max_tokens: 1024,
-        messages: [{ role: "user", content: prompt }],
-      });
-
-      const block = msg.content.find((b) => b.type === "text");
-      const raw = block && block.type === "text" ? block.text : "";
+      const raw = await send(MODEL, "distractors", prompt);
       const stripped = stripFences(raw);
       return JSON.parse(stripped);
     },
