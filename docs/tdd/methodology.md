@@ -176,7 +176,9 @@ A finding **blocks** the cycle. Never "note and continue".
 
 Before REVIEW, run the `/docs-update` skill
 ([.claude/skills/docs-update/SKILL.md](../../.claude/skills/docs-update/SKILL.md)).
-Every task updates at least [docs/changelog.md](../changelog.md).
+Every task updates at least [docs/changelog.md](../changelog.md) — in the same commit or PR as the
+change it describes, never a docs-only commit after the merge (deploys and probe results are
+comments on the merged PR).
 User-visible changes also update [setup.md](../setup.md),
 [getting-started.md](../getting-started.md), and/or
 [user-guide.md](../user-guide.md).

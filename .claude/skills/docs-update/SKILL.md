@@ -1,6 +1,6 @@
 ---
 name: docs-update
-description: Update the /docs folder at the end of a coding task. Use immediately after a `/tdd-cycle` completes (or any meaningful workspace change) to refresh the changelog, setup, getting-started, user guide, and PROGRESS as needed. Invoke proactively — documentation staleness is a bug.
+description: Update the /docs folder at the end of a coding task. Use immediately after a `/tdd-cycle` completes (or any meaningful workspace change) to refresh the changelog, setup, getting-started, user guide, and PROGRESS as needed — always in the same commit or PR as the change, never a docs-only commit after merge. Invoke proactively — documentation staleness is a bug.
 ---
 
 # /docs-update — LexiQuest documentation enforcer
@@ -36,6 +36,12 @@ Answer in chat, then let the answers drive which files you touch:
 ## Step 2 — Always update the changelog
 
 Every task that touched code or docs gets a changelog entry. Never skip this.
+
+**Same PR, same commit as the change.** The entry rides in the PR — or the slice commit — that
+makes the change, never in its own commit after the merge. A docs-only push to `main` drifts
+history from the change and spends a CI run for nothing (it no longer deploys: the SWA workflow runs only for `api/`, `frontend/` and `staticwebapp.config.json`).
+A deploy, a live probe or a workflow's first run is not a changelog entry: record it as a comment
+on the merged PR (`/deploy-swa` Step 6).
 
 Open [docs/changelog.md](../../../docs/changelog.md):
 

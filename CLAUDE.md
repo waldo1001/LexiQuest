@@ -64,11 +64,12 @@ until the phase is done or a blocker appears. See
 9. **Security scan** — only when the slice touches `SessionSigner`,
    `PasswordHasher`, `requireAuth`, or `ClaudeClient`. Skip for pure UI
    and non-auth API slices.
-10. Update PROGRESS.md inline (mark the slice ✅). Do not run `/docs-update`.
+10. Update PROGRESS.md and the changelog inline, in the slice's own commit (mark the slice ✅).
+    Do not run the full `/docs-update`.
 11. Commit and push — one commit per slice, message: `Phase N Slice M — <name>`.
 
-**End of phase**: run `/docs-update` once to sync changelog, setup,
-getting-started, and user-guide.
+**End of phase**: run `/docs-update` in the phase's last slice and commit it with that slice —
+never as a separate docs-only push. Setup, getting-started and the user guide ride along there.
 
 **Stop and ask** only for: a missing Azure/Anthropic credential, a destructive
 operation, or an architectural ambiguity that Design.md does not resolve.
@@ -222,6 +223,12 @@ Post-v1 work starts from a **spec**, not from a chat request. The full conventio
 5. **Review** — [`/sdd-review`](.claude/skills/sdd-review/SKILL.md) verifies the PR in its own
    worktree (tests, coverage tiers, the four invariants, ship-time edits), then squash-merge;
    push-to-main deploys.
+
+**Docs ride with the change.** The changelog bullet, the PROGRESS line and the spec's section 12 go
+in the same PR as the business logic. Never push a docs-only commit to `main` after a merge to
+record a deploy, a probe or a finished operator step — comment on the merged PR instead
+(`/deploy-swa` Step 6). Docs-only pushes do not deploy: the SWA workflow only runs for `api/`,
+`frontend/`, `staticwebapp.config.json` and itself.
 
 Root scripts (the only commands the League may run, and the CI gate): `npm run install:all`,
 `npm run test:api`, `npm run test:frontend`, `npm run test:file:api -- <file>`,

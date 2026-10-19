@@ -142,20 +142,21 @@ On failure, report:
 - Next step: <check env vars | check SWA app settings | fix code | ...>
 ```
 
-## Step 6 — Update the changelog
+## Step 6 — Record the deploy on the PR that shipped it (never in a commit)
 
-On success, add a one-liner to
-[docs/changelog.md](../../../docs/changelog.md):
+A deploy adds **no** changelog line and **no** commit. The change's changelog bullet is
+already in the merged PR (`/docs-update` and `/sdd-build` write it there), and a commit
+that only records a deploy is a docs-only push to `main`: history drifts from the change
+and CI runs again for nothing. Comment the outcome on the PR instead:
 
-```
-- Deployed <short-sha> to SWA (<phase milestone if applicable>).
+```sh
+PR="$(gh api "repos/{owner}/{repo}/commits/$DEPLOY_SHA/pulls" --jq '.[0].number // empty')"
+gh pr comment "$PR" --body "Deployed <short-sha> to SWA — run <url>, <duration>. Live probes: <endpoint → result, …>."
 ```
 
-On failure, log the attempt too:
-
-```
-- Attempted deploy <short-sha> — failed at <step-name>. Rolled back / held. See <GH run URL>.
-```
+On failure, comment the failed job, step and run URL the same way. A deploy that did not
+come from a PR (a direct push): report in chat only. Results that arrive later (a live
+import probe, a workflow's first run) are comments on the same PR, not commits.
 
 ---
 

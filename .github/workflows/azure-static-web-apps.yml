@@ -6,6 +6,14 @@ name: Azure Static Web Apps CI/CD
 on:
   push:
     branches: [main]
+    # Deploy only when something deployable changed: the frontend, the API, the SWA routing
+    # config, or this workflow. Docs, specs, PROGRESS, skills and the other workflows ride in
+    # PRs and never trigger a rebuild on their own.
+    paths:
+      - "api/**"
+      - "frontend/**"
+      - "staticwebapp.config.json"
+      - ".github/workflows/azure-static-web-apps.yml"
 
 permissions:
   contents: read
