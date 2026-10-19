@@ -205,7 +205,7 @@ Operator: `.github/workflows/ci.yml` (audit steps).
 - [x] `npm audit --audit-level=high` exits 0 in both projects
 - [x] Both suites green on vitest 4, thresholds unchanged and enforced
 - [ ] Per-file coverage ≥ baseline for every hinted file — superseded, see §12 (deviation D1): vitest 4's AST recount makes the literal vitest-2 baseline inapplicable; every hinted file instead meets its Tier A/B threshold and every `@preserve` hint is honoured
-- [x] `uuid` gone; `npm run icons` green on sharp 0.35; SDK bumped — live probe explicitly deferred (operator step, see §12)
+- [x] `uuid` gone; `npm run icons` green on sharp 0.35; SDK bumped and **probed live** (photo + PDF both returned candidates, Import Review rendered them, 2026-10-19)
 - [x] The four invariants' meta-tests pass; `/security-scan` full pass
 - [x] `docs/changelog.md` bullet, `docs/setup.md` prerequisites (Node 20 stays, no change), `PROGRESS.md` section, this spec `status: implemented` + "12. Built, deviations"
 
@@ -282,11 +282,12 @@ passes with no owner override.
 - **D3 — react-router already on v7.** The spec described a "patched 6.x line";
   the tree is on `react-router-dom` ^7, so `npm audit fix` patched within v7
   (7.14.2 → 7.18.4).
-- **D4 — live import probe deferred (operator).** Task 7's `/local-smoke` + real
-  `/api/cards/import` on a photo + a PDF needs `/dev-start`, `ANTHROPIC_API_KEY`
-  and real (billed) API calls, so it is left as an operator step. The SDK bump is
-  compile- and contract-test-verified (`claude.ts` unchanged); the DoD's "or
-  explicitly deferred" clause applies.
+- **D4 — live import probe: run and passed (2026-10-19).** Initially deferred as
+  an operator step (needs `/dev-start`, `ANTHROPIC_API_KEY` and billed API calls).
+  The owner ran it: `/api/cards/import` on both a photo and a PDF returned card
+  candidates and the Import Review screen rendered them, confirming
+  `@anthropic-ai/sdk` 0.135's runtime handling of `image`/`document` blocks. The
+  SDK bump was already compile- and contract-test-verified (`claude.ts` unchanged).
 - **D5 — regenerated icons not re-committed.** `npm run icons` succeeds on sharp
   0.35; the two non-maskable PNGs differ only in encoder metadata (verified
   pixel-identical to the committed ones via raw-RGBA compare), so the committed
@@ -310,8 +311,9 @@ label removed from #2, and the build continued by hand on that same branch.
 - ✅ `ci.yml` audit steps (§13 item 3) applied: `npm --prefix api audit
   --audit-level=high` and `npm --prefix frontend audit --audit-level=high` run
   after install on every PR and push to `main`.
-- ⬜ The live import probe (D4): `/local-smoke`, then `/dev-start` and one photo
-  import + one PDF import through the running app (real Anthropic calls).
+- ✅ The live import probe (D4): run by the owner on 2026-10-19 — photo + PDF
+  both returned candidates and Import Review rendered them. **All operator steps
+  complete; spec fully closed.**
 
 ## 13. Proposed edits to other files (applied 2026-10-18, see section 12)
 

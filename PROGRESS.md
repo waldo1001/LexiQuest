@@ -610,6 +610,6 @@ Spec: [docs/specs/2-dependency-upgrades-npm-audit.md](docs/specs/2-dependency-up
 - ✅ Slice 6 — `sharp` 0.34 → 0.35.5; frontend `--audit-level=high` exits 0; icons regenerate pixel-identical (not re-committed)
 - ✅ Slice 7 — `@anthropic-ai/sdk` 0.90 → 0.135.0 (tsc-verified against `claude.ts`, no wrapper change)
 - ✅ Deployed via GitHub Actions (SWA CI/CD); `npm audit --audit-level=high` steps added to `ci.yml`
-- ⬜ Operator: live `/api/cards/import` probe (photo + PDF via `/dev-start`, real Anthropic calls)
+- ✅ Live `/api/cards/import` probe (photo + PDF) passed 2026-10-19 — all operator steps done, spec fully closed
 - Tests: api 986 passed (1 skipped), frontend 659 passed
 
