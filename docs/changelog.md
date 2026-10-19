@@ -3,6 +3,10 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-10-19
+
+- Deployed `5b3fb41` (**`npm audit` clean** — vitest 4 in both projects, transitive patches, unused `uuid` removed, sharp 0.35, Anthropic SDK 0.135) to Azure SWA. GH Actions [run 39208752257](https://github.com/waldo1001/LexiQuest/actions/runs/39208752257) success in ~1m53s. Live probes against `https://ashy-cliff-0c1975603.7.azurestaticapps.net`: `/api/hello` 200 `{msg}`; `/api/users/public` returns the roster with no `password_hash`/`settings`/`is_admin` leak (invariant #4 holds). Spec: [specs/2-dependency-upgrades-npm-audit.md](specs/2-dependency-upgrades-npm-audit.md).
+
 ## 2026-10-18
 
 - Cleared **`npm audit`** high/critical findings in both projects (`npm audit --audit-level=high` now exits 0 in `api/` and `frontend/`; `/security-scan` passes with no owner override). vitest 2 → 4.1.12 (+ `@vitest/coverage-v8`) in both; every `v8 ignore` hint re-marked `-- @preserve` (vitest 4's v8 provider remaps from the transformed AST, and esbuild strips bare comments). vitest 4's `ast-v8-to-istanbul` remapper counts branches/functions more granularly, so new tests closed the per-file gaps (cards-batch rename validation, the session-signer non-JSON-body tamper path, cross-user family scans, multi-day stats trends, upload recency sort, AppContext theme-validation) with a few `v8 ignore` hints on genuinely defensive type-guards; Tier A 90% / Tier B 70% thresholds unchanged and still enforced. Transitive patches via `npm audit fix` (react-router-dom 7.14 → 7.18 among them); the unused `uuid`/`@types/uuid` removed (ids come from `node:crypto` `randomUUID`); `sharp` 0.34 → 0.35.5 (icons regenerate pixel-identical); `@anthropic-ai/sdk` 0.90 → 0.135.0 (compile-verified against `claude.ts`, no wrapper change). Operator follow-ups: the live `/api/cards/import` probe (photo + PDF via `/dev-start`) and the CI `npm audit` steps in `ci.yml`. 986 api + 659 frontend tests green. Spec: [specs/2-dependency-upgrades-npm-audit.md](specs/2-dependency-upgrades-npm-audit.md).
