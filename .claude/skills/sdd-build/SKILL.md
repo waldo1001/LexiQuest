@@ -184,6 +184,10 @@ Operator mode: do not commit, do not push, do not `git add`; end with the report
 Manual session: stage by name (never `git add -A`), one commit per slice
 (`feat(<scope>): <title> (#<issue>)`, body names the spec), show the owner the diff summary, run
 [`/local-smoke`](../local-smoke/SKILL.md) when the boot path changed, and ask before pushing
-(push to `main` deploys). Then `git mv docs/plans/<issue>-<slug>.md docs/plans/done/` with the links
-rewritten, remove the worktree, and tell the owner what [`/deploy-swa`](../deploy-swa/SKILL.md)
-should probe.
+(push to `main` deploys). Before the PR merges, on the build branch: `git mv
+docs/plans/<issue>-<slug>.md docs/plans/done/` with the links rewritten — the changelog, PROGRESS and
+the spec's section 12 are already in the branch (§5). Then remove the worktree and tell the owner
+what [`/deploy-swa`](../deploy-swa/SKILL.md) should probe. Operator steps that finish after the
+merge (a live probe, a workflow's first run) are recorded as a comment on the merged PR; the spec's
+section 12 catches up in the next PR that touches the spec. Never push a docs-only commit to `main`
+to record them.

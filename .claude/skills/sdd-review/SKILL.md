@@ -77,6 +77,7 @@ after merge (`/deploy-swa` probes, a dependency install, a Design.md amendment).
 On the PR branch in the review worktree: stage by name, one commit
 `fix(<scope>): review of PR #<N>: …` with the session's attribution, `npm run test:api && npm run
 test:frontend` green first, push to the PR branch, update the PR body's `## League state` (phase,
-head, last test run, next step) and the spec's section 12. At merge time: `git mv
-docs/plans/<issue>-<slug>.md docs/plans/done/` with links rewritten (the League cannot move files).
+head, last test run, next step) and the spec's section 12. Before merging, on the PR branch:
+`git mv docs/plans/<issue>-<slug>.md docs/plans/done/` with links rewritten (the League cannot move
+files) — never as a commit after the merge.
 Remove the worktree; leave the main checkout as it was.

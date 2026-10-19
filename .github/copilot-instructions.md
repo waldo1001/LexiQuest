@@ -119,7 +119,8 @@ When Copilot acts autonomously, it must:
 - confirm the `/security-scan` steps pass
 - confirm the four LexiQuest invariants still hold (via the meta-tests)
 - include the changelog diff + PROGRESS.md update and any
-  README / user-guide edits
+  README / user-guide edits — in the PR itself, never as a docs-only
+  commit after the merge
 
 A PR without these is not reviewable and should be closed or sent back.
 

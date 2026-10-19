@@ -96,9 +96,9 @@ git commit -m "docs: spec for <title> (#<issue>)"
 if git pull --rebase origin main; then git push origin HEAD:main; else echo "rebase conflict: resolve, do not push"; fi
 ```
 
-A push to `main` deploys (push-to-main → Azure SWA). A docs-only push rebuilds and redeploys the
-same code; that is fine, but do not push while a `/deploy-swa` of someone else's change is mid-run
-(`gh run list --workflow "Azure Static Web Apps CI/CD" --limit 1`).
+A docs-only push to `main` (the spec and its PROGRESS line) does not deploy — the SWA workflow runs only for `api/`, `frontend/` and `staticwebapp.config.json` —
+but CI still runs on it, so validate the spec first (§5). It is the one docs-only push this flow
+makes: a draft spec has no business-logic PR to ride in.
 
 ## 8. Hand-off
 
