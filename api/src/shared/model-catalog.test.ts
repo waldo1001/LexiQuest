@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { pickNewest, findStale, formatIssueBody, type ListedModel } from "./model-catalog.js";
+import {
+  pickNewest,
+  findStale,
+  formatIssueBody,
+  buildReport,
+  type ListedModel,
+} from "./model-catalog.js";
 
 // Synthetic catalog — ids shaped like real ones, dates arbitrary.
 const CATALOG: ListedModel[] = [
@@ -94,5 +100,27 @@ describe("formatIssueBody (spec #7 AC5)", () => {
 
   it("returns an empty string when nothing is stale", () => {
     expect(formatIssueBody([])).toBe("");
+  });
+});
+
+describe("buildReport (spec #7, the CLI's output)", () => {
+  it("gathers the pins, the newest ids, the stale families and the issue body", () => {
+    const current = buildReport({ sonnet: "claude-sonnet-5-5", haiku: "claude-haiku-5-5" }, CATALOG);
+    expect(current).toEqual({
+      pinned: { sonnet: "claude-sonnet-5-5", haiku: "claude-haiku-5-5" },
+      newest: { sonnet: "claude-sonnet-5-5", haiku: "claude-haiku-5-5" },
+      stale: [],
+      issueBody: "",
+    });
+
+    const behind = buildReport({ sonnet: "claude-sonnet-4-6", haiku: "claude-haiku-5-5" }, CATALOG);
+    expect(behind.stale).toHaveLength(1);
+    expect(behind.issueBody).toContain("claude-sonnet-5-5");
+  });
+
+  it("reports newest null for a family the listing does not contain", () => {
+    const report = buildReport({ sonnet: "claude-sonnet-5-5", haiku: "claude-haiku-5-5" }, []);
+    expect(report.newest).toEqual({ sonnet: null, haiku: null });
+    expect(report.stale.map((s) => s.reason)).toEqual(["pin-missing", "pin-missing"]);
   });
 });

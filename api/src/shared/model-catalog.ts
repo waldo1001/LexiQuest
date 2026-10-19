@@ -96,3 +96,27 @@ export function formatIssueBody(stale: readonly StaleFamily[]): string {
     "`docs/specs/7-latest-claude-models.md` checked for the 5.5 move.",
   ].join("\n");
 }
+
+export interface ModelReport {
+  pinned: Record<Family, string>;
+  newest: Record<Family, string | null>;
+  stale: StaleFamily[];
+  issueBody: string;
+}
+
+/** Everything the Model watch CLI prints, from the pins and one Models API listing. */
+export function buildReport(
+  pinned: Record<Family, string>,
+  models: readonly ListedModel[],
+): ModelReport {
+  const stale = findStale(pinned, models);
+  return {
+    pinned,
+    newest: {
+      sonnet: pickNewest(models, "sonnet")?.id ?? null,
+      haiku: pickNewest(models, "haiku")?.id ?? null,
+    },
+    stale,
+    issueBody: formatIssueBody(stale),
+  };
+}

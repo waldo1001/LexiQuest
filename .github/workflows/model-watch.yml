@@ -1,0 +1,61 @@
+name: Model watch
+
+# Weekly check (spec #7): is a newer Claude Sonnet or Haiku available than the
+# pins in api/src/shared/claude.ts? When one is, open an issue - or comment on
+# the open one - so the bump becomes a small, reviewed spec. Never edits code.
+# Needs the repo secret ANTHROPIC_MODELS_API_KEY: a separate key with a low
+# spend limit (listing models is free), never the production key.
+# Opens issues without any labels.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: model-watch
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Newest Claude Sonnet and Haiku
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install (api)
+        run: npm --prefix api ci --no-audit --no-fund
+
+      - name: Check the Models API
+        working-directory: api
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_MODELS_API_KEY }}
+        run: npx tsx scripts/check-latest-models.ts > "$RUNNER_TEMP/model-check.json"
+
+      - name: Open or update the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          report="$RUNNER_TEMP/model-check.json"
+          if [ "$(jq '.stale | length' "$report")" -eq 0 ]; then
+            echo "Pins are current: $(jq -c '.pinned' "$report")"
+            exit 0
+          fi
+          jq -r '.issueBody' "$report" > "$RUNNER_TEMP/issue-body.md"
+          title="Newer Claude model available"
+          existing="$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file "$RUNNER_TEMP/issue-body.md"
+          else
+            gh issue create --title "$title" --body-file "$RUNNER_TEMP/issue-body.md"
+          fi
