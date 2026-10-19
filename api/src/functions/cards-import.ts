@@ -12,7 +12,13 @@ import type { TableStorage } from "../shared/table-storage.js";
 import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { ClaudeClient, ExtractCardsInput, VerifyLanguagesInput } from "../shared/claude.js";
-import { ClaudeJsonParseError, HAIKU_MODEL, SONNET_MODEL } from "../shared/claude.js";
+import {
+  ClaudeJsonParseError,
+  ClaudeRefusalError,
+  ClaudeTruncatedError,
+  HAIKU_MODEL,
+  SONNET_MODEL,
+} from "../shared/claude.js";
 import { extractSlidesFromPptx, PptxParseError } from "../shared/pptx-extractor.js";
 import type { CourseRow } from "./courses-shared.js";
 
@@ -253,6 +259,25 @@ function handleClaudeError(
   mimeType: string,
   imageBase64: string,
 ): HttpResponseInit {
+  // Refusals and cut-off replies reuse the 422 the frontend already shows as
+  // "Claude could not read the file"; the log says which one and why.
+  if (err instanceof ClaudeRefusalError) {
+    logger.warn("cards_import_claude_refused", {
+      userId,
+      courseId,
+      mimeType,
+      model: err.model,
+      category: err.category,
+    });
+    return {
+      status: 422,
+      jsonBody: { error: "Claude declined this file", reason: "refusal", category: err.category },
+    };
+  }
+  if (err instanceof ClaudeTruncatedError) {
+    logger.warn("cards_import_claude_truncated", { userId, courseId, mimeType, model: err.model });
+    return { status: 422, jsonBody: { error: "Claude reply was cut off", reason: "truncated" } };
+  }
   if (err instanceof ClaudeJsonParseError) {
     return { status: 422, jsonBody: { error: "Claude returned unparseable JSON", raw: err.raw } };
   }
