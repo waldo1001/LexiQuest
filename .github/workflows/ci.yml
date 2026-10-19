@@ -40,6 +40,14 @@ jobs:
       - name: Install (api + frontend)
         run: npm run install:all
 
+      # Fail the build on a high/critical npm audit finding in either project
+      # (the gate /security-scan step 8 enforces locally). Moderate/low do not block.
+      - name: Audit (api — high/critical)
+        run: npm --prefix api audit --audit-level=high
+
+      - name: Audit (frontend — high/critical)
+        run: npm --prefix frontend audit --audit-level=high
+
       # `npm run typecheck` (295 errors in api test files) and `npm run lint` (23 frontend
       # errors) are red on main as of 2026-10-18. They join this workflow and the League's
       # `.league.json` commands once a spec makes them green (first SDD candidate).

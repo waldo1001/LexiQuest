@@ -600,7 +600,7 @@ Spec: [docs/specs/3-typecheck-and-lint-green.md](docs/specs/3-typecheck-and-lint
 
 ## Post-v1 — Dependency upgrades (npm audit clean)
 
-Plan: [docs/plans/2-dependency-upgrades-npm-audit.md](docs/plans/2-dependency-upgrades-npm-audit.md)
+Plan: [docs/plans/done/2-dependency-upgrades-npm-audit.md](docs/plans/done/2-dependency-upgrades-npm-audit.md)
 Spec: [docs/specs/2-dependency-upgrades-npm-audit.md](docs/specs/2-dependency-upgrades-npm-audit.md) (#2)
 
 - ✅ Slice 2 — api `vitest` 2 → 4.1.12 (+ `@vitest/coverage-v8`); 74 `v8 ignore` hints re-marked `-- @preserve`; per-file coverage gaps from vitest 4's AST branch/function recount closed (real tests + defensive `v8 ignore` hints)
@@ -609,6 +609,7 @@ Spec: [docs/specs/2-dependency-upgrades-npm-audit.md](docs/specs/2-dependency-up
 - ✅ Slice 5 — removed unused `uuid` / `@types/uuid` (ids come from `node:crypto` `randomUUID`)
 - ✅ Slice 6 — `sharp` 0.34 → 0.35.5; frontend `--audit-level=high` exits 0; icons regenerate pixel-identical (not re-committed)
 - ✅ Slice 7 — `@anthropic-ai/sdk` 0.90 → 0.135.0 (tsc-verified against `claude.ts`, no wrapper change)
-- ⬜ Operator: live `/api/cards/import` probe (photo + PDF via `/dev-start`); `npm audit --audit-level=high` steps in `ci.yml`
+- ✅ Deployed via GitHub Actions (SWA CI/CD); `npm audit --audit-level=high` steps added to `ci.yml`
+- ⬜ Operator: live `/api/cards/import` probe (photo + PDF via `/dev-start`, real Anthropic calls)
 - Tests: api 986 passed (1 skipped), frontend 659 passed
 

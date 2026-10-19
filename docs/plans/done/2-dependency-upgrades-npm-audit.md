@@ -1,6 +1,6 @@
 # Plan — npm audit clean (#2)
 
-Spec: [docs/specs/2-dependency-upgrades-npm-audit.md](../specs/2-dependency-upgrades-npm-audit.md)
+Spec: [docs/specs/2-dependency-upgrades-npm-audit.md](../../specs/2-dependency-upgrades-npm-audit.md)
 Status: proposed (plan-waiting)
 
 ## Task

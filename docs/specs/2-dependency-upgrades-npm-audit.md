@@ -302,18 +302,21 @@ spec is human-build-only (every slice edits protected `package.json`/lockfiles).
 On the owner's instruction the League build was stopped, the stray `spec-approved`
 label removed from #2, and the build continued by hand on that same branch.
 
-**Operator steps still open:**
+**Operator steps — status (updated 2026-10-19):**
 
-- The live import probe (D4): `/local-smoke`, then `/dev-start` and one photo
-  import + one PDF import through the running app.
-- `ci.yml` audit steps (§13 item 3): add `npm --prefix api audit
-  --audit-level=high` and `npm --prefix frontend audit --audit-level=high`.
-- `/deploy-swa` when ready (push to `main` deploys).
+- ✅ `/deploy-swa` — merged PR #6 deployed via GitHub Actions (SWA CI/CD run
+  39208752257, ~1m53s); live probes green (`/api/hello`, `/api/users/public`
+  with no `password_hash` leak).
+- ✅ `ci.yml` audit steps (§13 item 3) applied: `npm --prefix api audit
+  --audit-level=high` and `npm --prefix frontend audit --audit-level=high` run
+  after install on every PR and push to `main`.
+- ⬜ The live import probe (D4): `/local-smoke`, then `/dev-start` and one photo
+  import + one PDF import through the running app (real Anthropic calls).
 
 ## 13. Proposed edits to other files (applied 2026-10-18, see section 12)
 
 - **[applied]** `docs/changelog.md`: the 2026-10-18 bullet (SDK version 0.135.0; live probe deferred as an operator step rather than run).
 - **[applied]** `PROGRESS.md`: removed the Open-specs line (now `None open.`); added `## Post-v1 — Dependency upgrades (npm audit clean)`.
-- **[operator — open]** `.github/workflows/ci.yml`: add `npm --prefix api audit --audit-level=high` and `npm --prefix frontend audit --audit-level=high` steps after install (operator edit, not applied by the build).
+- **[applied 2026-10-19]** `.github/workflows/ci.yml`: `npm --prefix api audit --audit-level=high` and `npm --prefix frontend audit --audit-level=high` steps added after install.
 - **[applied]** `docs/tdd/coverage-policy.md`: `v8 ignore` hints must carry `-- @preserve` (esbuild strips the comment otherwise under vitest 4).
 - **[applied]** `.claude/skills/security-scan/SKILL.md` step 8: the gate is `--audit-level=high`, so moderate and low findings do not block.
