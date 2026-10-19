@@ -3,8 +3,16 @@ import {
   stripFences,
   parseCards,
   ClaudeJsonParseError,
+  ClaudeRefusalError,
+  ClaudeTruncatedError,
   buildExtractPrompt,
   buildSlidesExtractPrompt,
+  buildExtractContent,
+  buildMessageParams,
+  textFromMessage,
+  SONNET_MODEL,
+  HAIKU_MODEL,
+  SERVER_SIDE_FALLBACK_BETA,
 } from "./claude.js";
 import type { ExtractCardsInput, ExtractCardsFromSlidesInput } from "./claude.js";
 
@@ -209,5 +217,156 @@ describe("buildSlidesExtractPrompt", () => {
     expect(slidesOpenIdx).toBeGreaterThan(-1);
     expect(slidesCloseIdx).toBeGreaterThan(slidesOpenIdx);
     expect(jsonOnlyIdx).toBeGreaterThan(slidesCloseIdx);
+  });
+});
+
+// ── Spec #7: newest models, request params, reply reading ──────────────────
+
+describe("model pins (spec #7 AC1)", () => {
+  it("pins the newest models: SONNET_MODEL is claude-sonnet-5-5 and HAIKU_MODEL is claude-haiku-5-5", () => {
+    expect(SONNET_MODEL).toBe("claude-sonnet-5-5");
+    expect(HAIKU_MODEL).toBe("claude-haiku-5-5");
+  });
+});
+
+describe("buildExtractContent + buildMessageParams (spec #7 AC2)", () => {
+  const base: ExtractCardsInput = {
+    imageBase64: "AAAA",
+    mimeType: "image/jpeg",
+    courseName: "French",
+    courseLanguage: "fr",
+    uiLanguage: "en",
+  };
+
+  it("extraction params use effort low and max_tokens 16000 with the file block before the prompt", () => {
+    const content = buildExtractContent(base);
+    expect(content[0]).toEqual({
+      type: "image",
+      source: { type: "base64", media_type: "image/jpeg", data: "AAAA" },
+    });
+    expect(content[1]).toEqual({ type: "text", text: buildExtractPrompt(base) });
+    const p = buildMessageParams({ model: SONNET_MODEL, route: "extract", content });
+    expect(p.output_config).toEqual({ effort: "low" });
+    expect(p.max_tokens).toBe(16000);
+    expect(p.messages).toEqual([{ role: "user", content }]);
+  });
+
+  it("PDF extraction sends a document block", () => {
+    const content = buildExtractContent({ ...base, mimeType: "application/pdf" });
+    expect(content[0]).toEqual({
+      type: "document",
+      source: { type: "base64", media_type: "application/pdf", data: "AAAA" },
+    });
+  });
+
+  it("distractor params use max_tokens 4000", () => {
+    const p = buildMessageParams({ model: SONNET_MODEL, route: "distractors", content: "x" });
+    expect(p.max_tokens).toBe(4000);
+    expect(p.output_config).toEqual({ effort: "low" });
+  });
+
+  it("slides and language-check params take a plain string prompt", () => {
+    for (const route of ["slides", "verify-langs"] as const) {
+      const p = buildMessageParams({ model: SONNET_MODEL, route, content: "PROMPT" });
+      expect(p.max_tokens).toBe(16000);
+      expect(p.messages).toEqual([{ role: "user", content: "PROMPT" }]);
+    }
+  });
+
+  it("Sonnet params carry fallbacks 'default' and the server-side-fallback-2026-07-01 beta", () => {
+    const p = buildMessageParams({ model: SONNET_MODEL, route: "extract", content: "x" });
+    expect(p.fallbacks).toBe("default");
+    expect(p.betas).toEqual(["server-side-fallback-2026-07-01"]);
+    expect(SERVER_SIDE_FALLBACK_BETA).toBe("server-side-fallback-2026-07-01");
+  });
+
+  it("Haiku params carry neither fallbacks nor betas", () => {
+    const p = buildMessageParams({ model: HAIKU_MODEL, route: "extract", content: "x" });
+    expect(p).not.toHaveProperty("fallbacks");
+    expect(p).not.toHaveProperty("betas");
+  });
+
+  it("params never set thinking, temperature, top_p, top_k or an assistant prefill", () => {
+    const routes = ["extract", "slides", "verify-langs", "distractors"] as const;
+    for (const model of [SONNET_MODEL, HAIKU_MODEL]) {
+      for (const route of routes) {
+        const p = buildMessageParams({ model, route, content: "x" });
+        for (const key of ["thinking", "temperature", "top_p", "top_k", "system"]) {
+          expect(p).not.toHaveProperty(key);
+        }
+        expect(p.messages).toHaveLength(1);
+        expect(p.messages[0]!.role).toBe("user");
+      }
+    }
+  });
+});
+
+describe("textFromMessage (spec #7 AC3)", () => {
+  it("textFromMessage returns the text block when thinking blocks come first", () => {
+    const text = textFromMessage(
+      {
+        stop_reason: "end_turn",
+        stop_details: null,
+        content: [{ type: "thinking" }, { type: "text", text: "[]" }],
+      },
+      SONNET_MODEL,
+    );
+    expect(text).toBe("[]");
+  });
+
+  it("returns the text after a fallback block (server-side fallback served the reply)", () => {
+    const text = textFromMessage(
+      { stop_reason: "end_turn", content: [{ type: "fallback" }, { type: "text", text: "[1]" }] },
+      SONNET_MODEL,
+    );
+    expect(text).toBe("[1]");
+  });
+
+  it("throws ClaudeRefusalError with stop_details.category on stop_reason refusal", () => {
+    let caught: unknown;
+    try {
+      textFromMessage(
+        { stop_reason: "refusal", stop_details: { category: "cyber" }, content: [] },
+        SONNET_MODEL,
+      );
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(ClaudeRefusalError);
+    expect((caught as ClaudeRefusalError).category).toBe("cyber");
+    expect((caught as ClaudeRefusalError).model).toBe(SONNET_MODEL);
+    expect((caught as Error).name).toBe("ClaudeRefusalError");
+  });
+
+  it("throws ClaudeRefusalError with category null when stop_details is missing", () => {
+    let caught: unknown;
+    try {
+      textFromMessage({ stop_reason: "refusal", content: [] }, HAIKU_MODEL);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(ClaudeRefusalError);
+    expect((caught as ClaudeRefusalError).category).toBeNull();
+  });
+
+  it("throws ClaudeTruncatedError on stop_reason max_tokens", () => {
+    let caught: unknown;
+    try {
+      textFromMessage(
+        { stop_reason: "max_tokens", content: [{ type: "text", text: "[{\"q\":" }] },
+        HAIKU_MODEL,
+      );
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(ClaudeTruncatedError);
+    expect((caught as ClaudeTruncatedError).model).toBe(HAIKU_MODEL);
+    expect((caught as Error).name).toBe("ClaudeTruncatedError");
+  });
+
+  it("returns an empty string for end_turn with no text block, so parseCards still throws ClaudeJsonParseError", () => {
+    const text = textFromMessage({ stop_reason: "end_turn", content: [{ type: "thinking" }] }, SONNET_MODEL);
+    expect(text).toBe("");
+    expect(() => parseCards(text)).toThrow(ClaudeJsonParseError);
   });
 });

@@ -13,7 +13,12 @@ import { PARTITIONS } from "../shared/table-partitions.js";
 import type { UserRow } from "../shared/seed.js";
 import type { CourseRow } from "./courses-shared.js";
 import type { CardCandidate } from "../shared/claude.js";
-import { HAIKU_MODEL, SONNET_MODEL } from "../shared/claude.js";
+import {
+  HAIKU_MODEL,
+  SONNET_MODEL,
+  ClaudeRefusalError,
+  ClaudeTruncatedError,
+} from "../shared/claude.js";
 
 const PPTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
 
@@ -772,5 +777,82 @@ describe("POST /api/cards/import", () => {
     expect(input.slides[1]).toEqual({ index: 2, text: "Au revoir", notes: "goodbye" });
     expect(input.courseName).toBe("French 🇫🇷");
     expect(input.courseLanguage).toBe("fr-FR");
+  });
+});
+
+describe("POST /api/cards/import — Claude refusals and cut-off replies (spec #7 AC4)", () => {
+  let deps: ReturnType<typeof makeDeps>;
+  const pdfBody = { courseId: COURSE_ID, imageBase64: "JVBERi0x", mimeType: "application/pdf" as const };
+
+  beforeEach(() => {
+    deps = makeDeps();
+  });
+
+  it("a Claude refusal returns 422 with reason refusal and its category and persists nothing", async () => {
+    await seedCourse(deps);
+    deps.claude.nextError = new ClaudeRefusalError("cyber", SONNET_MODEL);
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+
+    expect(res.status).toBe(422);
+    expect(bodyOf(res)).toEqual({ error: "Claude declined this file", reason: "refusal", category: "cyber" });
+    expect(await deps.tables.listByPartition("cards", COURSE_ID)).toHaveLength(0);
+  });
+
+  it("a refusal without a category reports category null", async () => {
+    await seedCourse(deps);
+    deps.claude.nextError = new ClaudeRefusalError(null, SONNET_MODEL);
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+
+    expect(res.status).toBe(422);
+    expect(bodyOf(res)).toEqual({ error: "Claude declined this file", reason: "refusal", category: null });
+  });
+
+  it("a cut-off Claude reply returns 422 with reason truncated and persists nothing", async () => {
+    await seedCourse(deps);
+    deps.claude.nextError = new ClaudeTruncatedError(HAIKU_MODEL);
+
+    const res = await makeCardsImportHandler(deps)(makeReq(validCookie(deps), pdfBody), ctx);
+
+    expect(res.status).toBe(422);
+    expect(bodyOf(res)).toEqual({ error: "Claude reply was cut off", reason: "truncated" });
+    expect(await deps.tables.listByPartition("cards", COURSE_ID)).toHaveLength(0);
+  });
+
+  it("logs cards_import_claude_refused with userId, courseId, mimeType, model and category but never the file or prompt", async () => {
+    await seedCourse(deps);
+    deps.claude.nextError = new ClaudeRefusalError("general_harms", SONNET_MODEL);
+
+    await makeCardsImportHandler(deps)(makeReq(validCookie(deps), validBody), ctx);
+
+    const rec = deps.logger.records.find((r) => r.event === "cards_import_claude_refused");
+    expect(rec?.level).toBe("warn");
+    expect(rec?.attrs).toEqual({
+      userId: USER_ID,
+      courseId: COURSE_ID,
+      mimeType: "image/jpeg",
+      model: SONNET_MODEL,
+      category: "general_harms",
+    });
+    expect(JSON.stringify(deps.logger.records)).not.toContain(validBody.imageBase64);
+    expect(deps.logger.records.some((r) => r.event === "cards_import_claude_failed")).toBe(false);
+  });
+
+  it("logs cards_import_claude_truncated with userId, courseId, mimeType and model", async () => {
+    await seedCourse(deps);
+    deps.claude.nextError = new ClaudeTruncatedError(HAIKU_MODEL);
+
+    await makeCardsImportHandler(deps)(makeReq(validCookie(deps), pdfBody), ctx);
+
+    const rec = deps.logger.records.find((r) => r.event === "cards_import_claude_truncated");
+    expect(rec?.level).toBe("warn");
+    expect(rec?.attrs).toEqual({
+      userId: USER_ID,
+      courseId: COURSE_ID,
+      mimeType: "application/pdf",
+      model: HAIKU_MODEL,
+    });
+    expect(JSON.stringify(deps.logger.records)).not.toContain(pdfBody.imageBase64);
   });
 });

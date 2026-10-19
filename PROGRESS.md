@@ -27,7 +27,7 @@ Specs in [docs/specs/](docs/specs/README.md) with `status: draft` or
 waldo.Jarvis's League once the owner applies `spec-approved` on the issue).
 One line each: `- ⬜ [title](docs/specs/<issue>-<slug>.md) — issue #<n>, proposed <date>`.
 
-- ⬜ [Card import always runs on the newest Claude Sonnet and Haiku](docs/specs/7-latest-claude-models.md) — issue #7, proposed 2026-10-19 (human build: touches `.github/`, `api/scripts/`, `claude.ts`)
+None open.
 
 ---
 
@@ -613,3 +613,18 @@ Spec: [docs/specs/2-dependency-upgrades-npm-audit.md](docs/specs/2-dependency-up
 - ✅ Live `/api/cards/import` probe (photo + PDF) passed 2026-10-19 — all operator steps done, spec fully closed
 - Tests: api 986 passed (1 skipped), frontend 659 passed
 
+
+---
+
+## Post-v1 — Newest Claude models + Model watch
+
+Plan: [docs/plans/done/7-latest-claude-models.md](docs/plans/done/7-latest-claude-models.md)
+Spec: [docs/specs/7-latest-claude-models.md](docs/specs/7-latest-claude-models.md) (#7)
+
+- ✅ Slice 1 — pins `claude-sonnet-5-5` / `claude-haiku-5-5`; pure `buildMessageParams` (effort low, max_tokens 16000/4000, Sonnet-only server-side fallback), `buildExtractContent`, `textFromMessage` with `ClaudeRefusalError` / `ClaudeTruncatedError`; wrapper on `client.beta.messages.create`
+- ✅ Slice 2 — `/api/cards/import` maps refusal / truncation to a logged 422 (nothing persisted)
+- ✅ Slice 3 — pure drift logic `model-catalog.ts` (`pickNewest`, `findStale`, `formatIssueBody`, `buildReport`)
+- ✅ Slice 4 — `api/scripts/check-latest-models.ts` + weekly `.github/workflows/model-watch.yml`; live check: pins current
+- ✅ Slice 5 — Design.md AI lines, setup.md Model watch secret step, changelog
+- ⬜ Operator: repo secret `ANTHROPIC_MODELS_API_KEY` + one Model watch run; live photo / PDF / PPTX import probe (each PDF batch under 30 s); deploy
+- Tests: api 1018 passed (1 skipped), frontend 659 passed
