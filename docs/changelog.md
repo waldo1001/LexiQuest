@@ -3,6 +3,10 @@
 Reverse chronological. Newest date first. One line per change, past tense,
 plain English. Link the most relevant doc or plan.
 
+## 2026-10-23
+
+- **Pinned the API to Node 22** after the 21 Oct 2026 Node.js security release (CVE-2026-111497 Brotli decoder, CVE-2026-105482 `dns.resolve`, CVE-2026-105483/-106069 TLS hostname verification; fixed in 22.23.4, 24.22.1, 26.12.1; Node 20 is end-of-life and stays unfixed). The deploy log showed the managed API already ran Node 22 as the platform default, so `staticwebapp.config.json` now sets `platform.apiRuntime: "node:22"` explicitly; SWA managed functions do not offer Node 24. The CI, SWA deploy and Model watch workflows moved from Node 20 to 22, the root `engines` floor is now `^22.23.4 || ^24.22.1 || >=26.12.1` (advisory; not set in `api/`, because Oryx reads it to pick its build Node), and `@types/node` is ^22. The only reachable path in the code is the Anthropic SDK's `fetch` to api.anthropic.com (Brotli, TLS); the Azure Tables client decompresses gzip/deflate only, PPTX parsing uses pako, and nothing calls `dns.resolve`. The patch level of the managed runtime is Azure's to roll out. New test `PWA-13`; 1018 api + 660 frontend tests green. See [setup.md](setup.md).
+
 ## 2026-10-19
 
 - **The changelog now ships with the change, and docs-only pushes no longer redeploy.** `/deploy-swa` records a deploy as a comment on the merged PR instead of committing a "Deployed `<sha>`" line; `/docs-update`, `/sdd-build`, `/sdd-review`, `/lexiquest-spec`, CLAUDE.md (autonomous mode), the TDD methodology and the Copilot instructions now say the changelog, PROGRESS and the spec's section 12 go in the same PR as the business logic, with post-merge results (deploys, live probes) as PR comments. The SWA deploy workflow now runs only when `api/`, `frontend/`, `staticwebapp.config.json` or the workflow itself change.

@@ -93,4 +93,9 @@ describe("PWA manifest.json", () => {
     expect(joined, "missing /manifest.json exclusion").toMatch(/manifest\.json/);
     expect(joined, "missing /icons exclusion").toMatch(/\/icons/);
   });
+
+  it("PWA-13: staticwebapp.config.json pins the managed API to Node 22, never the platform default", () => {
+    const cfg = JSON.parse(readFileSync(SWA_CONFIG_PATH, "utf-8"));
+    expect(cfg?.platform?.apiRuntime).toBe("node:22");
+  });
 });

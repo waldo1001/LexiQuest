@@ -1,5 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/staticwebapp.config.json",
+  "platform": {
+    "apiRuntime": "node:22"
+  },
   "routes": [
     { "route": "/api/*" }
   ],

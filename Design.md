@@ -189,7 +189,7 @@ Complex fields (`distractors`, `settings`) stored as JSON strings.
 | **Frontend** | React + Vite | Fast, well-understood, good mobile |
 | **Charts** | Recharts | Small, React-native, covers 100% of needed chart types |
 | **Hosting** | Azure Static Web Apps (Free tier) | CDN, GitHub Actions, bundled Functions |
-| **API** | Azure Functions (Node.js 20) | Serverless, free tier, scales to zero |
+| **API** | Azure Functions (Node.js 22) | Serverless, free tier, scales to zero |
 | **Database** | Azure Table Storage | Effectively free, flexible enough |
 | **Auth** | HMAC-signed HTTP-only session cookies | Simpler & safer than localStorage JWT |
 | **AI** | Anthropic Claude API — newest Sonnet (default) + newest Haiku (PDF batches), pinned in `api/src/shared/claude.ts`; weekly Model watch alert | Photo OCR + cards + distractors in one call |

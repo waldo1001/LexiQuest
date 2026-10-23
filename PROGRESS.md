@@ -628,3 +628,9 @@ Spec: [docs/specs/7-latest-claude-models.md](docs/specs/7-latest-claude-models.m
 - ✅ Slice 5 — Design.md AI lines, setup.md Model watch secret step, changelog
 - ⬜ Operator: repo secret `ANTHROPIC_MODELS_API_KEY` + one Model watch run; live photo / PDF / PPTX import probe (each PDF batch under 30 s); deploy
 - Tests: api 1018 passed (1 skipped), frontend 659 passed
+
+## Post-v1 — Node 22 pin after the October 2026 Node.js security release
+
+- ✅ `staticwebapp.config.json` pins the managed API with `platform.apiRuntime: "node:22"` (it already ran 22 as the platform default; now a default change cannot move it back to EOL Node 20). Test: `PWA-13` in `frontend/src/pwa.test.js` (RED → GREEN)
+- ✅ CI, SWA deploy and Model watch workflows on Node 22 (was 20, EOL); root `engines` floor at the patched releases; `@types/node` ^22 in `api/`
+- ⬜ Operator: the managed runtime's patch level is Azure's; confirm it reaches 22.23.4 or later (CVE-2026-111497, -105482, -105483, -106069)
