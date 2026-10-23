@@ -7,7 +7,7 @@ doc covers everything in more detail.
 
 ## Prerequisites
 
-- **Node.js 20+** (`node -v` to check; tested on Node 24)
+- **Node.js 22.23.4+ / 24.22.1+ / 26.12.1+** (`node -v` to check; the API runs on Node 22 in Azure, pinned by `platform.apiRuntime` in `staticwebapp.config.json`)
 - **npm 10+** (comes with Node)
 - **Azurite** — local Azure Storage emulator: `npm install -g azurite`
 - **SWA CLI** — Azure Static Web Apps emulator: `npm install -g @azure/static-web-apps-cli`

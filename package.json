@@ -4,7 +4,7 @@
   "private": true,
   "description": "Root scripts only. The real projects are api/ (Azure Functions, TypeScript) and frontend/ (React + Vite). No workspaces: Azure Static Web Apps builds api/ and frontend/ in isolation and a workspace root would hoist the API's dependencies out of api/ on deploy.",
   "engines": {
-    "node": ">=20"
+    "node": "^22.23.4 || ^24.22.1 || >=26.12.1"
   },
   "scripts": {
     "install:all": "npm --prefix api ci --no-audit --no-fund && npm --prefix frontend ci --no-audit --no-fund",
